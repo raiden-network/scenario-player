@@ -1,0 +1,152 @@
+version: <int>
+
+# General Settings for running this scenario.
+settings:
+
+  # Configure the network to use and the gas price strategy to employ.
+  network:
+
+    # Select a chain to run the scenario on. Defaults to 'any', which randomly
+    # chooses a chain.
+    #
+    # Optional: True
+    # Default: 'any'
+    chain: <str>
+
+    # The gas price strategy to use. Defaults to "fast".
+    #
+    # Optional: True
+    # Default: 'fast'
+    gas_price_strategy: <str - 'medium', 'fast'>, <numeric>
+
+  # Confgigure the token to use for your scenario.
+  token:
+
+    # Address of an *existing* token. Setting this causes the `config` key to
+    # be ignored. Defualts to `None`.
+    #
+    # Optional: True
+    # Default: `None`
+    address: <str>, <None>
+
+    # Configuration for a token to be created for this scenario run.
+    config:
+
+      # Name of the token. This is auto-generated for you if not given.
+      #
+      # Optional: True
+      name: <str>
+
+      # Name of the token. This is auto-generated for you if not given.
+      #
+      # Optional: True
+      symbol: <str>
+
+      # The number of decimals this token supports. Defaults to 0.
+      #
+      # Optional: True
+      # Default: 0
+      decimals: <int>
+
+      # Whether or not to save this token for later runs of this scenario.
+      # Defaults to False.
+      #
+      # Optional: True
+      # Default: False
+      persist: <bool>
+
+    # The balance of the token required to execute the scenario.
+    #
+    # Optional: False
+    required_balance: <numeric>
+
+  # Enable any services required by this scenario. This section is optional,
+  # and by default all supported services are disabled.
+  services:
+
+    # Configure the pathfinding service.
+    pfs:
+      # Enable or disable the service. Defaults to False.
+      #
+      # Optional: True
+      # Default: False
+      enable: <bool>
+
+      # URL of the PFS. This is used to assert its state. Defaults to `None`.
+      #
+      # Optional: True
+      # Default: `None~
+      url: <str>, <None>
+
+    udc:
+      enable: <bool>
+      address: <str>
+      deposit_token: <bool>
+
+  # Configure the Raiden nodes to spin up and use for this scenario's run.
+  nodes:
+
+    # The number of Raiden nodes required for this scenario.
+    #
+    # Optional: False
+    count: <int>
+
+    # The release version of the Raiden client to use. Defaults to the latest
+    # version.
+    #
+    # Optional: True
+    # Default: 'latest'
+    release: <str>
+
+    # Options to pass to each client binary on the nodes. These are identical
+    # to the supported CLI flags of the raiden client binary (sans the leading
+    # double-dashes).
+    #
+    # Optional: True
+    # Default: <None>
+    defaults:
+      <cli_option>: <value>
+      ...
+    # Node-specific cli options to pass when starting nodes. Must be a dict with
+    # integer keys. Values must be a dict as well.
+    overrides:
+      <n>:
+        # An alias for the raiden node - this may be used in the scenario to
+        # refer to specific nodes. If omitted, we auto-generate an alias in the
+        # form of 'node-n', where <n> is the integer key.
+        #
+        # Optional: True
+        # Default: 'node-<n>'
+        alias: <str>
+        <cli_option>: <value>
+       ...
+
+# The actual scenario. It must contain the key `stages`, which must be a list of
+# len > 0.
+#
+# Optional: False
+scenario:
+  # The stages to execute when running this scenario. Stages are batches of tasks,
+  # which may be run asynchronously, or in sequence.
+  #
+  # Optional: False
+  stages:
+    -
+      # Name to give this stage. Thiis auto-generated if not given.
+      #
+      # Optional: True
+      # Default: stage-<n>
+      name: <str>
+
+      # Whether or not to run the tasks asynchronously, or in sequence. Defaults
+      # to False.
+      #
+      # Optional: True
+      # Default: True
+      async: <bool>
+
+      # The list of tasks to execute in this stage. Must not be empty.
+      #
+      # Optional: False
+      tasks:
+        - <task_name>: <dict>
