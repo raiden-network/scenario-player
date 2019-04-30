@@ -4,9 +4,9 @@ from typing import Any
 import structlog
 from toolz import first
 
-from raiden.scenario_player import ScenarioAssertionError, ScenarioError
-from raiden.scenario_player import ScenarioRunner
-from raiden.scenario_player import Task
+from raiden.scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from raiden.scenario_player.runner import ScenarioRunner
+from raiden.scenario_player.base import Task
 
 from .raiden_api import RaidenAPIActionTask
 

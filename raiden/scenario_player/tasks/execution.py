@@ -6,7 +6,7 @@ import structlog
 from gevent import Greenlet
 from gevent.pool import Group
 
-from raiden.scenario_player import ScenarioRunner
+from raiden.scenario_player.runner import ScenarioRunner
 
 from .base import Task, get_task_class_for_type
 

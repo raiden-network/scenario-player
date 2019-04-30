@@ -14,9 +14,9 @@ from raiden_contracts.constants import (
     MonitoringServiceEvent,
 )
 from raiden_contracts.contract_manager import ContractManager, get_contracts_deployment_info
-from raiden.scenario_player import ScenarioAssertionError, ScenarioError
-from raiden.scenario_player import ScenarioRunner
-from raiden.scenario_player import STORAGE_KEY_CHANNEL_INFO
+from raiden.scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from raiden.scenario_player.runner import ScenarioRunner
+from raiden.scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
 
 from .base import Task
 

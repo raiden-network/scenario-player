@@ -18,17 +18,17 @@ from web3.utils.transactions import TRANSACTION_DEFAULTS
 from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.scenario_player import tasks
-from raiden.scenario_player import ScenarioAssertionError, ScenarioError
-from raiden.scenario_player import ScenarioRunner
-from raiden.scenario_player import collect_tasks
-from raiden.scenario_player import (
+from raiden.scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from raiden.scenario_player.runner import ScenarioRunner
+from raiden.scenario_player.tasks.base import collect_tasks
+from raiden.scenario_player.ui import (
     LOGGING_PROCESSORS,
     NonStringifyingProcessorFormatter,
     ScenarioUI,
     UrwidLogRenderer,
     UrwidLogWalker,
 )
-from raiden.scenario_player import (
+from raiden.scenario_player.utils import (
     ChainConfigType,
     ConcatenableNone,
     DummyStream,

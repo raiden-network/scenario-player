@@ -1,6 +1,6 @@
 import structlog
 
-from raiden.scenario_player import TransferFailed
+from raiden.scenario_player.exceptions import TransferFailed
 from raiden.scenario_player.tasks.api_base import RESTAPIActionTask
 
 log = structlog.get_logger(__name__)

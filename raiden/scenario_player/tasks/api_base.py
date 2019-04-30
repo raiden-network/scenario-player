@@ -4,7 +4,7 @@ from typing import Any, Union
 import structlog
 from requests import ConnectTimeout, ReadTimeout, RequestException
 
-from raiden.scenario_player import RESTAPIError, RESTAPIStatusMismatchError, RESTAPITimeout
+from raiden.scenario_player.exceptions import RESTAPIError, RESTAPIStatusMismatchError, RESTAPITimeout
 from raiden.scenario_player.runner import ScenarioRunner
 
 from .base import Task
