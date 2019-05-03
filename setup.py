@@ -15,5 +15,6 @@ setup(
         'pyyaml',
         'redis',
         'gevent',
+        'urwid',
     ],
 )
