@@ -2,9 +2,15 @@ import pathlib
 
 from flask import Flask
 
+from raiden.scenario_player.services.common.blueprints import metrics_view
+
 
 def construct_flask_app(*blueprints, db_name='default', test_config=None, secret='dev'):
-    """Construct a flask app with the given blueprints registered."""
+    """Construct a flask app with the given blueprints registered.
+
+    By default all constructed apps have `/metrics` endpoint, which exposes
+    prometheus compatible metrics, if available.
+    """
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
@@ -19,6 +25,7 @@ def construct_flask_app(*blueprints, db_name='default', test_config=None, secret
         # load the test config if passed in
         app.config.from_mapping(test_config)
 
+    app.register_blueprint(metrics_view)
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
 
