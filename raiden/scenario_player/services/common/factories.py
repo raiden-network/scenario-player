@@ -3,13 +3,13 @@ import pathlib
 from flask import Flask
 
 
-def construct_flask_app(*blueprints, db_name='data', test_config=None, secret='dev'):
+def construct_flask_app(*blueprints, db_name='default', test_config=None, secret='dev'):
     """Construct a flask app with the given blueprints registered."""
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY=secret,
-        DATABASE=pathlib.Path(app.instance_path).joinpath(f'{db_name}.sqlite'),
+        DATABASE=db_name,
     )
 
     if test_config is None:
