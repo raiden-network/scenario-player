@@ -12,7 +12,7 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'scenario-player=raiden.scenario_player.main:main'
+            'scenario-player=raiden.scenario_player.main:main',
             'scenario-player-nightlies=raiden.scenario_player.scenarios.__init__:run_builtin_scenarios',
         ],
     },
