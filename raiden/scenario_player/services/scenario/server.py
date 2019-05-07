@@ -1,4 +1,4 @@
-from raiden.scenario_player.services.scenario.blueprint import scenario_view, runner_view, validate_view
+from raiden.scenario_player.services.scenario.blueprints import scenario_view, runner_view, validate_view
 from raiden.scenario_player.services.utils import construct_flask_app
 
 
