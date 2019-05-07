@@ -1,4 +1,7 @@
+from typing import Any
+
 import structlog
+
 
 from raiden.scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from raiden.scenario_player.tasks.api_base import RESTAPIActionTask
