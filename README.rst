@@ -8,7 +8,7 @@ Installation
 
 Using  ``git`` & ``pip``::
 
-    pip install -e git://git.example.com/MyProject
+    pip install -e git://github.com/raiden-network/scenario-player.git
 
 Usage
 -----
