@@ -1,30 +1,32 @@
 Raiden Scenario Player
 ======================
+The Raiden Scneario Player is an integration testing tool written in Python 3. It allows testing of various test scenarios, and is
+an integral component in the raiden test suite.
+
+Installation
+------------
+
+Using  `git` & `pip`::
+
+    pip install -e git://git.example.com/MyProject
 
 Usage
 -----
 
-Installation::
+Using a `pip` installation::
 
-    # in raiden/tools/scenario-player
-    # Using the same virtualenv that is used for raiden is possibe
-    pip install -r requirements.txt
+    scenario-player --help
 
-Help::
+Using `docker` (does not require installation via `pip`)::
 
-    python -m scenario_player --help
+    docker run raidennetwork/scenario-player
 
-Running::
-
-    python -m scenario_player \
-        --keystore-file <path/to/keystore.file> \
-        --password '<account-password>' \
-        <path/to/scenario-file.yaml>
 
 
 Scenario Definition
 -------------------
 
-TODO
-
-See ``example-scenarios/scenario-basic.yaml``.
+.. include:: raiden/scneario_player/scenarios/examples/v2-example-scenario.yaml
+  :tab-width: 2
+  :code: yaml
+  :name: example scenario
