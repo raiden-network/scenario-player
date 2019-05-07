@@ -157,7 +157,7 @@ def register_task(task_name, task):
 
 def collect_tasks(module):
     # If module is a package, discover inner packages / submodules
-    for sub_module in pkgutil.iter_modules([module.__path__._path[0]]):
+    for sub_module in pkgutil.iter_modules(path=module.__path__):
         _, sub_module_name, _ = sub_module
         sub_module_name = module.__name__ + "." + sub_module_name
         submodule = importlib.import_module(sub_module_name)
