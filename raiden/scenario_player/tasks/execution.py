@@ -8,7 +8,7 @@ from gevent.pool import Group
 
 from raiden.scenario_player.runner import ScenarioRunner
 
-from .base import Task, get_task_class_for_type
+from raiden.scenario_player.tasks.base import Task, get_task_class_for_type
 
 log = structlog.get_logger(__name__)
 

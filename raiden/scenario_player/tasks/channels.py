@@ -6,7 +6,7 @@ from toolz import first
 
 from raiden.scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from raiden.scenario_player.runner import ScenarioRunner
-from raiden.scenario_player.base import Task
+from raiden.scenario_player.tasks.base import Task
 
 from .raiden_api import RaidenAPIActionTask
 

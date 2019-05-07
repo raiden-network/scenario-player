@@ -18,7 +18,7 @@ from raiden.scenario_player.exceptions import ScenarioAssertionError, ScenarioEr
 from raiden.scenario_player.runner import ScenarioRunner
 from raiden.scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
 
-from .base import Task
+from raiden.scenario_player.tasks.base import Task
 
 log = structlog.get_logger(__name__)
 
