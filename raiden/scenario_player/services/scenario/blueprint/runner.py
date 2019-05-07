@@ -65,6 +65,7 @@ def list_running():
     """
     flask.abort(501)
 
+
 def kill_run():
     """Kill a scenario run specified by its `pid`.
 
@@ -80,8 +81,7 @@ def kill_run():
 
             {reason: "Missing parameter! 'sid'"}
     """
-
-    return '', 204
+    flask.abort(501)
 
 
 @runner_view.route('/scenarios/run/state', methods=['GET'])
@@ -125,7 +125,5 @@ def scenario_state_route():
             {reason: 'Run with pid <pid> not found!'}
 
     """
-    HTTP_REQUESTS_TOTAL.labels(request.method, '/scenarios/run').inc()
-    with (HTTP_EXCEPTIONS_TOTAL.labels(request.method, '/scenarios/run').count_exceptions(),
-          HTTP_REQUESTS_LATENCY.labels(request.method, '/scenarios/run').time()):
+    with track_red_metrics(request.method, '/scenarios/run/state'):
         flask.abort(501)
