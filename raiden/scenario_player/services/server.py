@@ -1,8 +1,9 @@
 from raiden.scenario_player.services.common.factories import construct_flask_app
 from raiden.scenario_player.services.keystore.blueprints import keystores_view
 from raiden.scenario_player.services.nodes.blueprints import nodes_view
-from raiden.scenario_player.services.scenario.blueprint import runner_view, scenario_view
+from raiden.scenario_player.services.scenario.blueprints import scenario_view
 from raiden.scenario_player.services.releases.blueprints import binaries_views, archives_views, releases_views
+from raiden.scenario_player.services.runner.blueprints import runner_view
 
 
 def create_master_service(test_config=None, secret='dev', db_name='default'):
