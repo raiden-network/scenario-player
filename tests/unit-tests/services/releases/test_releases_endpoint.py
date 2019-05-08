@@ -14,8 +14,8 @@ class TestReleasesHTTPConfig:
 
 class TestReleasesEndpoint:
 
-    def test_empty_db(self, release_manager_client):
-        resp = release_manager_client.get('/releases')
+    def test_empty_db(self, release_service_client):
+        resp = release_service_client.get('/releases')
         assert resp.is_json
         assert not resp.get_json()
         assert resp.status_code == 200
