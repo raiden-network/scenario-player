@@ -12,9 +12,9 @@ Using  ``git`` & ``pip``::
     git clone http://github.com/raiden-network/raiden
     cd raiden && make install && cd ..
     # Clone the scenario player repo, and install on the Raiden dev version.
-    (<raiden-venv>) git clone http://github.com/raiden-network/scenario-player
-    (<raiden-venv>) cd scenario-player
-    (<raiden-venv>) pip install -r requirements .
+    git clone http://github.com/raiden-network/scenario-player
+    cd scenario-player
+    pip install -r requirements .
 
 
 Usage
