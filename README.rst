@@ -8,7 +8,14 @@ Installation
 
 Using  ``git`` & ``pip``::
 
-    pip install -e git://github.com/raiden-network/scenario-player.git
+    # Clone the raiden repo and install its development version.
+    git clone http://github.com/raiden-network/raiden
+    cd raiden && make install && cd ..
+    # Clone the scenario player repo, and install on the Raiden dev version.
+    (<raiden-venv>) git clone http://github.com/raiden-network/scenario-player
+    (<raiden-venv>) cd scenario-player
+    (<raiden-venv>) pip install -r requirements .
+
 
 Usage
 -----
