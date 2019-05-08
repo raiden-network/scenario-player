@@ -1,16 +1,13 @@
-import os
-import tempfile
-
 import pytest
 
-from raiden.scenario_player.services import create_release_service, create_node_service, create_keystore_service, create_scenario_service
-from flaskr import create_app
-from flaskr.db import get_db, init_db
-
-SQL_SETUPS = {}
-for setup_name in ('node', 'releases', 'scenario', 'keystore'):
-    with open(os.path.join(os.path.dirname(__file__), f'{setup_name}.sql'), 'rb') as f:
-        SQL_SETUPS[setup_name] = f.read().decode('utf8')
+from raiden.scenario_player.services import (
+    create_release_service,
+    create_node_service,
+    create_keystore_service,
+    create_scenario_service,
+    create_runner_service,
+)
+from raiden.scenario_player.services.utils.testing import TestRedis
 
 
 CONSTRUCTORS = {
@@ -18,57 +15,68 @@ CONSTRUCTORS = {
     'releases': create_release_service,
     'keystore': create_keystore_service,
     'scenario': create_scenario_service,
+    'runner': create_runner_service,
 }
 
 
-def create_test_app(server_name, **additional_config_kwargs):
-    with tempfile.TemporaryFile() as db_fp:
-        config = {'TESTING': True, 'DATABASE': db_fp.name}
-        config.update(additional_config_kwargs)
-        app = CONSTRUCTORS[server_name](config)
+def create_test_app(service_name, **additional_config_kwargs):
+    config = {'TESTING': True, 'DATABASE': service_name}
+    config.update(additional_config_kwargs)
+    app = CONSTRUCTORS[service_name](config)
 
-        # Setup database
-        with app.app_context():
-            app.init_db()
-            get_db().executescript(SQL_SETUPS[server_name])
-        return app
+    return app
 
 
 @pytest.fixture
-def node_manager_app():
-    return create_app('node')
+def node_service_app():
+    return create_test_app('node')
 
 
 @pytest.fixture
-def node_manager_client(node_manager_app):
-    return node_manager_app.test_client()
+def node_service_client(node_service_app):
+    yield node_service_app.test_client()
+    TestRedis(None).pop('node')
 
 
 @pytest.fixture
-def release_manager_app():
-    return create_app('releases')
+def release_service_app():
+    return create_test_app('releases')
 
 
 @pytest.fixture
-def release_manager_client(release_manager_app):
-    return release_manager_app.test_client()
+def release_service_client(release_service_app):
+    yield release_service_app.test_client()
+    TestRedis(None).pop('releases')
 
 
 @pytest.fixture
-def keystore_manager_app():
-    return create_app('keystore')
+def keystore_service_app():
+    return create_test_app('keystore')
 
 
 @pytest.fixture
-def keystore_manager_client(keystore_manager_app):
-    return keystore_manager_app.test_client()
+def keystore_service_client(keystore_service_app):
+    yield keystore_service_app.test_client()
+    TestRedis(None).pop('keystore')
 
 
 @pytest.fixture
-def scenario_manager_app():
-    return create_app('scenario')
+def scenario_service_app():
+    return create_test_app('scenario')
 
 
 @pytest.fixture
-def scenarion_manager_client(scenario_manager_app):
-    return scenario_manager_app.test_client()
+def scenarion_service_client(scenario_service_app):
+    yield scenario_service_app.test_client()
+    TestRedis(None).pop('scenario')
+
+
+@pytest.fixture
+def runner_service_app():
+    return create_test_app('runner')
+
+
+@pytest.fixture
+def scenarion_service_client(runner_service_app):
+    yield scenario_service_app.test_client()
+    TestRedis(None).pop('runner')
