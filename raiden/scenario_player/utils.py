@@ -259,7 +259,7 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
 
 def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[ContractProxy]]:
     """ Return contract proxies for the UserDepositContract and associated token """
-    from raiden.scenario_player import ScenarioRunner
+    from raiden.scenario_player.runner import ScenarioRunner
     assert isinstance(runner, ScenarioRunner)
 
     udc_config = runner.scenario.services.get('udc', {})
