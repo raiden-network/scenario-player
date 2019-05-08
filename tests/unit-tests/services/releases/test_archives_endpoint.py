@@ -2,7 +2,7 @@ import pathlib
 from unittest import mock
 
 
-from .utils import TestRedis
+from raiden.scenario_player.services.utils.testing import TestRedis
 
 
 class TestArchivesHTTPConfig:
