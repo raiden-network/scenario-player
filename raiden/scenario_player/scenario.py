@@ -270,7 +270,7 @@ class Scenario(Mapping):
     @property
     def task_class(self):
         """Return the Task class type configured for the scenario."""
-        from raiden.scenario_player import get_task_class_for_type
+        from raiden.scenario_player.tasks.base import get_task_class_for_type
 
         root_task_type, _ = self.task
 
