@@ -35,4 +35,5 @@ from raiden.scenario_player.services.keystore import create_keystore_service
 from raiden.scenario_player.services.nodes import create_node_service
 from raiden.scenario_player.services.releases import create_release_service
 from raiden.scenario_player.services.scenario import create_scenario_service
+from raiden.scenario_player.services.runner import create_runner_service
 from raiden.scenario_player.services.server import create_master_service
