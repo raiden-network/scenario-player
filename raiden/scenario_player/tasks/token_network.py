@@ -1,4 +1,4 @@
-from .raiden_api import RaidenAPIActionTask
+from raiden.scenario_player.tasks.raiden_api import RaidenAPIActionTask
 
 
 class JoinTokenNetwork(RaidenAPIActionTask):

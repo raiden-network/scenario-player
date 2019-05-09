@@ -8,7 +8,7 @@ from raiden.scenario_player.exceptions import ScenarioAssertionError, ScenarioEr
 from raiden.scenario_player.runner import ScenarioRunner
 from raiden.scenario_player.tasks.base import Task
 
-from .raiden_api import RaidenAPIActionTask
+from raiden.scenario_player.tasks.raiden_api import RaidenAPIActionTask
 
 STORAGE_KEY_CHANNEL_INFO = 'channel_info'
 
