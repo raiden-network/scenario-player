@@ -52,3 +52,19 @@ class MissingNodesConfiguration(ScenarioError, KeyError):
 
 class ScenarioAssertionError(ScenarioError):
     pass
+
+
+class BrokenArchive(Exception):
+    """There was an error opening the archive and it is likely corrupted."""
+
+
+class ArchiveNotAvailableOnLocalMachine(FileNotFoundError):
+    """The archive was not found on the local machine."""
+
+
+class InvalidArchiveLayout(ValueError):
+    """The archive did contain the expected folder structure."""
+
+
+class InvalidArchiveType(TypeError):
+    """The archive file is not a zip or tar gz file."""
