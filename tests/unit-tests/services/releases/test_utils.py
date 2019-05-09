@@ -1,3 +1,5 @@
+import pathlib
+
 from unittest import mock
 
 import pytest
@@ -57,6 +59,8 @@ class RaidenArchiveClassTestCase:
     def archive_constructor(ext: str, folders: int=1, files: int=1, broken: bool=False):
         """Create an archive file.
 
+        When used as a context manager, it will automatically clean up the file.
+
         :param ext:
             The archive type. If this is not ``zip`` or ``tar.gz`` we use zip and replace the ext
             with the given one. We assume that in this case, the file will not be opened - otherwise
@@ -77,7 +81,7 @@ class RaidenArchiveClassTestCase:
 
         archive = archive_path
         if broken:
-            archive = archive.rename(f'{archive.resolve()}.{"zip" if ext == "tar.gz" else "tar.gz"}')
+            archive.rename(f'{archive.resolve()}.{"zip" if ext == "tar.gz" else "tar.gz"}')
 
         yield archive
 
@@ -110,11 +114,17 @@ class RaidenArchiveClassTestCase:
     def test_unpack_chooses_correct_open_function_depending_on_extension(self, mock_tarfile_list, mock_zipfile_list, ext, uses_tarfile, uses_zipfile):
         with self.create_valid_archive(ext) as archive_path:
             archive = RaidenArchive(archive_path)
-            UNPACK_PATH = pathlib.Path('./unpacked.archive')
+            UNPACK_PATH = pathlib.Path('./unpacked')
             archive.unpack(UNPACK_PATH)
             assert mock_tarfile_list.called is uses_tarfile
             assert mock_zipfile_list.called is uses_zipfile
             UNPACK_PATH.unlink()
+
+    def test_archive_unpack_returns_the_path_to_the_unpacked_binary(self):
+        with self.create_valid_archive('zip') as archive_path:
+            UNPACK_PATH = pathlib.Path('./unpacked')
+            bin_path = archive.unpack(UNPACK_PATH)
+            assert UNPACK_PATH == bin_path.joinpath(archive_path.stem)
 
     def test_class_raises_ArchiveNotVailableOnLocalMachine_exception_if_the_given_archive_path_does_not_exist(self):
         with pytest.raises(ArchiveNotAvailableOnLocalMachine):
