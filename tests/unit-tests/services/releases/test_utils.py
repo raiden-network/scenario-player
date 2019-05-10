@@ -1,6 +1,7 @@
 import pathlib
 import filecmp
 
+from contextlib import contextmanager
 from typing import Tuple
 from unittest import mock
 
@@ -16,6 +17,7 @@ from raiden.scenario_player.exceptions import ArchiveNotAvailableOnLocalMachine
 from raiden.scenario_player.exceptions import BrokenArchive
 from raiden.scenario_player.exceptions import InvalidArchiveLayout
 from raiden.scenario_player.exceptions import InvalidArchiveType
+from raiden.scenario_player.exceptions import InvalidReleaseVersion
 
 
 
@@ -58,6 +60,7 @@ class DownloadArchiveTestCase:
 
 class RaidenArchiveClassTestCase:
 
+    @contextmanager
     @staticmethod
     def archive_constructor(root_dir: pathlib.Path, ext: str, folders: int=1, files: int=1, broken: bool=False) -> pathlib.Path:
         """Create an archive file.
@@ -98,19 +101,23 @@ class RaidenArchiveClassTestCase:
         if broken:
             packed_path.rename(f'{packed_path.resolve()}.{"zip" if ext == "tar.gz" else "tar.gz"}')
 
-        return packed_path
+        yield packed_path
 
+    @contextmanager
     def create_valid_archive(self, root_dir, ext):
-        return self.archive_constructor(root_dir, ext)
+        yield self.archive_constructor(root_dir, ext)
 
+    @contextmanager
     def create_invalid_archive_multiple_dirs(self, root_dir, ext):
-        return self.archive_constructor(root_dir, ext, folders=2)
+        yield self.archive_constructor(root_dir, ext, folders=2)
 
+    @contextmanager
     def create_invalid_archive_single_dir_multiple_files(self, root_dir, ext):
-        return self.archive_constructor(root_dir, ext, files=2)
+        yield self.archive_constructor(root_dir, ext, files=2)
 
+    @contextmanager
     def create_broken_archive(self, root_dir, ext):
-        return self.archive_constructor(root_dir, ext, broken=True)
+        yield self.archive_constructor(root_dir, ext, broken=True)
 
     @pytest.mark.parametrize('ext, uses_tarfile, uses_zipfile', [('tar.gz', True, False), ('zip', False, True)])
     @mock.patch("raiden.scneario_player.services.releases.utils.zipfile.Zipfile")
