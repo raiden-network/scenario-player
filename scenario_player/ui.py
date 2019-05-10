@@ -54,8 +54,7 @@ class _DummyFormatter(logging.Formatter):
 
 
 class NonStringifyingProcessorFormatter(ProcessorFormatter, _DummyFormatter):
-    def __init__(self, *args, **kwargs):
-        super().__init__(self, *args, **kwargs)
+    pass
 
 
 class SelectableText(uwd.Text):
