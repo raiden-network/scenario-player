@@ -1,4 +1,66 @@
 import pathlib
+import shutil
+
+
+def parse_version( bin_path: pathlib.Path) -> Tuple[str, str]:
+    """Extract the Archive or Binary's version and architecture from it's file name."""
+
+
+class ManagedFile:
+    """Generic file management interface."""
+    def __init__(self, path: pathlib.Path, existing_symlinks: Optional[Iterable]=None, existing_copies: Optional[Iterable]=None) -> None:
+        self.path = path
+        self.copies = existing_copies or set()
+        self.symlinks = existing_symlinks or set()
+
+    @property
+    def exists_locally(self) -> bool:
+        return self.path.exists()
+
+    @property
+    def has_local_copies(self) -> bool:
+        return bool(self.copies)
+
+    @property
+    def has_symlinks(self) -> bool:
+        return bool(self.symlinks)
+
+    def update_file_references(self):
+        self.copies = {
+            copy for copy in self.copies
+            if copy.resolve().joinpath(self.path.name).exists()
+        }
+        self.symlinks = {
+            symlink for symlink in self.copies
+            if symlink.resolve().joinpath(self.path.name).exists()
+               and symlink.resolve().joinpath(self.path.name).is_symlink()
+        }
+
+    def remove_from_dir(self, dir: pathlib.Path):
+        if dir in self.copies:
+            self.copies.remove(dir)
+        elif dir in self.symlinks:
+            self.symlinks.remove(dir)
+        else:
+            return False
+        target = dir.joinpath(self.path.name)
+        if target.exists():
+            target.unlink()
+        return True
+
+    def copy_to_dir(self, target_dir: pathlib.Path, overwrite=False):
+        if target_dir not in self.copies or overwrite:
+            target = target_dir.resolve().joinpath(self.path.name)
+            shutil.copyfile(str(self.path.resolve()), str(target.resolve()))
+            if not target.exists():
+                raise FileOperationError(f'Could not create copy {str(target.resolve())}')
+            self.copies.add(target_dir)
+
+    def create_symlink(self, target_dir: pathlib.Path, overwrite: bool=False):
+        target = target_dir.resolve().joinpath(self.path.name)
+        if not target.exists() or overwrite:
+            # Create a symlink at target.
+            target.symlink_to(self.path)
 
 
 class RaidenArchive:

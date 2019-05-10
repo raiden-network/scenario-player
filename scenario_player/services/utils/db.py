@@ -104,7 +104,7 @@ def get_db():
     if 'db' not in g:
         if current_app.config.get('TESTING', False):
             # Import the test db class on the fly, to avoid circular import fuck-ups.
-            from raiden.scenario_player.services.utils.testing import TestRedis
+            from scenario_player.services.utils.testing import TestRedis
             g.db = TestRedis(db_name)
         else:
             g.db = JSONRedis(db_name)
