@@ -1,6 +1,6 @@
 import flask
 
-from raiden.scenario_player.services.common.metrics import track_red_metrics
+from scenario_player.services.common.metrics import track_red_metrics
 
 keystores_view = flask.Blueprint('keystores', __name__)
 

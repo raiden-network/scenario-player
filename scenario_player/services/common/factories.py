@@ -2,7 +2,7 @@ import pathlib
 
 from flask import Flask
 
-from raiden.scenario_player.services.common.blueprints import metrics_view
+from scenario_player.services.common.blueprints import metrics_view
 
 
 def construct_flask_app(*blueprints, db_name='default', test_config=None, secret='dev'):
