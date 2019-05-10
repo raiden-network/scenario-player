@@ -18,8 +18,7 @@ from raiden.scenario_player.exceptions import BrokenArchive
 from raiden.scenario_player.exceptions import InvalidArchiveLayout
 from raiden.scenario_player.exceptions import InvalidArchiveType
 from raiden.scenario_player.exceptions import InvalidReleaseVersion
-
-
+from raiden.scenario_player.exceptions import TargetPathMustBeDirectory
 
 
 class DownloadArchiveTestCase:
@@ -172,21 +171,24 @@ class RaidenArchiveClassTestCase:
 
 class RaidenBinaryClassTestCase:
 
+    @contextmanager
     def create_bin_file(self, root_dir: pathlib.Path) -> pathlib.Path:
         bin_path = root_dir.joinpath('raiden-linux-v1.2.3')
-        return bin_path
+        yield bin_path
 
+    @contextmanager
     def create_bin_obj(self, root_dir: pathlib.Path) ->  Tuple[pathlib.Path, RaidenBinary]:
         with self.create_bin_file(root_dir) as bin_path:
             bin_obj = RaidenBinary(bin_path)
-            return bin_path, bin_obj
+            yield bin_path, bin_obj
 
+    @contextmanager
     def create_installed_bin_obj(self, root_dir: pathlib.Path) -> Tuple[pathlib.Path, RaidenBinary, pathlib.Path]:
-        with self.create_bin_obj(root_dir) as bin_path, bin_obj:
+        with self.create_bin_obj(root_dir) as (bin_path, bin_obj):
             install_path = pathlib.Path('./raiden-binary-class-tests/')
             install_path.mkdir(exist_ok=True)
             bin_obj.install()
-            return bin_path, bin_obj, install_path
+            yield bin_path, bin_obj, install_path
 
     def test_class_raises_BinaryDoesNotExist_if_the_binary_path_does_not_exist(self):
         bin_path = pathlib.Path('/does/not/exist')
@@ -195,13 +197,13 @@ class RaidenBinaryClassTestCase:
 
     @mock.patch('raiden.scenario_player.services.releases.utils.pathlib.Path.chmod')
     def test_class_sets_correct_permissions_on_binary_after_extraction_from_archive(self, mock_chmod, tmpdir_path):
-        with self.create_bin_obj(tmpdir_path) as bin_path, bin_obj:
+        with self.create_bin_obj(tmpdir_path) as (bin_path, bin_obj):
             mock_chmod.assert_called_once_with('755')
             assert bin_obj.executable is True
             assert bin_obj.installed is False
 
     def test_install_creates_a_symlink_at_given_location_by_default(self, tmpdir_path):
-        with self.create_bin_file(tmpdir_path) as bin_path, bin_obj:
+        with self.create_bin_file(tmpdir_path) as (bin_path, bin_obj):
             install_path = pathlib.Path('./install')
             install_path.mkdir(exist_ok=True)
             install_path = bin_obj.install(str(install_path))
@@ -211,7 +213,7 @@ class RaidenBinaryClassTestCase:
             assert bin_obj.installed
 
     def test_install_creates_a_copy_of_the_binary_at_given_location_if_as_symlink_parameter_is_False(self, tmpdir_path):
-        with self.create_bin_obj(tmpdir_path) as bin_path, bin_obj:
+        with self.create_bin_obj(tmpdir_path) as (bin_path, bin_obj):
             install_path = pathlib.Path('./install')
             install_path.mkdir(exist_ok=True)
             install_path = bin_obj.install(str(install_path), as_symlink=False)
@@ -221,19 +223,19 @@ class RaidenBinaryClassTestCase:
             assert bin_obj.installed
 
     def test_uninstall_removes_file_at_the_binarys_install_dir(self, tmpdir_path):
-        with self.create_installed_bin_obj(tmpdir_path) as bin_path, bin_obj, install_dir:
+        with self.create_installed_bin_obj(tmpdir_path) as (bin_path, bin_obj, install_dir):
             assert install_path.exists() is True
             bin_obj.uninstall()
             assert install_path.exists() is False
             assert bin_path.exists() is True
 
     def test_remove_method_raises_a_CannotRemoveInstalledBinary_exception_if_binary_is_installed(self, tmpdir_path):
-        with self.create_installed_bin_obj(tmpdir_path) as _, bin_obj, __:
+        with self.create_installed_bin_obj(tmpdir_path) as (_, bin_obj, __):
             with pytest.raises(CannotRemoveInstalledBinary):
                 bin_obj.remove()
 
     def test_remove_method_deletes_the_binary_from_disk_if_not_installed(self, tmpdir_path):
-        with self.create_bin_obj(tmpdir_path) as bin_path, bin_obj:
+        with self.create_bin_obj(tmpdir_path) as (bin_path, bin_obj):
             assert bin_obj.exists
             assert bin_obj.installed is False
 
@@ -246,7 +248,7 @@ class RaidenBinaryClassTestCase:
     @mock.patch('raiden.scenario_player.services.releases.utils.RaidenBinary.remove')
     @mock.patch('raiden.scenario_player.services.releases.utils.RaidenBinary.uninstall')
     def test_purge_method_calls_uninstall_and_remove(self, bin_uninstall, bin_remove, tmpdir_path):
-        with self.create_installed_bin_obj(tmpdir_path) as _, bin_obj, __:
+        with self.create_installed_bin_obj(tmpdir_path) as (_, bin_obj, __):
             bin_obj.purge()
 
             assert bin_uninstall.called
@@ -256,18 +258,18 @@ class RaidenBinaryClassTestCase:
             assert bin_obj.exists_locally is False
 
     def test_install_raises_a_BinaryDoesNotOnLocalMachine_if_bin_file_no_longer_exists(self, tmpdir_path):
-        with self.create_bin_obj(tmpdir_path) as bin_path, bin_obj:
+        with self.create_bin_obj(tmpdir_path) as (bin_path, bin_obj):
             bin_path.unlink()
             assert bin_path.exists() is False
             with pytest.raises(BinaryDoesNotExistOnLocalMachine):
                 bin_obj.install(tmpdir_path)
 
     def test_instance_can_be_created_from_a_dict_in_a_correct_format_using_its_from_dict_method(self, tmpdir_path):
-        with self.create_installed_bin_obj(tmpdir_path) as _, bin_obj, __:
+        with self.create_installed_bin_obj(tmpdir_path) as (_, bin_obj, __):
             obj_dict = vars(bin_obj)
             loaded_bin_obj = RaidenBinary.from_dict(obj_dict)
             assert bin_obj == loaded_bin_obj
 
     def test_class_has_expected_attributes(self, tmpdir_path):
-        with self.create_bin_obj(tmpdir_path) as bin_path, bin_obj:
+        with self.create_bin_obj(tmpdir_path) as (bin_path, bin_obj):
             assert vars(bin_obj).keys() == {'bin_path', 'install_path', 'version'}
