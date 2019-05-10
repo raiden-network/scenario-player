@@ -1,11 +1,9 @@
-from gevent import monkey
+from gevent import monkey  # isort:skip
 
-monkey.patch_all()
+monkey.patch_all()  # isort:skip
 
+
+from .main import main
 
 if __name__ == "__main__":
-    from .main import main
-
-    main(  # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
-        prog_name="python -m scenario_player"
-    )
+    main()
