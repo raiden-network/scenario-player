@@ -68,3 +68,11 @@ class InvalidArchiveLayout(ValueError):
 
 class InvalidArchiveType(TypeError):
     """The archive file is not a zip or tar gz file."""
+
+
+class InvalidReleaseVersion(ValueError):
+    """The given version does not exist or could not be found in the raiden cloud."""
+
+
+class TargetMustBeDirectory(TypeError):
+    """A pathlib.Path object was passed that is not a directory."""
