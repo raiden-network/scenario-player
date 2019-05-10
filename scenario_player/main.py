@@ -12,11 +12,11 @@ import click
 import gevent
 import structlog
 from eth_utils import to_checksum_address
+from raiden.accounts import Account
+from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from urwid import ExitMainLoop
 from web3.utils.transactions import TRANSACTION_DEFAULTS
 
-from raiden.accounts import Account
-from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.runner import ScenarioRunner

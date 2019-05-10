@@ -2,11 +2,11 @@ from typing import Any
 
 import structlog
 
-
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.api_base import RESTAPIActionTask
 from scenario_player.tasks.base import Task
-from scenario_player.runner import ScenarioRunner
+
 log = structlog.get_logger(__name__)
 
 
@@ -24,58 +24,56 @@ class AssertPFSRoutesTask(RESTAPIActionTask):
 
         Default of `max_paths` is 5
     """
-    _name = 'assert_pfs_routes'
-    _method = 'post'
+
+    _name = "assert_pfs_routes"
+    _method = "post"
     _url_template = "{pfs_url}/api/v1/{token_network_address}/paths"
 
     @property
     def _request_params(self):
-        source = self._config['from']
+        source = self._config["from"]
         if isinstance(source, str) and len(source) == 42:
             source_address = source
         else:
             source_address = self._runner.get_node_address(source)
 
-        target = self._config['to']
+        target = self._config["to"]
         if isinstance(target, str) and len(target) == 42:
             target_address = target
         else:
             target_address = self._runner.get_node_address(target)
 
-        amount = int(self._config['amount'])
-        max_paths = int(self._config.get('max_paths', 5))
+        amount = int(self._config["amount"])
+        max_paths = int(self._config.get("max_paths", 5))
 
         params = {
-            'from': source_address,
-            'to': target_address,
-            'value': amount,
-            'max_paths': max_paths,
+            "from": source_address,
+            "to": target_address,
+            "value": amount,
+            "max_paths": max_paths,
         }
         return params
 
     @property
     def _url_params(self):
-        pfs_url = self._runner.scenario.services.get('pfs', {}).get('url')
+        pfs_url = self._runner.scenario.services.get("pfs", {}).get("url")
         if not pfs_url:
-            raise ScenarioError('PFS tasks require settings.services.pfs.url to be set.')
+            raise ScenarioError("PFS tasks require settings.services.pfs.url to be set.")
 
-        params = dict(
-            pfs_url=pfs_url,
-            token_network_address=self._runner.token_network_address,
-        )
+        params = dict(pfs_url=pfs_url, token_network_address=self._runner.token_network_address)
         return params
 
     def _process_response(self, response_dict: dict):
-        paths = response_dict.get('result')
+        paths = response_dict.get("result")
         if paths is None:
             raise ScenarioAssertionError("No 'result' key in result from PFS")
 
         num_paths = len(paths)
-        exptected_paths = int(self._config['expected_paths'])
+        exptected_paths = int(self._config["expected_paths"])
         if num_paths != exptected_paths:
-            log.debug('Received paths', paths=paths)
+            log.debug("Received paths", paths=paths)
             raise ScenarioAssertionError(
-                f'Expected {exptected_paths} paths, but PFS returned {num_paths} paths.',
+                f"Expected {exptected_paths} paths, but PFS returned {num_paths} paths."
             )
 
 
@@ -126,31 +124,32 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
             ]
         }
     """
-    _name = 'assert_pfs_history'
+
+    _name = "assert_pfs_history"
     _url_template = (
         "{pfs_url}/api/v1/_debug/routes/{token_network_address}/{source_address}/{extra_params}"
     )
 
     @property
     def _url_params(self):
-        pfs_url = self._runner.scenario.services.get('pfs', {}).get('url')
+        pfs_url = self._runner.scenario.services.get("pfs", {}).get("url")
         if not pfs_url:
-            raise ScenarioError('PFS tasks require settings.services.pfs.url to be set.')
+            raise ScenarioError("PFS tasks require settings.services.pfs.url to be set.")
 
-        source = self._config['source']
+        source = self._config["source"]
         if isinstance(source, str) and len(source) == 42:
             source_address = source
         else:
             source_address = self._runner.get_node_address(source)
 
-        extra_params = ''
-        if 'target' in self._config:
-            target = self._config['target']
+        extra_params = ""
+        if "target" in self._config:
+            target = self._config["target"]
             if isinstance(target, str) and len(target) == 42:
                 target_address = target
             else:
                 target_address = self._runner.get_node_address(target)
-            extra_params = f'/{target_address}'
+            extra_params = f"/{target_address}"
 
         params = dict(
             pfs_url=pfs_url,
@@ -161,16 +160,16 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
         return params
 
     def _process_response(self, response_dict: dict):
-        exp_request_count = self._config.get('request_count')
+        exp_request_count = self._config.get("request_count")
         if exp_request_count:
-            actual_request_count = response_dict['request_count']
+            actual_request_count = response_dict["request_count"]
             if actual_request_count != exp_request_count:
                 raise ScenarioAssertionError(
-                    f'Expected request_count {exp_request_count} but got {actual_request_count}',
+                    f"Expected request_count {exp_request_count} but got {actual_request_count}"
                 )
 
-        actual_routes_counts = [len(response['routes']) for response in response_dict['responses']]
-        exp_routes_counts = self._config.get('routes_count')
+        actual_routes_counts = [len(response["routes"]) for response in response_dict["responses"]]
+        exp_routes_counts = self._config.get("routes_count")
         if exp_routes_counts:
             if isinstance(exp_routes_counts, int):
                 request_count = exp_request_count if exp_request_count else 1
@@ -178,36 +177,36 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
             elif isinstance(exp_routes_counts, (list, tuple)):
                 if len(exp_routes_counts) != len(actual_routes_counts):
                     raise ScenarioAssertionError(
-                        f'Expected {len(exp_routes_counts)} routes but got '
-                        f'{len(actual_routes_counts)}',
+                        f"Expected {len(exp_routes_counts)} routes but got "
+                        f"{len(actual_routes_counts)}"
                     )
 
             loop_iterator = enumerate(zip(exp_routes_counts, actual_routes_counts))
             for i, (exp_route_count, actual_route_count) in loop_iterator:
                 if exp_route_count != actual_route_count:
                     raise ScenarioAssertionError(
-                        f'Expected route count {exp_route_count} but got {actual_route_count} '
-                        f'at index {i}',
+                        f"Expected route count {exp_route_count} but got {actual_route_count} "
+                        f"at index {i}"
                     )
 
         actual_routes = [
-            route['path']
-            for response in response_dict['responses']
-            for route in response['routes']
-            if response['routes']
+            route["path"]
+            for response in response_dict["responses"]
+            for route in response["routes"]
+            if response["routes"]
         ]
 
-        exp_routes = self._config.get('expected_routes')
+        exp_routes = self._config.get("expected_routes")
         if exp_routes:
             if len(exp_routes) != len(actual_routes):
                 raise ScenarioAssertionError(
-                    f'Expected {len(exp_routes)} routes but got {len(actual_routes)}.',
+                    f"Expected {len(exp_routes)} routes but got {len(actual_routes)}."
                 )
             for i, (exp_route, actual_route) in enumerate(zip(exp_routes, actual_routes)):
                 exp_route_addr = [self._runner.get_node_address(node) for node in exp_route]
                 if exp_route_addr != actual_route:
                     raise ScenarioAssertionError(
-                        f'Expected route {exp_route} but got {actual_route} at index {i}',
+                        f"Expected route {exp_route} but got {actual_route} at index {i}"
                     )
 
 
