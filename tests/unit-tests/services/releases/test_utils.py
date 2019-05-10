@@ -12,6 +12,7 @@ from requests import Response
 from raiden.scenario_player.services.releases.utils import download_archive
 from raiden.scenario_player.services.releases.utils import RaidenArchive
 from raiden.scenario_player.services.releases.utils import RaidenBinary
+from raiden.scenario_player.services.releases.utils import ManagedFile
 
 from raiden.scenario_player.exceptions import ArchiveNotAvailableOnLocalMachine
 from raiden.scenario_player.exceptions import BrokenArchive
@@ -55,6 +56,156 @@ class DownloadArchiveTestCase:
         mock_get.return_value = mock_resp
         with pytest.raises(InvalidReleaseVersion):
             download_archive('42')
+
+
+class TestManagedFileInterfaceClass:
+
+    @contextmanager
+    def setup_env(self, root_dir):
+        src_file = root_dir.joinpath('test_file')
+        tar_dir = root_dir.joinpath('target_folder')
+        tar_dir.mkdir()
+        yield  src_file, tar_dir
+
+    def test_class_checks_if_file_exists_on_instance_creation(self):
+        with pytest.raises(FileNotFoundError):
+            ManagedFile(pathlib.Path('/does/not/exist'))
+
+    def test_copy_to_dir_copies_file_to_target(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+            assert tar_path.joinpath(src_fpath.name).resolve().exists() is False
+            managed_file.copy_to_dir(tar_path)
+            assert tar_path.joinpath(src_fpath.name).resolve().exists() is True
+
+    @pytest.mark.parametrize('method', [ManagedFile.copy_to_dir, ManagedFile.create_symlink])
+    def test_creation_methods_raise_TargetPathMustBeDirectory_exception_if_the_target_is_not_a_directory(self, tmpdir_path, method):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+            target = tar_path.joinpath('file_1')
+            target.touch()
+            assert target.is_file()
+            with pytest.raises(TargetPathMustBeDirectory):
+                method(managed_file, target)
+
+    def test_copy_to_dir_correctly_updates_reference_list_in_instance(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+            assert bool(managed_file.copies) is False
+            managed_file.copy_to_dir(tar_path)
+            assert tar_path in managed_file.copies
+            assert len(managed_file.copies) == 1
+
+    def test_create_symlink_creates_a_symlink_in_target_dir_and_links_to_correct_path(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+            assert tar_path.joinpath(src_fpath.name).resolve().exists() is False
+            managed_file.create_symlink(tar_path)
+            assert tar_path.joinpath(src_fpath.name).resolve().exists() is True
+            assert tar_path.joinpath(src_fpath.name).is_symlink() is True
+            assert tar_path.joinpath(src_fpath.name).resolve() == src_fpath
+
+    def test_create_symlink_updates_references_correctly(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+            assert bool(managed_file.copies) is False
+            managed_file.create_symlink(tar_path)
+            assert tar_path in managed_file.symlinks
+            assert len(managed_file.symlinks) == 1
+
+    def test_remove_from_dir_removes_copy_at_target(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+
+            # Inject a tar path.
+            tar_file = tar_path.joinpath('file_1')
+            tar_file.touch()
+            managed_file.copies.add(pathlib.Path(tar_path))
+
+            managed_file.remove_from_dir(tar_path)
+            assert tar_file.exists() is False
+            assert tar_path not in managed_file.copies
+
+    def test_remove_from_dir_removes_symlink_at_target(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+
+            # Inject a tar path.
+            tar_file = tar_path.joinpath('file_1')
+            tar_file.create_symlink(src_fpath)
+            managed_file.symlinks.add(pathlib.Path(tar_path))
+
+            managed_file.remove_from_dir(tar_path)
+            assert tar_file.exists() is False
+
+    def test_remove_from_dir_updates_reference_if_target_was_symlink(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+
+            # Inject a tar path.
+            tar_file = tar_path.joinpath('file_1')
+            tar_file.create_symlink(src_fpath)
+            managed_file.symlinks.add(pathlib.Path(tar_path))
+            managed_file.copies.add(pathlib.Path(tar_path))
+
+            managed_file.remove_from_dir(tar_path)
+            assert tar_path not in managed_file.copies
+            assert tar_path in managed_file.symlinks
+
+    def test_remove_from_dir_updates_reference_if_target_was_file(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+
+            # Inject a tar path.
+            tar_file = tar_path.joinpath('file_1')
+            tar_file.create_symlink(src_fpath)
+            managed_file.symlinks.add(pathlib.Path(tar_path))
+            managed_file.copies.add(pathlib.Path(tar_path))
+
+            managed_file.remove_from_dir(tar_path)
+            assert tar_path in managed_file.symlinks
+            assert tar_path not in managed_file.copies
+
+    @pytest.mark.parametrize('method, attribute', [(ManagedFile.copy_to_dir, 'copies'), (ManagedFile.create_symlink, 'symlinks')])
+    def test_update_file_references_detects_disk_changes_correctly(self, method, attribute, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+
+            # Create a copy or symlink of the file via the interface.
+            method(managed_file, tar_path)
+
+            # Unlink the files directly, by-passing the file interface.
+            target = tar_path.joinpath(src_fpath.name)
+            target.unlink()
+
+            # Update the references and assert the result is correct.
+            managed_file.update_file_references()
+            assert len(getattr(managed_file, attribute)) == 0
+
+    def test_has_copies_property_correctly_evaluates_to_a_boolean_in_regard_to_the_correct_reference_list(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+            assert managed_file.has_symlinks is False
+
+            # Inject a tar path.
+            tar_file = tar_path.joinpath('file_1')
+            tar_file.create_symlink(src_fpath)
+            managed_file.symlinks.add(pathlib.Path(tar_path))
+
+            assert managed_file.has_symlinks is True
+
+    def test_has_symlink_property_correctly_evaluates_to_a_boolean_in_regard_to_the_correct_reference_list(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+
+            assert managed_file.has_local_copies is False
+
+            # Inject a tar path.
+            tar_file = tar_path.joinpath('file_1')
+            tar_file.create_symlink(src_fpath)
+            managed_file.copies.add(pathlib.Path(tar_path))
+
+            assert managed_file.has_local_copies is True
 
 
 class RaidenArchiveClassTestCase:
