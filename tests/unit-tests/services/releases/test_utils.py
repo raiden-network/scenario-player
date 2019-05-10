@@ -9,17 +9,17 @@ import pytest
 
 from requests import Response
 
-from raiden.scenario_player.services.releases.utils import download_archive
-from raiden.scenario_player.services.releases.utils import RaidenArchive
-from raiden.scenario_player.services.releases.utils import RaidenBinary
-from raiden.scenario_player.services.releases.utils import ManagedFile
+from scenario_player.services.releases.utils import download_archive
+from scenario_player.services.releases.utils import RaidenArchive
+from scenario_player.services.releases.utils import RaidenBinary
+from scenario_player.services.releases.utils import ManagedFile
 
-from raiden.scenario_player.exceptions import ArchiveNotAvailableOnLocalMachine
-from raiden.scenario_player.exceptions import BrokenArchive
-from raiden.scenario_player.exceptions import InvalidArchiveLayout
-from raiden.scenario_player.exceptions import InvalidArchiveType
-from raiden.scenario_player.exceptions import InvalidReleaseVersion
-from raiden.scenario_player.exceptions import TargetPathMustBeDirectory
+from scenario_player.exceptions import ArchiveNotAvailableOnLocalMachine
+from scenario_player.exceptions import BrokenArchive
+from scenario_player.exceptions import InvalidArchiveLayout
+from scenario_player.exceptions import InvalidArchiveType
+from scenario_player.exceptions import InvalidReleaseVersion
+from scenario_player.exceptions import TargetPathMustBeDirectory
 
 
 class DownloadArchiveTestCase:
