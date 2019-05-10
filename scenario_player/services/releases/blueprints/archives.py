@@ -1,7 +1,7 @@
 import flask
 
-from raiden.scenario_player.services.releases.types import Dict, RaidenArchiveInfo
-from raiden.scenario_player.services.common.metrics import track_red_metrics
+from scenario_player.services.releases.types import Dict, RaidenArchiveInfo
+from scenario_player.services.common.metrics import track_red_metrics
 
 archives_views = flask.Blueprint(__name__)
 

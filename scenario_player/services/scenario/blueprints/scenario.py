@@ -1,6 +1,6 @@
 import flask
 
-from raiden.scenario_player.services.common.metrics import track_red_metrics
+from scenario_player.services.common.metrics import track_red_metrics
 
 scenario_view = flask.Blueprint(__name__)
 

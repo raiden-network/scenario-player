@@ -1,5 +1,5 @@
-from raiden.scenario_player.services.nodes.blueprints import nodes_view
-from raiden.scenario_player.services.utils import construct_flask_app
+from scenario_player.services.nodes.blueprints import nodes_view
+from scenario_player.services.utils import construct_flask_app
 
 
 def create_node_service(test_config=None, secret='dev'):
