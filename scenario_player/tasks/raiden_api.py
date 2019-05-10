@@ -1,7 +1,7 @@
 import structlog
 
-from scenario_player import TransferFailed
-from scenario_player.tasks import RESTAPIActionTask
+from scenario_player.exceptions import TransferFailed
+from scenario_player.tasks.api_base import RESTAPIActionTask
 
 log = structlog.get_logger(__name__)
 

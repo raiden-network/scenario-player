@@ -4,11 +4,11 @@ from typing import Any
 import structlog
 from toolz import first
 
-from scenario_player import ScenarioAssertionError, ScenarioError
-from scenario_player import ScenarioRunner
-from scenario_player.tasks import Task
+from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from scenario_player.runner import ScenarioRunner
+from scenario_player.tasks.base import Task
 
-from scenario_player.tasks import RaidenAPIActionTask
+from scenario_player.tasks.raiden_api import RaidenAPIActionTask
 
 STORAGE_KEY_CHANNEL_INFO = 'channel_info'
 

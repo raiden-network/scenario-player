@@ -5,8 +5,8 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 import structlog
 import yaml
 
-from scenario_player import SUPPORTED_SCENARIO_VERSIONS, TIMEOUT, NodeMode
-from scenario_player import (
+from scenario_player.constants import SUPPORTED_SCENARIO_VERSIONS, TIMEOUT, NodeMode
+from scenario_player.exceptions import (
     InvalidScenarioVersion,
     MissingNodesConfiguration,
     MultipleTaskDefinitions,
@@ -266,7 +266,7 @@ class Scenario(Mapping):
     @property
     def task_class(self):
         """Return the Task class type configured for the scenario."""
-        from scenario_player.tasks import get_task_class_for_type
+        from scenario_player.tasks.base import get_task_class_for_type
 
         root_task_type, _ = self.task
 

@@ -11,8 +11,8 @@ import click
 import gevent
 import structlog
 
-from scenario_player import UnknownTaskTypeError
-from scenario_player import ScenarioRunner
+from scenario_player.exceptions import UnknownTaskTypeError
+from scenario_player.runner import ScenarioRunner
 
 log = structlog.get_logger(__name__)
 

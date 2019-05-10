@@ -14,11 +14,11 @@ from raiden_contracts.constants import (
     MonitoringServiceEvent,
 )
 from raiden_contracts.contract_manager import ContractManager, get_contracts_deployment_info
-from scenario_player import ScenarioAssertionError, ScenarioError
-from scenario_player import ScenarioRunner
-from scenario_player.tasks import STORAGE_KEY_CHANNEL_INFO
+from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from scenario_player.runner import ScenarioRunner
+from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
 
-from scenario_player.tasks import Task
+from scenario_player.tasks.base import Task
 
 log = structlog.get_logger(__name__)
 

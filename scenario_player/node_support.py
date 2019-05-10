@@ -28,8 +28,8 @@ from gevent.pool import Group, Pool
 from mirakuru import ProcessExitedWithError
 
 from raiden.ui.cli import run as cli_run
-from scenario_player import ScenarioError
-from scenario_player import ScenarioRunner
+from scenario_player.exceptions import ScenarioError
+from scenario_player.runner import ScenarioRunner
 from scenario_player.utils import HTTPExecutor
 
 log = structlog.get_logger(__name__)

@@ -3,10 +3,10 @@ from typing import Any
 import structlog
 
 
-from scenario_player import ScenarioAssertionError, ScenarioError
-from scenario_player.tasks import RESTAPIActionTask
-from scenario_player.tasks import Task
-from scenario_player import ScenarioRunner
+from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from scenario_player.tasks.api_base import RESTAPIActionTask
+from scenario_player.tasks.base import Task
+from scenario_player.runner import ScenarioRunner
 log = structlog.get_logger(__name__)
 
 
