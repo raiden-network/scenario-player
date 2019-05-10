@@ -166,6 +166,22 @@ class TestManagedFileInterfaceClass:
             assert tar_path in managed_file.symlinks
             assert tar_path not in managed_file.copies
 
+    def test_remove_dir_returns_false_and_does_nothing_if_tar_dir_is_not_in_symlinks_or_copies_attr(self, tmpdir_path):
+        with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
+            managed_file = ManagedFile(src_fpath)
+
+            # Bypass the ManagedFile interface and directly create the file
+            target_file = tar_path.joinpath(src_fpath.name)
+            target_file.touch()
+
+            # Assert that the path is still not managed by the interface
+            assert tar_path not in managed_file.copies
+            assert tar_path not in managed_file.symlinks
+
+            # Assert that calling .remove_from_dir exits with a no-op and returns False.
+            assert managed_file.remove_from_dir(tar_path) is False
+            assert tar_path.exists() is True
+
     @pytest.mark.parametrize('method, attribute', [(ManagedFile.copy_to_dir, 'copies'), (ManagedFile.create_symlink, 'symlinks')])
     def test_update_file_references_detects_disk_changes_correctly(self, method, attribute, tmpdir_path):
         with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
