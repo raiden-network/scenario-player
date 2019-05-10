@@ -3,7 +3,7 @@ import os
 import tempfile
 from collections.abc import MutableMapping
 
-from raiden.scenario_player.services import (
+from scenario_player.services import (
     create_release_service,
     create_node_service,
     create_keystore_service,
