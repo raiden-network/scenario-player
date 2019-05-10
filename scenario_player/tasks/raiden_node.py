@@ -4,8 +4,8 @@ import subprocess
 import gevent
 import structlog
 
-from raiden.scenario_player.exceptions import ScenarioError
-from raiden.scenario_player.tasks.base import Task
+from scenario_player import ScenarioError
+from scenario_player.tasks import Task
 
 log = structlog.get_logger(__name__)
 

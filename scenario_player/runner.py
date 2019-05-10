@@ -17,7 +17,7 @@ from raiden.network.rpc.client import JSONRPCClient
 from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from raiden.utils.typing import TransactionHash
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
-from raiden.scenario_player.constants import (
+from scenario_player import (
     API_URL_ADDRESS,
     API_URL_TOKEN_NETWORK_ADDRESS,
     API_URL_TOKENS,
@@ -28,9 +28,9 @@ from raiden.scenario_player.constants import (
     OWN_ACCOUNT_BALANCE_MIN,
     NodeMode,
 )
-from raiden.scenario_player.exceptions import NodesUnreachableError, ScenarioError, TokenRegistrationError
-from raiden.scenario_player.scenario import Scenario
-from raiden.scenario_player.utils import (
+from scenario_player import NodesUnreachableError, ScenarioError, TokenRegistrationError
+from scenario_player.scenario import Scenario
+from scenario_player.utils import (
     TimeOutHTTPAdapter,
     get_or_deploy_token,
     get_udc_and_token,
@@ -50,7 +50,7 @@ class ScenarioRunner:
         data_path: Path,
         scenario_file: Path,
     ):
-        from raiden.scenario_player.node_support import RaidenReleaseKeeper, NodeController
+        from scenario_player.node_support import RaidenReleaseKeeper, NodeController
 
         self.task_count = 0
         self.running_task_count = 0

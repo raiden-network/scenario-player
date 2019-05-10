@@ -3,10 +3,10 @@ from typing import Any
 import structlog
 
 
-from raiden.scenario_player.exceptions import ScenarioAssertionError, ScenarioError
-from raiden.scenario_player.tasks.api_base import RESTAPIActionTask
-from raiden.scenario_player.tasks.base import Task
-from raiden.scenario_player.runner import ScenarioRunner
+from scenario_player import ScenarioAssertionError, ScenarioError
+from scenario_player.tasks import RESTAPIActionTask
+from scenario_player.tasks import Task
+from scenario_player import ScenarioRunner
 log = structlog.get_logger(__name__)
 
 

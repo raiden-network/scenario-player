@@ -29,7 +29,7 @@ from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
 from raiden.utils.typing import TransactionHash
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import get_contracts_deployment_info
-from raiden.scenario_player.exceptions import ScenarioError, ScenarioTxError
+from scenario_player import ScenarioError, ScenarioTxError
 
 RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)
 VALUE_TX_GAS_COST = 21_000
@@ -246,7 +246,7 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
 
 def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[ContractProxy]]:
     """ Return contract proxies for the UserDepositContract and associated token """
-    from raiden.scenario_player.runner import ScenarioRunner
+    from scenario_player import ScenarioRunner
 
     assert isinstance(runner, ScenarioRunner)
 

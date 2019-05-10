@@ -5,14 +5,14 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 import structlog
 import yaml
 
-from raiden.scenario_player.constants import SUPPORTED_SCENARIO_VERSIONS, TIMEOUT, NodeMode
-from raiden.scenario_player.exceptions import (
+from scenario_player import SUPPORTED_SCENARIO_VERSIONS, TIMEOUT, NodeMode
+from scenario_player import (
     InvalidScenarioVersion,
     MissingNodesConfiguration,
     MultipleTaskDefinitions,
     ScenarioError,
 )
-from raiden.scenario_player.utils import get_gas_price_strategy
+from scenario_player.utils import get_gas_price_strategy
 
 log = structlog.get_logger(__name__)
 
@@ -266,7 +266,7 @@ class Scenario(Mapping):
     @property
     def task_class(self):
         """Return the Task class type configured for the scenario."""
-        from raiden.scenario_player.tasks.base import get_task_class_for_type
+        from scenario_player.tasks import get_task_class_for_type
 
         root_task_type, _ = self.task
 

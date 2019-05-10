@@ -17,18 +17,18 @@ from web3.utils.transactions import TRANSACTION_DEFAULTS
 
 from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
-from raiden.scenario_player import tasks
-from raiden.scenario_player.exceptions import ScenarioAssertionError, ScenarioError
-from raiden.scenario_player.runner import ScenarioRunner
-from raiden.scenario_player.tasks.base import collect_tasks
-from raiden.scenario_player.ui import (
+from scenario_player import tasks
+from scenario_player import ScenarioAssertionError, ScenarioError
+from scenario_player import ScenarioRunner
+from scenario_player.tasks import collect_tasks
+from scenario_player.ui import (
     LOGGING_PROCESSORS,
     NonStringifyingProcessorFormatter,
     ScenarioUI,
     UrwidLogRenderer,
     UrwidLogWalker,
 )
-from raiden.scenario_player.utils import (
+from scenario_player.utils import (
     ChainConfigType,
     ConcatenableNone,
     DummyStream,
@@ -175,7 +175,7 @@ def main(ctx, scenario_file, keystore_file, password, chains, data_path, auth, m
 )
 @click.pass_obj
 def reclaim_eth(obj, min_age):
-    from raiden.scenario_player.utils import reclaim_eth
+    from scenario_player.utils import reclaim_eth
 
     reclaim_eth(min_age_hours=min_age, **obj)
 

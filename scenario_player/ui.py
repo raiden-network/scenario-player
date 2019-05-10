@@ -8,7 +8,7 @@ import urwid as uwd
 from structlog.stdlib import ProcessorFormatter
 from urwid import SimpleFocusListWalker
 
-from raiden.scenario_player.runner import ScenarioRunner
+from scenario_player import ScenarioRunner
 
 PALETTE = [
     ("log_ts", "default", "default"),

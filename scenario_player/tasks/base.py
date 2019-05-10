@@ -11,8 +11,8 @@ import click
 import gevent
 import structlog
 
-from raiden.scenario_player.exceptions import UnknownTaskTypeError
-from raiden.scenario_player.runner import ScenarioRunner
+from scenario_player import UnknownTaskTypeError
+from scenario_player import ScenarioRunner
 
 log = structlog.get_logger(__name__)
 

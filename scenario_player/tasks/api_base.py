@@ -4,10 +4,10 @@ from typing import Any, Union
 import structlog
 from requests import ConnectTimeout, ReadTimeout, RequestException
 
-from raiden.scenario_player.exceptions import RESTAPIError, RESTAPIStatusMismatchError, RESTAPITimeout
-from raiden.scenario_player.runner import ScenarioRunner
+from scenario_player import RESTAPIError, RESTAPIStatusMismatchError, RESTAPITimeout
+from scenario_player import ScenarioRunner
 
-from raiden.scenario_player.tasks.base import Task
+from scenario_player.tasks import Task
 
 log = structlog.get_logger(__name__)
 

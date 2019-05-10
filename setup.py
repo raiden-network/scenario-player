@@ -1,8 +1,8 @@
-from setuptools import setup, find_namespace_packages
+from setuptools import setup, find_packages
 
 setup(
     name='raiden-scenario-player',
-    packages=find_namespace_packages(),
+    packages=find_packages(),
     package_data={
         '': [
             '*.yaml',
