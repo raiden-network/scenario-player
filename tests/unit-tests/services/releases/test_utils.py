@@ -59,7 +59,7 @@ class DownloadArchiveTestCase:
 class RaidenArchiveClassTestCase:
 
     @staticmethod
-    def archive_constructor(ext: str, folders: int=1, files: int=1, broken: bool=False):
+    def archive_constructor(root_dir: pathlib.Path, ext: str, folders: int=1, files: int=1, broken: bool=False) -> pathlib.Path:
         """Create an archive file.
 
         When used as a context manager, it will automatically clean up the file.
@@ -74,84 +74,92 @@ class RaidenArchiveClassTestCase:
             Whether or not to intentionally break the archive. This is achieved by usingthe opposite
             archive class of `ext`, and appending the extension to the resulting name.
 
-        FIXME: This is a stub!
         """
-        archive_path = pathlib.Path()
+        archive_path = root_dir.joinpath('test-archive')
+        archive_path.mkdir()
+
+        # Create the folder structure to be archived.
+        for i in range(folders):
+            sub_dir = archive_path.joinpath(f'folder_{i}')
+            sub_dir.mkdir()
+            for j in range(files):
+                sub_dir.joinpath(f'file-{j}').touch()
+
+        # Pack the directory.
+        # FIXME: This is a stub - Calling the respective classes is NOT syntactically correct!
         if ext == 'tar.gz':
-            archive_file = Tarfile(archive_path)
+            archive_file = Tarfile(root_dir)
         else:
-            archive_file = Zipfile(archive_path)
+            archive_file = Zipfile(root_dir)
 
-        archive = archive_path
+        packed_path = archive_file.abspath()
+
+        # Scramble the extensions, if requested.
         if broken:
-            archive.rename(f'{archive.resolve()}.{"zip" if ext == "tar.gz" else "tar.gz"}')
+            packed_path.rename(f'{packed_path.resolve()}.{"zip" if ext == "tar.gz" else "tar.gz"}')
 
-        yield archive
+        return packed_path
 
-        archive.unlink()
+    def create_valid_archive(self, root_dir, ext):
+        return self.archive_constructor(root_dir, ext)
 
-    def create_valid_archive(self, ext):
-        yield self.archive_constructor(ext)
+    def create_invalid_archive_multiple_dirs(self, root_dir, ext):
+        return self.archive_constructor(root_dir, ext, folders=2)
 
-    def create_invalid_archive_multiple_dirs(self, ext):
-        yield self.archive_constructor(ext, folders=2)
+    def create_invalid_archive_single_dir_multiple_files(self, root_dir, ext):
+        return self.archive_constructor(root_dir, ext, files=2)
 
-    def create_invalid_archive_single_dir_multiple_files(self, ext):
-        yield self.archive_constructor(ext, files=2)
-
-    def create_broken_archive(self, ext):
-        yield self.create_broken_archive(ext)
+    def create_broken_archive(self, root_dir, ext):
+        return self.archive_constructor(root_dir, ext, broken=True)
 
     @pytest.mark.parametrize('ext, uses_tarfile, uses_zipfile', [('tar.gz', True, False), ('zip', False, True)])
     @mock.patch("raiden.scneario_player.services.releases.utils.zipfile.Zipfile")
     @mock.patch("raiden.scneario_player.services.releases.utils.tarfile.Tarfile.open")
-    def test_class_chooses_correct_open_function_depending_on_extension(self, mock_tarfile_open, mock_zipfile, ext, uses_tarfile, uses_zipfile):
-        with self.create_valid_archive(ext) as archive_path:
-            _ = RaidenArchive(archive_path)
+    def test_class_chooses_correct_open_function_depending_on_extension(self, mock_tarfile_open, mock_zipfile, ext, uses_tarfile, uses_zipfile, tmpdir_path):
+        with self.create_valid_archive(tmpdir_path, ext) as packed_path:
+            _ = RaidenArchive(packed_path)
             assert mock_tarfile_open.called is uses_tarfile
             assert mock_zipfile.called is uses_zipfile
 
     @pytest.mark.parametrize('ext, uses_tarfile, uses_zipfile', [('tar.gz', True, False), ('zip', False, True)])
     @mock.patch("raiden.scneario_player.services.releases.utils.zipfile.Zipfile.namelist")
     @mock.patch("raiden.scneario_player.services.releases.utils.tarfile.Tarfile.getnames")
-    def test_unpack_chooses_correct_open_function_depending_on_extension(self, mock_tarfile_list, mock_zipfile_list, ext, uses_tarfile, uses_zipfile):
-        with self.create_valid_archive(ext) as archive_path:
-            archive = RaidenArchive(archive_path)
-            UNPACK_PATH = pathlib.Path('./unpacked')
-            archive.unpack(UNPACK_PATH)
+    def test_unpack_chooses_correct_open_function_depending_on_extension(self, mock_tarfile_list, mock_zipfile_list, ext, uses_tarfile, uses_zipfile, tmpdir_path):
+        with self.create_valid_archive(tmpdir_path, ext) as packed_path:
+            archive = RaidenArchive(packed_path)
+            archive.unpack(tmpdir_path.joinpath('unpacked'))
             assert mock_tarfile_list.called is uses_tarfile
             assert mock_zipfile_list.called is uses_zipfile
-            UNPACK_PATH.unlink()
 
-    def test_archive_unpack_returns_the_path_to_the_unpacked_binary(self):
-        with self.create_valid_archive('zip') as archive_path:
-            UNPACK_PATH = pathlib.Path('./unpacked')
-            bin_path = archive.unpack(UNPACK_PATH)
-            assert UNPACK_PATH == bin_path.joinpath(archive_path.stem)
+    def test_archive_unpack_returns_the_path_to_the_unpacked_binary(self, tmpdir_path):
+        with self.create_valid_archive(tmpdir_path, 'zip') as packed_path:
+            archive = RaidenArchive(packed_path)
+            bin_path = archive.unpack(tmpdir_path)
+            assert packed_path.parent().joinpath(packed_path.stem) == bin_path
 
     def test_class_raises_ArchiveNotVailableOnLocalMachine_exception_if_the_given_archive_path_does_not_exist(self):
         with pytest.raises(ArchiveNotAvailableOnLocalMachine):
             RaidenArchive(pathlin.Path('/does/not/exist.zip'))
 
-    def test_class_raises_InvalidArchiveType_if_archive_is_not_zip_or_tar(self):
-        with pytest.raises(InvalidArchiveType), self.create_valid_archive('.archive') as archive_path:
+    def test_class_raises_InvalidArchiveType_if_archive_is_not_zip_or_tar(self, tmpdir_path):
+        with pytest.raises(InvalidArchiveType), self.create_valid_archive(tmpdir_path, '.archive') as archive_path:
             RaidenArchive(archive_path)
 
     @pytest,mark.parametrize('ext', ['zip', 'tar.gz'])
-    def test_class_detects_invalid_archives_correctly(self, ext):
+    def test_class_detects_invalid_archives_correctly(self, tmpdir_path, ext):
         """Archives must have exactly 1 directory, containing exactly 1 file (the raiden binary).
 
         Assert that this is detected correctly when instantiating a RaidenArchive class.
         """
-        with pytest.raises(InvalidArchiveLayout), self.create_invalid_archive_multiple_dirs(ext) as archive_path:
+        with pytest.raises(InvalidArchiveLayout), self.create_invalid_archive_multiple_dirs(tmpdir_path, ext) as archive_path:
             RaidenArchive(archive_path)
 
-        with pytest.raises(InvalidArchiveLayout), self.create_invalid_archive_single_dir_multiple_files(ext) as archive_path:
+        with pytest.raises(InvalidArchiveLayout), self.create_invalid_archive_single_dir_multiple_files(tmpdir_path, ext) as archive_path:
             RaidenArchive(archive_path)
 
     @pytest,mark.parametrize('ext', ['zip', 'tar.gz'])
-    def test_class_raises_BrokenArchive_exception_if_the_archive_cannot_be_read(self):
-        with pytest.raises(BrokenArchive), self.create_broken_archive('zip') as archive_path:
+    def test_class_raises_BrokenArchive_exception_if_the_archive_cannot_be_read(self, tmpdir_path):
+        with pytest.raises(BrokenArchive), self.create_broken_archive(tmpdir_path, 'zip') as archive_path:
             RaidenArchive(archive_path)
 
 
