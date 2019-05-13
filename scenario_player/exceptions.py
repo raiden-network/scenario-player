@@ -74,5 +74,13 @@ class InvalidReleaseVersion(ValueError):
     """The given version does not exist or could not be found in the raiden cloud."""
 
 
-class TargetMustBeDirectory(TypeError):
+class TargetPathMustBeDirectory(TypeError):
     """A pathlib.Path object was passed that is not a directory."""
+
+
+class FileOperationError(OSError):
+    """We copied a file but the created copy was not found.
+
+    This is error is raised when we believe there may be a race condition causing
+    our file to disappear.
+    """
