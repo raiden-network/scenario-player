@@ -1,5 +1,5 @@
 from scenario_player.services.scenario.blueprints import scenario_view, runner_view, validate_view
-from scenario_player.services.utils import construct_flask_app
+from scenario_player.services.common.factories import construct_flask_app
 
 
 def create_scenario_service(test_config=None, secret='dev'):
