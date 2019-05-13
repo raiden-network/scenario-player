@@ -3,7 +3,7 @@ import flask
 from scenario_player.services.releases.types import Dict, RaidenArchiveInfo
 from scenario_player.services.common.metrics import track_red_metrics
 
-archives_views = flask.Blueprint(__name__)
+archives_views = flask.Blueprint('archives_view', __name__)
 
 
 @app.route('/archives', method=['GET', 'POST', 'DELETE'])

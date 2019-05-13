@@ -2,7 +2,7 @@ import flask
 
 from scenario_player.services.releases.types import RaidenReleaseInfo, Dict
 from scenario_player.services.common.metrics import track_red_metrics
-releases_views = flask.Blueprint(__name__)
+releases_views = flask.Blueprint('releases_view', __name__)
 
 
 # GET /releases

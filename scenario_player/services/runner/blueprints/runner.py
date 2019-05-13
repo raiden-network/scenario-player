@@ -2,7 +2,7 @@ import flask
 
 from scenario_player.services.common.metrics import track_red_metrics
 
-runner_view = flask.Blueprint(__name__)
+runner_view = flask.Blueprint('runner_view', __name__)
 
 
 @runner_view.route('/scenarios/run', methods=['POST', 'GET', 'DELETE'])

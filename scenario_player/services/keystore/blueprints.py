@@ -2,7 +2,7 @@ import flask
 
 from scenario_player.services.common.metrics import track_red_metrics
 
-keystores_view = flask.Blueprint('keystores', __name__)
+keystores_view = flask.Blueprint('keystores_view', __name__)
 
 
 @keystores_view.route('/keystores', methods=['GET', 'POST', 'DELETE'])

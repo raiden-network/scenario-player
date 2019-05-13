@@ -2,7 +2,7 @@ import flask
 
 from scenario_player.services.common.metrics import track_red_metrics
 
-validate_view = flask.Blueprint(__name__)
+validate_view = flask.Blueprint('validate_view', __name__)
 
 
 @scenario_view.route('/scenarios/validate', methods=['POST'])
