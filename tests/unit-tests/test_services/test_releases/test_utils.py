@@ -22,36 +22,58 @@ from scenario_player.exceptions import InvalidReleaseVersion
 from scenario_player.exceptions import TargetPathMustBeDirectory
 
 
+class MockResponse(Response):
+    def __init__(self, json_func_return_value=None):
+        self._json = json_func_return_value or {}
+        super(MockResponse, self).__init__()
+
+    def json(self, *args, **kwargs):
+        return self._json
+
+
+CLOUD_STORAGE_URL = 'http://cloud.raiden.network/'
+RELEASE_VERSION = 'v900.134.2'
+EXPECTED_ARCH_DOWNLOAD_URL = f'{CLOUD_STORAGE_URL}/{RELEASE_VERSION}-linux_amd64.tar.gz'
+
+
 class DownloadArchiveTestCase:
 
-    @mock.patch('raiden.scenario_player.services.releases.utils.requests.get')
+    @mock.patch('raiden.scenario_player.services.releases.utils.requests.get', return_value=MockResponse())
     def test_downloading_archive_for_release_which_does_not_exist_locally_fetches_archive_from_raiden_cloud(self, mock_get):
-        CLOUD_STORAGE_URL = ''
-        RELEASE_VERSION = ''
-        EXPECTED_URL = f'{CLOUD_STORAGE_URL}/{RELEASE_VERSION}-linux_amd64.tar.gz'
-        download_archive(RELEASE_VERSION)
-        mock_get.assert_called_once_with(EXPECTED_URL)
+        """Assert that archives are downloaded from the expected URL with correct version and architecture,
+        if they do not exist locally.
 
-    @mock.patch('raiden.scenario_player.services.releases.utils.requests.get')
+        FIXME: Make the test platform/arch independent - currently only 64bit linux supported!
+        """
+
+        download_archive(RELEASE_VERSION)
+        mock_get.assert_called_once_with(EXPECTED_ARCH_DOWNLOAD_URL)
+
+    @mock.patch('raiden.scenario_player.services.releases.utils.requests.get', return_value=MockResponse())
     def test_function_is_idempotent_by_default(self, mock_get):
-        RELEASE_VERSION = ''
+        """Calling the function twice in a row only downloads the archive once by default.
+
+        Since the file should already exist locally after the first run, the second run
+        should simply return with a no-op.
+        """
         download_archive(RELEASE_VERSION)
         assert mock_get.call_count == 1
+        mock_get.reset_mock()
 
         download_archive(RELEASE_VERSION)
-        assert not mock_get.call_count == 1
+        assert not mock_get.called
 
-    @mock.patch('raiden.scenario_player.services.releases.utils.requests.get')
+    @mock.patch('raiden.scenario_player.services.releases.utils.requests.get', return_value=MockResponse())
     def test_func_downloads_archive_again_if_param_cached_is_false(self, mock_get):
         download_archive(RELEASE_VERSION)
         mock_get.reset_mock()
 
         download_archive(RELEASE_VERSION, cached=False)
-        mock_get.assert_called_once_with(EXPECTED_URL)
+        mock_get.assert_called_once_with(EXPECTED_ARCH_DOWNLOAD_URL)
 
     @mock.patch('raiden.scenario_player.services.releases.utils.requests.get')
     def test_func_raises_InvalidReleaseVersion_if_it_cannot_be_found_on_raiden_cloud(self, mock_get):
-        mock_resp = Response()
+        mock_resp = MockResponse()
         mock_resp.status_code = 404
         mock_get.return_value = mock_resp
         with pytest.raises(InvalidReleaseVersion):
