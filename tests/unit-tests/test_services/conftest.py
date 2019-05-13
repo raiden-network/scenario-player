@@ -7,7 +7,7 @@ from scenario_player.services import (
     create_scenario_service,
     create_runner_service,
 )
-from scenario_player.services.utils.testing import TestRedis
+from scenario_player.services.utils import TestRedis
 
 
 CONSTRUCTORS = {
