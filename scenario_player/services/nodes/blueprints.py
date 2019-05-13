@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, Union, Tuple
 
 import flask
 
@@ -7,13 +7,13 @@ from scenario_player.services.common.metrics import track_red_metrics
 nodes_view = flask.Blueprint('nodes_view', __name__)
 
 NodeObj = Dict[str, Union[str, bool]]
-NodeList = Dict[NodeObj]
+NodeList = Dict[str, NodeObj]
 
 #: Dict to keep track of registered Nodes. Should later be replaced by better solution (perhaps redis/memcached)
 NODES = {}
 
 
-@app.route('/nodes', methods=['POST', 'GET', 'DELETE'])
+@nodes_view.route('/nodes', methods=['POST', 'GET', 'DELETE'])
 def node_route() -> Union[NodeObj, NodeList, None]:
     handlers = {
         "POST": create_node,
@@ -79,7 +79,7 @@ def list_all_nodes() -> NodeList:
 def filter_by_state(nodes: NodeList, state: str) -> NodeList:
     if state not in ('running', 'stopped', 'killed', 'error'):
         raise ValueError(state)
-    return {node_id: node_obj if node_obj['state'] == state for node_id, node_obj in nodes.items()}
+    return {node_id: node_obj for node_id, node_obj in nodes.items() if node_obj['state'] == state}
 
 
 def list_nodes() -> Union[NodeList, NodeObj]:
@@ -159,7 +159,7 @@ def list_nodes() -> Union[NodeList, NodeObj]:
         try:
             return nodes_subset[request.args['node_id']]
         except KeyError:
-            flask.abort(404, description=f'Node with ID {request.args['node_id']} not found!')
+            flask.abort(404, description=f"Node with ID {request.args['node_id']} not found!")
     return nodes_subset
 
 
