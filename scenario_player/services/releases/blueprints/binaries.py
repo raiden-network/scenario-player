@@ -5,10 +5,10 @@ from scenario_player.services.common.metrics import track_red_metrics
 
 
 
-binaries_views = flask.Blueprint('binaries_view', __name__)
+binaries_views = flask.Blueprint('binaries_views', __name__)
 
 
-@app.route('/binaries', method=['GET', 'POST', 'DELETE'])
+@binaries_views.route('/binaries', method=['GET', 'POST', 'DELETE'])
 def binaries_route() -> Union[Dict[str, RaidenBinaryInfo], RaidenBinaryInfo]:
     handlers = {
         'POST': install_binary,
