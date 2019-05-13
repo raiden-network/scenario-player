@@ -5,7 +5,7 @@ from scenario_player.services.common.metrics import track_red_metrics
 validate_view = flask.Blueprint('validate_view', __name__)
 
 
-@scenario_view.route('/scenarios/validate', methods=['POST'])
+@validate_view.route('/scenarios/validate', methods=['POST'])
 def scenarios_route():
     """Validate the submitted Scenario configuration.
 

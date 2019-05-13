@@ -3,10 +3,10 @@ import flask
 from scenario_player.services.releases.types import Dict, RaidenArchiveInfo
 from scenario_player.services.common.metrics import track_red_metrics
 
-archives_views = flask.Blueprint('archives_view', __name__)
+archives_views = flask.Blueprint('archives_views', __name__)
 
 
-@app.route('/archives', method=['GET', 'POST', 'DELETE'])
+@archives_views.route('/archives', method=['GET', 'POST', 'DELETE'])
 def archives_route() -> Dict[str, RaidenArchiveInfo]:
     handlers = {
         'POST': download_archive,

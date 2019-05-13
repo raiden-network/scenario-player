@@ -2,11 +2,12 @@ import flask
 
 from scenario_player.services.releases.types import RaidenReleaseInfo, Dict
 from scenario_player.services.common.metrics import track_red_metrics
-releases_views = flask.Blueprint('releases_view', __name__)
+
+releases_views = flask.Blueprint('releases_views', __name__)
 
 
 # GET /releases
-@releases_view.route('/releases', method=['GET'])
+@releases_views.route('/releases', method=['GET'])
 def return_available_releases() -> Dict[str, RaidenReleaseInfo]:
     """Return the list of raiden releases.
 
@@ -36,7 +37,7 @@ def return_available_releases() -> Dict[str, RaidenReleaseInfo]:
 
 
 # GET /releases/latest
-@releases_view.route('/releases/latest', method=['GET'])
+@releases_views.route('/releases/latest', method=['GET'])
 def latest_release() -> RaidenReleaseInfo:
     """Return the latest release' version string.
 
