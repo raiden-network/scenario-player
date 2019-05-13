@@ -1,6 +1,10 @@
 import pathlib
 import shutil
 
+from typing import Iterable, Optional, Tuple
+
+from scenario_player.exceptions import TargetPathMustBeDirectory, FileOperationError
+
 
 def parse_version( bin_path: pathlib.Path) -> Tuple[str, str]:
     """Extract the Archive or Binary's version and architecture from it's file name."""
@@ -36,58 +40,39 @@ class ManagedFile:
                and symlink.resolve().joinpath(self.path.name).is_symlink()
         }
 
-    def remove_from_dir(self, dir: pathlib.Path):
-        if dir in self.copies:
-            self.copies.remove(dir)
-        elif dir in self.symlinks:
-            self.symlinks.remove(dir)
+    def remove_from_dir(self, target_dir: pathlib.Path):
+        if not target_dir.is_dir():
+            raise TargetPathMustBeDirectory(target_dir)
+
+        if target_dir in self.copies:
+            self.copies.remove(target_dir)
+        elif target_dir in self.symlinks:
+            self.symlinks.remove(target_dir)
         else:
             return False
-        target = dir.joinpath(self.path.name)
+        target = target_dir.joinpath(self.path.name)
         if target.exists():
             target.unlink()
         return True
 
     def copy_to_dir(self, target_dir: pathlib.Path, overwrite=False):
+        if not target_dir.is_dir():
+            raise TargetPathMustBeDirectory(target_dir)
+
         if target_dir not in self.copies or overwrite:
             target = target_dir.resolve().joinpath(self.path.name)
             shutil.copyfile(str(self.path.resolve()), str(target.resolve()))
             if not target.exists():
-                raise FileOperationError(f'Could not create copy {str(target.resolve())}')
+                raise FileOperationError(f'{str(target.resolve())} was copied but no longer exists!')
             self.copies.add(target_dir)
 
     def create_symlink(self, target_dir: pathlib.Path, overwrite: bool=False):
+        if not target_dir.is_dir():
+            raise TargetPathMustBeDirectory(target_dir)
         target = target_dir.resolve().joinpath(self.path.name)
         if not target.exists() or overwrite:
             # Create a symlink at target.
             target.symlink_to(self.path)
-
-
-class RaidenArchive:
-    """Thin Wrapper class used to unpack archive files downloaded from the raiden cloud storage.
-
-    Automatically detects the archive file type, and chooses a correct open function.
-
-    Supports being used as a context manager, and validates archive file layout.
-    """
-
-    def __init__(self, path: pathlib.Path, unpacked_to: pathlib.Path=None):
-        self.path = path
-        self.unpacked_to = unpacked_to
-        self.version = parse_version(bin_path)
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-    def unpack(self, target_path: pathlib.Path) -> RaidenBinary:
-        """Unpack this archive to the given `target_path`.
-
-        The resulting binary will be used to create a :cls:`RaidenBinary`
-        instance.
-        """
 
 
 class RaidenBinary:
@@ -158,6 +143,33 @@ class RaidenBinary:
         :raises BinaryNotInstalledInDirectory:
             if the given `install_dir` is not present in :attr:`.install_dirs`.
         :raises BinaryNotInstalled: if :attr:`.install_dirs` is empty.
+        """
+
+
+class RaidenArchive:
+    """Thin Wrapper class used to unpack archive files downloaded from the raiden cloud storage.
+
+    Automatically detects the archive file type, and chooses a correct open function.
+
+    Supports being used as a context manager, and validates archive file layout.
+    """
+
+    def __init__(self, path: pathlib.Path, unpacked_to: pathlib.Path=None):
+        self.path = path
+        self.unpacked_to = unpacked_to
+        self.version = parse_version(bin_path)
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def unpack(self, target_path: pathlib.Path) -> RaidenBinary:
+        """Unpack this archive to the given `target_path`.
+
+        The resulting binary will be used to create a :cls:`RaidenBinary`
+        instance.
         """
 
 
