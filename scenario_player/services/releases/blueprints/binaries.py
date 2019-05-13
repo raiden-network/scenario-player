@@ -5,7 +5,7 @@ from scenario_player.services.common.metrics import track_red_metrics
 
 
 
-binaries_views = flask.Blueprint(__name__)
+binaries_views = flask.Blueprint('binaries_view', __name__)
 
 
 @app.route('/binaries', method=['GET', 'POST', 'DELETE'])
