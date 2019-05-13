@@ -143,7 +143,7 @@ class TestManagedFileInterfaceClass:
             # Inject a tar path.
             tar_file = tar_path.joinpath('file_1')
             tar_file.touch()
-            managed_file.copies.add(pathlib.Path(tar_path))
+            managed_file.copies.add(tar_path)
 
             managed_file.remove_from_dir(tar_path)
             assert tar_file.exists() is False
