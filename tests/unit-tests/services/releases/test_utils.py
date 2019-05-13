@@ -85,9 +85,10 @@ class TestManagedFileInterfaceClass:
     @contextmanager
     def setup_env(self, root_dir):
         src_file = root_dir.joinpath('test_file')
+        src_file.touch()
         tar_dir = root_dir.joinpath('target_folder')
         tar_dir.mkdir()
-        yield  src_file, tar_dir
+        yield src_file, tar_dir
 
     def test_class_checks_if_file_exists_on_instance_creation(self):
         with pytest.raises(FileNotFoundError):
@@ -154,7 +155,7 @@ class TestManagedFileInterfaceClass:
 
             # Inject a tar path.
             tar_file = tar_path.joinpath('file_1')
-            tar_file.create_symlink(src_fpath)
+            tar_file.symlink_to(src_fpath)
             managed_file.symlinks.add(pathlib.Path(tar_path))
 
             managed_file.remove_from_dir(tar_path)
@@ -166,7 +167,7 @@ class TestManagedFileInterfaceClass:
 
             # Inject a tar path.
             tar_file = tar_path.joinpath('file_1')
-            tar_file.create_symlink(src_fpath)
+            tar_file.symlink_to(src_fpath)
             managed_file.symlinks.add(pathlib.Path(tar_path))
             managed_file.copies.add(pathlib.Path(tar_path))
 
@@ -180,7 +181,7 @@ class TestManagedFileInterfaceClass:
 
             # Inject a tar path.
             tar_file = tar_path.joinpath('file_1')
-            tar_file.create_symlink(src_fpath)
+            tar_file.symlink_to(src_fpath)
             managed_file.symlinks.add(pathlib.Path(tar_path))
             managed_file.copies.add(pathlib.Path(tar_path))
 
@@ -227,7 +228,7 @@ class TestManagedFileInterfaceClass:
 
             # Inject a tar path.
             tar_file = tar_path.joinpath('file_1')
-            tar_file.create_symlink(src_fpath)
+            tar_file.symlink_to(src_fpath)
             managed_file.symlinks.add(pathlib.Path(tar_path))
 
             assert managed_file.has_symlinks is True
@@ -240,7 +241,7 @@ class TestManagedFileInterfaceClass:
 
             # Inject a tar path.
             tar_file = tar_path.joinpath('file_1')
-            tar_file.create_symlink(src_fpath)
+            tar_file.symlink_to(src_fpath)
             managed_file.copies.add(pathlib.Path(tar_path))
 
             assert managed_file.has_local_copies is True
@@ -340,7 +341,7 @@ class RaidenArchiveClassTestCase:
         with pytest.raises(InvalidArchiveType), self.create_valid_archive(tmpdir_path, '.archive') as archive_path:
             RaidenArchive(archive_path)
 
-    @pytest,mark.parametrize('ext', ['zip', 'tar.gz'])
+    @pytest.mark.parametrize('ext', ['zip', 'tar.gz'])
     def test_class_detects_invalid_archives_correctly(self, tmpdir_path, ext):
         """Archives must have exactly 1 directory, containing exactly 1 file (the raiden binary).
 
@@ -352,7 +353,7 @@ class RaidenArchiveClassTestCase:
         with pytest.raises(InvalidArchiveLayout), self.create_invalid_archive_single_dir_multiple_files(tmpdir_path, ext) as archive_path:
             RaidenArchive(archive_path)
 
-    @pytest,mark.parametrize('ext', ['zip', 'tar.gz'])
+    @pytest.mark.parametrize('ext', ['zip', 'tar.gz'])
     def test_class_raises_BrokenArchive_exception_if_the_archive_cannot_be_read(self, tmpdir_path):
         with pytest.raises(BrokenArchive), self.create_broken_archive(tmpdir_path, 'zip') as archive_path:
             RaidenArchive(archive_path)
