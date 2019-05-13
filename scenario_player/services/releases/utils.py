@@ -13,6 +13,8 @@ def parse_version( bin_path: pathlib.Path) -> Tuple[str, str]:
 class ManagedFile:
     """Generic file management interface."""
     def __init__(self, path: pathlib.Path, existing_symlinks: Optional[Iterable]=None, existing_copies: Optional[Iterable]=None) -> None:
+        if not path.exists():
+            raise FileNotFoundError
         self.path = path
         self.copies = existing_copies or set()
         self.symlinks = existing_symlinks or set()
@@ -73,6 +75,7 @@ class ManagedFile:
         if not target.exists() or overwrite:
             # Create a symlink at target.
             target.symlink_to(self.path)
+        self.symlinks.add(target_dir)
 
 
 class RaidenBinary:
