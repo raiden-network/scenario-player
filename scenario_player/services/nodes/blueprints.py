@@ -4,7 +4,7 @@ import flask
 
 from scenario_player.services.common.metrics import track_red_metrics
 
-nodes_view = flask.Blueprint(__name__)
+nodes_view = flask.Blueprint('nodes_view', __name__)
 
 NodeObj = Dict[str, Union[str, bool]]
 NodeList = Dict[NodeObj]

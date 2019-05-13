@@ -2,7 +2,7 @@ import flask
 
 from scenario_player.services.common.metrics import track_red_metrics
 
-scenario_view = flask.Blueprint(__name__)
+scenario_view = flask.Blueprint('scenario_view', __name__)
 
 
 @scenario_view.route('/scenarios', methods=['POST', 'GET', 'PUT', 'DELETE'])
