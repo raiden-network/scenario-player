@@ -16,5 +16,6 @@ setup(
         "eth-utils",
         "structlog",
         "click",
+        'prometheus_client',
     ],
 )
