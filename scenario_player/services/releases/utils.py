@@ -14,7 +14,7 @@ class ManagedFile:
     """Generic file management interface."""
     def __init__(self, path: pathlib.Path, existing_symlinks: Optional[Iterable]=None, existing_copies: Optional[Iterable]=None) -> None:
         if not path.exists():
-            raise FileNotFoundError
+            raise FileNotFoundError(path)
         self.path = path
         self.copies = existing_copies or set()
         self.symlinks = existing_symlinks or set()
