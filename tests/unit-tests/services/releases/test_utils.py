@@ -131,7 +131,7 @@ class TestManagedFileInterfaceClass:
     def test_create_symlink_updates_references_correctly(self, tmpdir_path):
         with self.setup_env(tmpdir_path) as (src_fpath, tar_path):
             managed_file = ManagedFile(src_fpath)
-            assert bool(managed_file.copies) is False
+            assert bool(managed_file.symlinks) is False
             managed_file.create_symlink(tar_path)
             assert tar_path in managed_file.symlinks
             assert len(managed_file.symlinks) == 1
