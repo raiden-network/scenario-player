@@ -9,6 +9,7 @@ class TestRedis(MutableMapping):
     Beware that this is NOT Thread Safe!
     Concurrent access is NOT supported!
     """
+
     DB = {}
 
     def __init__(self, table, *args, encoding_options=None, decoding_options=None, **kwargs):

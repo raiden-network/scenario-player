@@ -27,13 +27,22 @@ import timeit
 from prometheus_client import Counter, Histogram
 
 
-HTTP_REQUESTS_TOTAL = Counter('http_requests_total', 'Total amount of HTTP Requests made.', labelnames=['method', 'path'])
-HTTP_EXCEPTIONS_TOTAL = Counter('http_exceptions_total', 'Total amount of HTTP exceptions.', labelnames=['method', 'path'])
-HTTP_REQUESTS_LATENCY = Histogram('http_requests_latency_seconds', 'Duration of HTTP requests processing.', labelnames=['method', 'path'])
+HTTP_REQUESTS_TOTAL = Counter(
+    "http_requests_total", "Total amount of HTTP Requests made.", labelnames=["method", "path"]
+)
+HTTP_EXCEPTIONS_TOTAL = Counter(
+    "http_exceptions_total", "Total amount of HTTP exceptions.", labelnames=["method", "path"]
+)
+HTTP_REQUESTS_LATENCY = Histogram(
+    "http_requests_latency_seconds",
+    "Duration of HTTP requests processing.",
+    labelnames=["method", "path"],
+)
 
 
 class REDMetricsTracker:
     """Prometheus RED metrics tracker class."""
+
     def __init__(self, method, path):
         self.method, self.path = method, path
         self.timer = None

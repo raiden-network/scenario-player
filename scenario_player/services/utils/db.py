@@ -15,7 +15,8 @@ class JSONRedis(Redis):
     :param decoding_options:
         Default options to pass :func:`json.loads` when fetching a key-value pair.
     """
-    def __init__(self, table, *args, encoding_options=None, decoding_options=None,  **kwargs):
+
+    def __init__(self, table, *args, encoding_options=None, decoding_options=None, **kwargs):
         self.table = table
         self.encoding_options = encoding_options.items()
         self.decoding_options = decoding_options.items()
@@ -94,17 +95,18 @@ def get_db():
                 All data will be dropped once the application shuts down.
 
     """
-    db_name = current_app.config.get('DATABASE', False)
+    db_name = current_app.config.get("DATABASE", False)
     if not db_name:
         # Generate a table name to store data under.
         db_name = uuid.uuid4()
-        current_app.config['PERSIST_DB'] = False
-        current_app.config['DATABASE'] = db_name
+        current_app.config["PERSIST_DB"] = False
+        current_app.config["DATABASE"] = db_name
 
-    if 'db' not in g:
-        if current_app.config.get('TESTING', False):
+    if "db" not in g:
+        if current_app.config.get("TESTING", False):
             # Import the test db class on the fly, to avoid circular import fuck-ups.
             from scenario_player.services.utils.testing import TestRedis
+
             g.db = TestRedis(db_name)
         else:
             g.db = JSONRedis(db_name)
@@ -114,9 +116,8 @@ def get_db():
 
 def close_db(e=None):
     """Close the database connection, saving its state if applicable."""
-    db = g.pop('db', None)
+    db = g.pop("db", None)
     if db is not None:
-        if not current_app.config.get('PERSIST_DB', True):
+        if not current_app.config.get("PERSIST_DB", True):
             db.delete(db.table)
         db.save()
-
