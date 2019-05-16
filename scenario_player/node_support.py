@@ -54,7 +54,8 @@ MANAGED_CONFIG_OPTIONS = {
     "password-file",
     "rpc",
     "sync-check",
-    "transport" "web-ui",
+    "transport",
+    "web-ui",
 }
 
 MANAGED_CONFIG_OPTIONS_OVERRIDABLE = {
