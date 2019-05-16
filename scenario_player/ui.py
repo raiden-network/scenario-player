@@ -9,6 +9,7 @@ from structlog.stdlib import ProcessorFormatter
 from urwid import SimpleFocusListWalker
 
 from scenario_player.runner import ScenarioRunner
+from scenario_player.utils import ConcatenableNone
 
 PALETTE = [
     ("log_ts", "default", "default"),
@@ -66,7 +67,7 @@ class SelectableText(uwd.Text):
 
 class UrwidLogWalker(SimpleFocusListWalker):
     def write(self, content):
-        if content is not None:
+        if content not in {None, ConcatenableNone}:
             self.extend(
                 [
                     uwd.AttrMap(SelectableText(line, wrap="clip"), None, focus_map="log_focus")
