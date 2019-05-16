@@ -16,7 +16,7 @@ setup(
             'scenario-player-nightlies=scenario_player.scenarios.__init__:run_builtin_scenarios',
         ],
     },
-    requires=[
+    install_requires=[
         'raiden',
         'flask',
         'flasgger',
