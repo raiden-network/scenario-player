@@ -127,7 +127,7 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
 
     _name = "assert_pfs_history"
     _url_template = (
-        "{pfs_url}/api/v1/_debug/routes/{token_network_address}/{source_address}/{extra_params}"
+        "{pfs_url}/api/v1/_debug/routes/{token_network_address}/{source_address}{extra_params}"
     )
 
     @property

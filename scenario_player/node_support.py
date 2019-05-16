@@ -65,7 +65,6 @@ MANAGED_CONFIG_OPTIONS_OVERRIDABLE = {
     "secret-registry-contract-address",
     "service-registry-contract-address",
     "pathfinding-service-address",
-    "pathfinding-eth-address",
 }
 
 
