@@ -25,7 +25,7 @@ setup(
         'redis',
         'gevent',
         'urwid',
-        'ethutils',
+        'eth-utils',
         'structlog',
         'click',
     ],
