@@ -67,7 +67,7 @@ class SelectableText(uwd.Text):
 
 class UrwidLogWalker(SimpleFocusListWalker):
     def write(self, content):
-        if content not in {None, ConcatenableNone}:
+        if not (content is None or isinstance(content, ConcatenableNone)):
             self.extend(
                 [
                     uwd.AttrMap(SelectableText(line, wrap="clip"), None, focus_map="log_focus")
