@@ -75,7 +75,7 @@ def main(ctx, scenario_file, keystore_file, password, chains, data_path, auth, m
     else:
         scenario_basename = basename(scenario_file.name)
         log_file_name = (
-            f"{os.environ['HOME']}/.raiden/scenario-player/scenarios/{scenario_basename}/{scenario_basename}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
+            f"{data_path}/scenario-player/scenarios/{scenario_basename}/{scenario_basename}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
         )
     click.secho(f"Writing log to {log_file_name}", fg="yellow")
     configure_logging(
