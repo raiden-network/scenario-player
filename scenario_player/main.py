@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sys
+import tarfile
 import traceback
 from collections import defaultdict
 from datetime import datetime
@@ -10,6 +11,7 @@ from pathlib import Path
 
 import click
 import gevent
+import requests
 import structlog
 from eth_utils import to_checksum_address
 from raiden.accounts import Account
@@ -180,5 +182,119 @@ def reclaim_eth(obj, min_age):
     reclaim_eth(min_age_hours=min_age, **obj)
 
 
+@main.command('pack-logs')
+@click.option(
+    '--target-dir', default=os.environ.get('HOME', './'), show_default=True,
+    help='Target directory to pack logs to. Defaults to your home directory.'
+)
+@click.option(
+    '--scenario-names', 'scenario-names', required=True, multiple=True,
+    help='Scenarios to pack log files for.',
+)
+@click.option(
+    '--pack-n-latest', default=1,
+    help='Specify the max num of log history you would like to pack. Defaults to 1.'
+         'Specifying 0 will pack all available logs for a scenario.',
+)
+@click.option(
+    '--raiden-dir', default=os.environ.get('HOME', '.') + '/.raiden',
+    help="Path to the raiden meta data dir. Defaults to ~/.raiden.",
+)
+@click.option('--post-to-rocket', default=True)
+def pack_logs(post_to_rocket, raiden_dir, pack_n_latest, scenario_names, target_dir):
+    raiden_dir = Path(raiden_dir)
+    if not raiden_dir.exists():
+        raise RuntimeError(f"{raiden_dir} does not exist!")
+
+    target_dir = Path(target_dir)
+    target_dir.mkdir(exist_ok=True)
+
+    files = set()
+
+    for scenario_name in scenario_names:
+        # The logs are located at .raiden/scenario-player/scenarios/<scenario-name> - make sure the path exists.
+        scenario_log_dir = raiden_dir.joinpath('scenario-player', 'scenarios', scenario_name)
+        if not scenario_log_dir.exists():
+            print(f"No log directory found for scenario {scenario_name} at {scenario_log_dir}")
+            continue
+
+        # Add all folders that haven't been added yet.
+        for path in scenario_log_dir.iterdir():
+            if path.is_dir():
+                files.add(path)
+
+        files.union(pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir, pack_n_latest))
+
+    # Now that we have all our files, create a tar archive at the requested location.
+    archive_fpath = target_dir.joinpath(f'Scenario_player_Logs-{"-",join(scenario_names)}-{pack_n_latest or "all"}-latest.tar.gz')
+    with tarfile.open(str(archive_fpath), mode='w:gz') as archive:
+        for file in files:
+            archive.add(str(file))
+
+    print(f"Created archive at {archive_fpath}")
+    print(f"- {archive_fpath}")
+
+    with tarfile.open(str(archive_fpath)) as f:
+        for name in f.getnames():
+            print(f"- - {name}")
+
+    if post_to_rocket:
+        post_to_rocket_chat(archive_fpath)
+
+
+def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path, n) -> set:
+    # Add all scenario logs requested. Drop any iterations older than pack_n_latest,
+    # or add all if that variable is 0.
+    scenario_logs = [path for path in scenario_log_dir.iterdir() if (path.is_file() and str(path).startswith(scenario_name))]
+    scenario_logs = sorted(scenario_logs, key=lambda x: x.stat().st_mtime, reverse=True)
+
+    # specifying `pack_n_latest=0` will add all scenarios.
+    max_range = n or len(scenario_logs)
+
+    files = set()
+
+    for i in range(max_range):
+        try:
+            files.add(scenario_logs[i])
+        except IndexError:
+            # We ran out of scenario logs to add before reaching the requested number of n latest logs.
+            print(
+                f'Only packed {i} logs of requested latest {n} '
+                f'- no more logs found for {scenario_name}!',
+            )
+            break
+
+    return files
+
+
+def post_to_rocket_chat(fpath):
+    try:
+        user = os.environ['RC_USER']
+        pw = os.environ['RC_PW']
+        room_id = os.environ['RC_ROOM_ID']
+    except KeyError:
+        raise RuntimeError('Missing Rocket Char Env variables!')
+
+    resp = requests.post(
+        'https://chat.brainbot.com/api/v1/login',
+        data={'username': user, 'password': pw}
+    )
+
+    token = resp.json()['data']['authToken']
+    user_id = resp.json()['data']['userId']
+    headers = {
+        'X-Auth-Token': token,
+        'X-User-Id': user_id,
+    }
+
+    with fpath.open('rb') as f:
+        return requests.post(
+            f'https://chat.brainbot.com/api/v1/rooms.upload/{room_id}',
+            files={'file': f},
+            headers=headers,
+        )
+
+
 if __name__ == "__main__":
     main()  # pylint: disable=no-value-for-parameter
+
