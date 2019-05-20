@@ -1,0 +1,16 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: python/python:3-alpine-3.9
+    steps:
+      - checkout
+      - run:
+          name: Install build dependencies
+          command: apk add python3-dev
+      - run:
+          name: Install project
+          command: pip install .
+      - run:
+          name: Run Unit-tests.
+          command: pytest tests/unit-tests
