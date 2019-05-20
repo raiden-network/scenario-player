@@ -234,6 +234,7 @@ def pack_logs(raiden_dir, pack_n_latest, scenario_name, target_dir):
     print(f"Created archive at {archive_fpath}")
     print(f"- {archive_fpath}")
 
+    # Read archive and list files to console, asserting it's readable.
     with tarfile.open(str(archive_fpath)) as f:
         for name in f.getnames():
             print(f"- - {name}")
