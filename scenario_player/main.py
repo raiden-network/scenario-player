@@ -188,8 +188,8 @@ def reclaim_eth(obj, min_age):
     help='Target directory to pack logs to. Defaults to your home directory.'
 )
 @click.option(
-    '--scenario-name', default=None, multiple=True,
-    help='Only Pack the specified scenario. If omitted, all latest scenario files are packed. May be specified several times',
+    '--scenario-names', 'scenario-names', required=True, multiple=True,
+    help='Scenarios to pack log files for.',
 )
 @click.option(
     '--pack-n-latest', default=1,
@@ -201,7 +201,7 @@ def reclaim_eth(obj, min_age):
     help="Path to the raiden meta data dir. Defaults to ~/.raiden.",
 )
 @click.option('--post-to-rocket', default=True)
-def pack_logs(post_to_rocket, raiden_dir, pack_n_latest, scenario_name, target_dir):
+def pack_logs(post_to_rocket, raiden_dir, pack_n_latest, scenario_names, target_dir):
     raiden_dir = Path(raiden_dir)
     if not raiden_dir.exists():
         raise RuntimeError(f"{raiden_dir} does not exist!")
@@ -211,9 +211,7 @@ def pack_logs(post_to_rocket, raiden_dir, pack_n_latest, scenario_name, target_d
 
     files = set()
 
-    scenario_names = scenario_name or []
-
-    for scenario_name in (scenario_names or []):
+    for scenario_name in scenario_names:
         # The logs are located at .raiden/scenario-player/scenarios/<scenario-name> - make sure the path exists.
         scenario_log_dir = raiden_dir.joinpath('scenario-player', 'scenarios', scenario_name)
         if not scenario_log_dir.exists():
