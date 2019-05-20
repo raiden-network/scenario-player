@@ -11,6 +11,7 @@ from pathlib import Path
 
 import click
 import gevent
+import requests
 import structlog
 from eth_utils import to_checksum_address
 from raiden.accounts import Account
@@ -199,7 +200,8 @@ def reclaim_eth(obj, min_age):
     '--raiden-dir', default=os.environ.get('HOME', '.') + '/.raiden',
     help="Path to the raiden meta data dir. Defaults to ~/.raiden.",
 )
-def pack_logs(raiden_dir, pack_n_latest, scenario_name, target_dir):
+@click.option('--post-to-rocket', default=True)
+def pack_logs(post_to_rocket, raiden_dir, pack_n_latest, scenario_name, target_dir):
     raiden_dir = Path(raiden_dir)
     if not raiden_dir.exists():
         raise RuntimeError(f"{raiden_dir} does not exist!")
@@ -226,8 +228,8 @@ def pack_logs(raiden_dir, pack_n_latest, scenario_name, target_dir):
         files.union(pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir, pack_n_latest))
 
     # Now that we have all our files, create a tar archive at the requested location.
-    archive_fpath = str(target_dir.joinpath(f'Scenario_player_Logs-{"-",join(scenario_names)}-{pack_n_latest or "all"}-latest.tar.gz'))
-    with tarfile.open(archive_fpath, mode='w:gz') as archive:
+    archive_fpath = target_dir.joinpath(f'Scenario_player_Logs-{"-",join(scenario_names)}-{pack_n_latest or "all"}-latest.tar.gz')
+    with tarfile.open(str(archive_fpath), mode='w:gz') as archive:
         for file in files:
             archive.add(str(file))
 
@@ -237,6 +239,9 @@ def pack_logs(raiden_dir, pack_n_latest, scenario_name, target_dir):
     with tarfile.open(str(archive_fpath)) as f:
         for name in f.getnames():
             print(f"- - {name}")
+
+    if post_to_rocket:
+        post_to_rocket_chat(archive_fpath)
 
 
 def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path, n) -> set:
@@ -262,6 +267,35 @@ def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path
             break
 
     return files
+
+
+def post_to_rocket_chat(fpath):
+    try:
+        user = os.environ['RC_USER']
+        pw = os.environ['RC_PW']
+        room_id = os.environ['RC_ROOM_ID']
+    except KeyError:
+        raise RuntimeError('Missing Rocket Char Env variables!')
+
+    resp = requests.post(
+        'https://chat.brainbot.com/api/v1/login',
+        data={'username': user, 'password': pw}
+    )
+
+    token = resp.json()['data']['authToken']
+    user_id = resp.json()['data']['userId']
+    headers = {
+        'X-Auth-Token': token,
+        'X-User-Id': user_id,
+    }
+
+    with fpath.open('rb') as f:
+        return requests.post(
+            f'https://chat.brainbot.com/api/v1/rooms.upload/{room_id}',
+            files={'file': f},
+            headers=headers,
+        )
+
 
 if __name__ == "__main__":
     main()  # pylint: disable=no-value-for-parameter
