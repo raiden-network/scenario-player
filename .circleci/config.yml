@@ -12,5 +12,8 @@ jobs:
           name: Install project
           command: pip install .
       - run:
+          name: Run linters.
+          command: make lint
+      - run:
           name: Run Unit-tests.
           command: pytest tests/unit-tests
