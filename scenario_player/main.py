@@ -191,25 +191,25 @@ def reclaim_eth(obj, min_age):
     help='Only Pack the specified scenario. If omitted, all latest scenario files are packed. May be specified several times',
 )
 @click.option(
-    '--only-n-latest', default=1, callback=lambda x: x >= 0,
+    '--pack-n-latest', default=1,
     help='Specify the max num of log history you would like to pack. Defaults to 1.'
          'Specifying 0 will pack all available logs for a scenario.',
 )
 @click.option(
-    '--raiden-dir', default=(os.environ.get('HOME', '.') + '/.raiden'),
-    callback=lambda x:Path(x).exists(),
+    '--raiden-dir', default=os.environ.get('HOME', '.') + '/.raiden',
     help="Path to the raiden meta data dir. Defaults to ~/.raiden.",
 )
-def pack_logs(raiden_dir, pack_n_latest, scenario_names, target_dir):
+def pack_logs(raiden_dir, pack_n_latest, scenario_name, target_dir):
     raiden_dir = Path(raiden_dir)
-    assert raiden_dir.exists()
+    if not raiden_dir.exists():
+        raise RuntimeError(f"{raiden_dir} does not exist!")
 
     target_dir = Path(target_dir)
     target_dir.mkdir(exist_ok=True)
 
     files = set()
 
-    scenario_names = scenario_names or []
+    scenario_names = scenario_name or []
 
     for scenario_name in (scenario_names or []):
         # The logs are located at .raiden/scenario-player/scenarios/<scenario-name> - make sure the path exists.
@@ -242,8 +242,8 @@ def pack_logs(raiden_dir, pack_n_latest, scenario_names, target_dir):
 def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path, n) -> set:
     # Add all scenario logs requested. Drop any iterations older than pack_n_latest,
     # or add all if that variable is 0.
-    scenario_logs = [path if (path.is_file() and str(path).startswith(scenario_name)) for path in scenario_log_dir.iterdir()]
-    scenario_logs = sorted(scenario_logs, key=x.stat().st_mtime, reverse=True)
+    scenario_logs = [path for path in scenario_log_dir.iterdir() if (path.is_file() and str(path).startswith(scenario_name))]
+    scenario_logs = sorted(scenario_logs, key=lambda x: x.stat().st_mtime, reverse=True)
 
     # specifying `pack_n_latest=0` will add all scenarios.
     max_range = n or len(scenario_logs)
