@@ -298,8 +298,8 @@ def post_to_rocket_chat(fpath):
         user = os.environ['RC_USER']
         pw = os.environ['RC_PW']
         room_id = os.environ['RC_ROOM_ID']
-    except KeyError:
-        raise RuntimeError('Missing Rocket Char Env variables!')
+    except KeyError as e:
+        raise RuntimeError('Missing Rocket Char Env variables!') from e
 
     resp = requests.post(
         'https://chat.brainbot.com/api/v1/login',
