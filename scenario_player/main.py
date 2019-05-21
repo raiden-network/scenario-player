@@ -49,8 +49,7 @@ def construct_log_file_name(sub_command, data_path, scenario_fpath: Path=None)->
         directory = directory.joinpath('scenarios', scenario_fpath.stem)
     else:
         file_name = f"scenario-player-{sub_command}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
-    dir = str(directory.joinpath(file_name))
-    return dir
+    return str(directory.joinpath(file_name))
 
 
 def configure_logging_for_subcommand(log_file_name):
