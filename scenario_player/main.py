@@ -43,10 +43,12 @@ TRANSACTION_DEFAULTS["gas"] = lambda web3, tx: web3.eth.estimateGas(tx) * 2
 
 
 def construct_log_file_name(sub_command, data_path, scenario_fpath: Path=None)-> str:
-    file_name = f"scenario-player-{sub_command}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
     directory = data_path
     if scenario_fpath:
+        file_name = f"scenario-player-{sub_command}_{scenario_fpath.stem}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
         directory = directory.joinpath(scenario_fpath.stem)
+    else:
+        file_name = f"scenario-player-{sub_command}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
     return str(directory.joinpath(file_name))
 
 
@@ -299,7 +301,6 @@ def post_to_rocket_chat(fpath, message=None, description=None):
         room_id = os.environ['RC_ROOM_ID']
     except KeyError as e:
         raise RuntimeError('Missing Rocket Char Env variables!') from e
-
 
     data = {
         key: value
