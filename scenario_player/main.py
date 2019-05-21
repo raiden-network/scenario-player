@@ -76,7 +76,7 @@ def load_account_obj(keystore_file, password):
 @click.group(invoke_without_command=True, context_settings={"max_content_width": 120})
 @click.option(
     "--data-path",
-    default=Path.home().joinpath('.raiden', 'scenario-player'),
+    default=str(Path.home().joinpath('.raiden', 'scenario-player')),
     type=click.Path(exists=False, dir_okay=True, file_okay=False),
     show_default=True,
 )
@@ -96,7 +96,7 @@ def main(ctx, chains, data_path,):
     if ctx.invoked_subcommand:
         ctx.obj = dict(
             chain_rpc_urls=chain_rpc_urls,
-            data_path=data_path,
+            data_path=Path(data_path),
         )
 
 
@@ -277,7 +277,7 @@ def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path
     history = sorted(scenario_logs, key=lambda x: x.stat().st_mtime, reverse=True)
 
     # Can't pack more than the number of available logs.
-    num_of_packable_iterations = range(n or len(scenario_logs))
+    num_of_packable_iterations = n or len(scenario_logs)
 
     if num_of_packable_iterations < n:
         # We ran out of scenario logs to add before reaching the requested number of n latest logs.
