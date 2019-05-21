@@ -43,10 +43,11 @@ TRANSACTION_DEFAULTS["gas"] = lambda web3, tx: web3.eth.estimateGas(tx) * 2
 
 
 def construct_log_file_name(sub_command, data_path, scenario_fpath: Path=None)-> str:
+    file_name = f"scenario-player-{sub_command}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
+    directory = data_path
     if scenario_fpath:
-        scenario_basename = scenario_fpath.stem
-        return f"{data_path}/scenarios/{scenario_basename}/{scenario_basename}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
-    return f"{data_path}/scenario-player-{ctx.invoked_subcommand}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
+        directory.joinpath(scenario_fpath.stem)
+    return str(directory.joinpath(file_name))
 
 
 def configure_logging_for_subcommand(log_file_name):
