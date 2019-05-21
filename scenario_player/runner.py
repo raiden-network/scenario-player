@@ -60,7 +60,7 @@ class ScenarioRunner:
         # Storage for arbitrary data tasks might need to persist
         self.task_storage = defaultdict(dict)
 
-        self.scenario = Scenario(pathlib.Path(scenario_file.name))
+        self.scenario = Scenario(scenario_file)
         self.scenario_name = self.scenario.name
 
         self.data_path = data_path.joinpath("scenarios", self.scenario.name)
