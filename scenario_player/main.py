@@ -207,7 +207,7 @@ def run(ctx, mailgun_api_key, auth, password, keystore_file, scenario_file):
 def reclaim_eth(ctx, min_age, password, keystore_file):
     from scenario_player.utils import reclaim_eth
 
-    data_path = ctx.obj['data_path']
+    data_path = Path(ctx.obj['data_path'].name)
     chain_rpc_urls = ctx.obj['chain_rpc_urls']
     account = load_account_obj(keystore_file, password)
 
@@ -231,7 +231,7 @@ def reclaim_eth(ctx, min_age, password, keystore_file):
 @click.pass_context
 def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
     data_path = ctx.obj['data_path'].absolute()
-
+    scenario_file = Path(scenario_file.name).absolute()
     scenario_name = Path(scenario_file.name).stem
     log_file_name = construct_log_file_name(ctx.invoked_subcommand, data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
