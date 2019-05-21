@@ -46,10 +46,11 @@ def construct_log_file_name(sub_command, data_path, scenario_fpath: Path=None)->
     directory = data_path
     if scenario_fpath:
         file_name = f"scenario-player-{sub_command}_{scenario_fpath.stem}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
-        directory = directory.joinpath(scenario_fpath.stem)
+        directory = directory.joinpath('scenarios', scenario_fpath.stem)
     else:
         file_name = f"scenario-player-{sub_command}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
-    return str(directory.joinpath(file_name))
+    dir = str(directory.joinpath(file_name))
+    return dir
 
 
 def configure_logging_for_subcommand(log_file_name):
@@ -270,19 +271,28 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
             print(f"- - {name}")
 
     if post_to_rocket:
-        post_to_rocket_chat(archive_fpath)
+        rc_message = {'msg': None, 'description': None}
+        if pack_n_latest == 1:
+            # Index 0 will always return the latest log file for the scenario.
+            scenario_log_file = files[0]
+            rc_message['msg'] = construct_rc_message(scenario_log_file)
+            rc_message['description'] = f'Log files for scenario {scenario_name}'
+        post_to_rocket_chat(archive_fpath, **rc_message)
 
 
 def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path, n) -> list:
     """Add the `n` latest log files for `scenario_name` in `scenario_dir` to a :cls:`set` and return it."""
     scenario_logs = [
         path for path in scenario_log_dir.iterdir()
-        if (path.is_file() and str(path).startswith(scenario_name))
+        if (path.is_file() and '-run_' in path.name)
     ]
     history = sorted(scenario_logs, key=lambda x: x.stat().st_mtime, reverse=True)
 
     # Can't pack more than the number of available logs.
     num_of_packable_iterations = n or len(scenario_logs)
+
+    if not history:
+        raise RuntimeError(f'No Scenario logs found in {scenario_log_dir}')
 
     if num_of_packable_iterations < n:
         # We ran out of scenario logs to add before reaching the requested number of n latest logs.
@@ -294,19 +304,34 @@ def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path
     return history[:num_of_packable_iterations]
 
 
-def post_to_rocket_chat(fpath, message=None, description=None):
+def construct_rc_message(log_fpath) -> str:
+    """Check the result of the log file at the given `log_fpath`."""
+    result = None
+    exc = None
+    with log_fpath.open('r') as f:
+        for line in f:
+            json_obj = json.loads(line.strip())
+            if 'result' in json_obj:
+                result = json_obj['result']
+                exc = json_obj.get('exception', None)
+    if result == 'success':
+        return ':white_check_mark: Succesfully ran scenario!'
+
+    message = f':x: Error while running scenario: {result}!'
+    if exc:
+        message += '\n```\n' + exc + '\n```'
+    if result is None:
+        raise RuntimeError(f'Could not find result in logfile {log_fpath}')
+    return message
+
+
+def post_to_rocket_chat(fpath, **rc_payload_fields):
     try:
         user = os.environ['RC_USER']
         pw = os.environ['RC_PW']
         room_id = os.environ['RC_ROOM_ID']
     except KeyError as e:
         raise RuntimeError('Missing Rocket Char Env variables!') from e
-
-    data = {
-        key: value
-        for key, value in dict(message=message, description=description).items()
-        if value is not None
-    }
 
     resp = requests.post(
         'https://chat.brainbot.com/api/v1/login',
@@ -321,13 +346,13 @@ def post_to_rocket_chat(fpath, message=None, description=None):
     }
 
     with fpath.open('rb') as f:
-        return requests.post(
+        resp = requests.post(
             f'https://chat.brainbot.com/api/v1/rooms.upload/{room_id}',
             files={'file': f},
             headers=headers,
-            data=data,
+            data=rc_payload_fields,
         )
-
+        resp.raise_for_status()
 
 if __name__ == "__main__":
     main()  # pylint: disable=no-value-for-parameter
