@@ -46,7 +46,7 @@ def construct_log_file_name(sub_command, data_path, scenario_fpath: Path=None)->
     file_name = f"scenario-player-{sub_command}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
     directory = data_path
     if scenario_fpath:
-        directory.joinpath(scenario_fpath.stem)
+        directory = directory.joinpath(scenario_fpath.stem)
     return str(directory.joinpath(file_name))
 
 
@@ -111,7 +111,6 @@ def main(ctx, chains, data_path,):
 @click.pass_context
 def run(ctx, mailgun_api_key, auth, password, keystore_file, scenario_file):
     scenario_file = Path(scenario_file.name).absolute()
-    print(scenario_file)
     data_path = ctx.obj['data_path']
     chain_rpc_urls = ctx.obj['chain_rpc_urls']
 
@@ -293,13 +292,20 @@ def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path
     return history[:num_of_packable_iterations]
 
 
-def post_to_rocket_chat(fpath):
+def post_to_rocket_chat(fpath, message=None, description=None):
     try:
         user = os.environ['RC_USER']
         pw = os.environ['RC_PW']
         room_id = os.environ['RC_ROOM_ID']
     except KeyError as e:
         raise RuntimeError('Missing Rocket Char Env variables!') from e
+
+
+    data = {
+        key: value
+        for key, value in dict(message=message, description=description).items()
+        if value is not None
+    }
 
     resp = requests.post(
         'https://chat.brainbot.com/api/v1/login',
@@ -318,6 +324,7 @@ def post_to_rocket_chat(fpath):
             f'https://chat.brainbot.com/api/v1/rooms.upload/{room_id}',
             files={'file': f},
             headers=headers,
+            data=data,
         )
 
 
