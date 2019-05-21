@@ -42,7 +42,7 @@ log = structlog.get_logger(__name__)
 TRANSACTION_DEFAULTS["gas"] = lambda web3, tx: web3.eth.estimateGas(tx) * 2
 
 
-def construct_log_file_name(data_path, scenario_fpath: Path=None)-> str:
+def construct_log_file_name(sub_command, data_path, scenario_fpath: Path=None)-> str:
     if scenario_fpath:
         scenario_basename = scenario_fpath.stem
         return f"{data_path}/scenarios/{scenario_basename}/{scenario_basename}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
@@ -114,7 +114,7 @@ def run(ctx, mailgun_api_key, auth, password, keystore_file, scenario_file):
     data_path = ctx.obj['data_path']
     chain_rpc_urls = ctx.obj['chain_rpc_urls']
 
-    log_file_name = construct_log_file_name(data_path, scenario_file)
+    log_file_name = construct_log_file_name(ctx.invoked_subcommand, data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
 
     account = load_account_obj(keystore_file, password)
@@ -202,15 +202,15 @@ def run(ctx, mailgun_api_key, auth, password, keystore_file, scenario_file):
     show_default=True,
     help="Minimum account non-usage age before reclaiming eth. In hours.",
 )
-@click.pass_obj
-def reclaim_eth(obj, min_age, password, keystore_file):
+@click.pass_context
+def reclaim_eth(ctx, min_age, password, keystore_file):
     from scenario_player.utils import reclaim_eth
 
-    data_path = obj['data_path']
-    chain_rpc_urls = obj['chain_rpc_urls']
+    data_path = ctx.obj['data_path']
+    chain_rpc_urls = ctx.obj['chain_rpc_urls']
     account = load_account_obj(keystore_file, password)
 
-    configure_logging_for_subcommand(construct_log_file_name(data_path))
+    configure_logging_for_subcommand(construct_log_file_name(ctx.invoked_subcommand, data_path))
 
     reclaim_eth(min_age_hours=min_age, chain_rpc_urls=chain_rpc_urls, data_path=data_path, account=account)
 
@@ -232,7 +232,7 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
     data_path = ctx.obj['data_path'].absolute()
 
     scenario_name = Path(scenario_file.name).stem
-    log_file_name = construct_log_file_name(data_path, scenario_file)
+    log_file_name = construct_log_file_name(ctx.invoked_subcommand, data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
 
     target_dir = Path(target_dir)
