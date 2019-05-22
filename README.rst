@@ -47,8 +47,8 @@ Reclaiming spent test ether::
     $ scenario-player --chain=goerli:http:geth.goerli.ethnodes.brainbot.com:8545 \
         reclaim-eth --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW}
 
-Scenario Definition
+Scenario Examples
 -------------------
 
-.. include:: raiden/scenario_player/scenarios/examples/v2-example-scenario.yaml
-    :name: example scenario
+For example scenarios have a look at the `raiden` repository's scenarios. These
+can be found [here](https://github.com/raiden-network/raiden/tree/develop/raiden/tests/scenarios).
