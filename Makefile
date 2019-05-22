@@ -1,4 +1,4 @@
-.PHONY: lint style black isort isort-check flake8
+.PHONY: lint style black isort isort-check flake8 clean
 
 clean:
 	find . -name '*.pyc' -delete
