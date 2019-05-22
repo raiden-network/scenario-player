@@ -16,19 +16,36 @@ Using  ``git`` & ``pip``::
     cd scenario-player
     pip install .
 
-
 Usage
 -----
 
 Using a ``pip`` installation::
 
-    scenario-player --help
+    $ scenario-player --help
+    Usage: scenario-player [OPTIONS] COMMAND [ARGS]...
 
-Using ``docker`` (does not require installation via ``pip``)::
+    Options:
+      --data-path DIRECTORY           [default: $HOME/.raiden/scenario-player]
+      --chain <chain-name>:<eth-node-rpc-url>
+                                      Chain name to eth rpc url mapping, multiple allowed
+                                      [required]
+      --help                          Show this message and exit.
 
-    docker run raidennetwork/scenario-player
+    Commands:
+      pack-logs (experimental)
+      reclaim-eth
+      run
 
+Running a scenario::
 
+    $ scenario-player --chain=goerli:http:geth.goerli.ethnodes.brainbot.com:8545 \
+        run --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW} \
+        /path/to/scenario.yaml
+
+Reclaiming spent test ether::
+
+    $ scenario-player --chain=goerli:http:geth.goerli.ethnodes.brainbot.com:8545 \
+        reclaim-eth --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW}
 
 Scenario Definition
 -------------------
