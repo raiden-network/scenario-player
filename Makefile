@@ -1,5 +1,8 @@
 .PHONY: lint style black isort isort-check flake8
 
+clean:
+	find . -name '*.pyc' -delete
+
 black:
 	black scenario_player
 
