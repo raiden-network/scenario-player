@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from unittest import mock
 
 import pytest
-from scenario_player import releases
 from scenario_player.releases import ReleaseArchive
 
 
@@ -23,14 +22,14 @@ class TestReleaseArchive:
         ReleaseArchive(pathlib.Path(single_file_zip.filename))
         mock_validate.assert_called_once()
 
-    @mock.patch('scenario_player.releases.zipfile.Zipfile')
+    @mock.patch('scenario_player.releases.ZipFile')
     def test_init_with_path_to_zip_calls_zipfile_open_method(self, mock_open, single_file_zip):
 
         release_archive = ReleaseArchive(pathlib.Path(single_file_zip.filename))
         mock_open.assert_called_once_with(pathlib.Path(single_file_zip.filename), 'r')
         assert release_archive._context == mock_open
 
-    @mock.patch('scenario_player.releases.Tarfile.open')
+    @mock.patch('scenario_player.releases.TarFile.open')
     def test_init_with_path_to_tar_calls_tarfile_open_method(self, mock_open, single_file_tar):
         release_archive = ReleaseArchive(pathlib.Path(single_file_tar.name))
         mock_open.assert_called_once_with(pathlib.Path(single_file_tar.name), 'r:*')
@@ -42,7 +41,7 @@ class TestReleaseArchive:
         release_archive.files
         mock_get_files.assert_called_once()
 
-    @mock.patch('scenario_player.releases.Tarfile.getnames')
+    @mock.patch('scenario_player.releases.TarFile.getnames')
     def test_files_property_uses_tarfile_getnames_if_archive_ends_with_gz(self, mock_get_files, single_file_tar):
         release_archive = ReleaseArchive(pathlib.Path(single_file_tar.name))
         release_archive.files
