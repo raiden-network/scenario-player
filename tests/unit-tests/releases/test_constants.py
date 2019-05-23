@@ -2,10 +2,10 @@ from unittest import mock
 
 import pytest
 
-from scenario_player.releases import RELEASE_ARCHIVE_NAME_TEMPLATE, RAIDEN_RELEASES_LATEST_FILE
+from scenario_player.releases import PLATFORM_SEPCIFIC_VARS
 
 
-class TestPlatformSepcificConstants:
+class TestPLATFORM_SEPCIFIC_VARS:
 
     @pytest.mark.parametrize(
         argnames=['os', 'expected_fname'],
@@ -17,11 +17,10 @@ class TestPlatformSepcificConstants:
         ], ids=['MacOS', 'Linux', 'Windows', 'Windows Cygwin']
     )
     @mock.patch('scenario_player.releases.sys')
-    def test_RAIDEN_RELEASE_LATEST_FILE_name_is_constructed_correctly_on_all_platforms(
+    def test_latest_file_name_is_constructed_correctly_on_all_platforms(
             self, mock_sys, os, expected_fname):
-        mock_sys.configure(platform=os)
-        assert RAIDEN_RELEASES_LATEST_FILE == expected_fname
-
+        mock_sys.configure_mock(platform=os)
+        assert PLATFORM_SEPCIFIC_VARS.latest_file_name() == expected_fname
 
     @pytest.mark.parametrize(
         argnames=['os', 'expected_fname'],
@@ -33,7 +32,7 @@ class TestPlatformSepcificConstants:
         ], ids=['MacOS', 'Linux', 'Windows', 'Windows Cygwin']
     )
     @mock.patch('scenario_player.releases.sys')
-    def test_RAIDEN_ARCHIVE_NAME_TEMPLATE_is_constructed_correctly_on_all_platforms(
+    def test_achive_name_template_is_constructed_correctly_on_all_platforms(
             self, mock_sys, os, expected_fname):
-        mock_sys.configure(platform=os)
-        assert RELEASE_ARCHIVE_NAME_TEMPLATE == expected_fname
+        mock_sys.configure_mock(platform=os)
+        assert PLATFORM_SEPCIFIC_VARS.archive_name_template() == expected_fname

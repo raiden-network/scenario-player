@@ -3,23 +3,27 @@ from stat import S_IRUSR, S_IWUSR, S_IXUSR
 
 import pytest
 
-from scenario_player.releases import RAIDEN_RELEASES_URL, RAIDEN_RELEASES_LATEST_FILE
+from scenario_player.releases import RAIDEN_RELEASES_URL, PLATFORM_SEPCIFIC_VARS
 from scenario_player.releases import get_latest_release, is_executable
 
 
 class TestGetLatestRelease:
 
-    @mock.patch('scenario_player.releases.requests.get', autospec=True)
+    @mock.patch('scenario_player.releases.requests.get')
     def test_get_latest_release_is_cached(self, mock_request):
+        get_latest_release.cache_clear()
         get_latest_release()
         get_latest_release()
         mock_request.assert_called_once()
 
-    @mock.patch('scenario_player.releases.requests', autospec=True)
+    @mock.patch('scenario_player.releases.requests.get')
     def test_get_latest_release_sends_request_to_correct_url(self, mock_request):
         mock_request.configure_mock(text=str())
+        get_latest_release.cache_clear()
         get_latest_release()
-        mock_request.assert_called_once_with(RAIDEN_RELEASES_URL + RAIDEN_RELEASES_LATEST_FILE)
+        mock_request.assert_called_once_with(
+            RAIDEN_RELEASES_URL + PLATFORM_SEPCIFIC_VARS.latest_file_name()
+        )
 
 
 INPUT_OUTPUT = {

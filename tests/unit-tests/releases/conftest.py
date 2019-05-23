@@ -10,7 +10,7 @@ def single_file_tar(tmp_path):
         path = tmp_path.joinpath(f'file-in-single-tar.txt')
         path.touch()
         archive.add(path)
-        return archive
+    return archive
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def multi_file_tar(tmp_path):
             path = tmp_path.joinpath(f'file-in-tar{i}.txt')
             path.touch()
             archive.add(path)
-        return archive
+    return archive
 
 
 @pytest.fixture
@@ -39,7 +39,7 @@ def single_file_zip(tmp_path):
         path = tmp_path.joinpath(f'file-in-single-zip.txt')
         path.touch()
         archive.write(path)
-        return archive
+    return archive
 
 
 @pytest.fixture
@@ -60,4 +60,4 @@ def multi_file_zip(tmp_path):
             path = tmp_path.joinpath(f'file-in-zip{i}.txt')
             path.touch()
             archive.write(path)
-        return archive
+    return archive
