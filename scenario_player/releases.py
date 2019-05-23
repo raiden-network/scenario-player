@@ -14,18 +14,28 @@ log = structlog.get_logger(__name__)
 
 
 RAIDEN_RELEASES_URL = 'https://raiden-nightlies.ams3.digitaloceanspaces.com/'
-if sys.platform == 'darwin':
-    RAIDEN_RELEASES_LATEST_FILE = '_LATEST-macOS-x86_64.txt'
-    RELEASE_ARCHIVE_NAME_TEMPLATE = 'raiden-v{version}-macOS-x86_64.zip'
-else:
-    RAIDEN_RELEASES_LATEST_FILE = '_LATEST-linux-x86_64.txt'
-    RELEASE_ARCHIVE_NAME_TEMPLATE = 'raiden-v{version}-linux-x86_64.tar.gz'
+
+
+class PLATFORM_SEPCIFIC_VARS:
+    @classmethod
+    def latest_file_name(cls) -> str:
+        """Construct the file name of the `latest` file on our cloud."""
+        if sys.platform == "darwin":
+            return '_LATEST-macOS-x86_64.txt'
+        return '_LATEST-linux-x86_64.txt'
+
+    @classmethod
+    def archive_name_template(cls) -> str:
+        """Construct the archive name for the release, factoring in the system's platform."""
+        if sys.platform == "darwin":
+            return 'raiden-v{version}-macOS-x86_64.zip'
+        return 'raiden-v{version}-linux-x86_64.tar.gz'
 
 
 @ttl_cache(maxsize=1, ttl=600)
 def get_latest_release():
     """Retrieve the latest release's URL path"""
-    url = RAIDEN_RELEASES_URL + RAIDEN_RELEASES_LATEST_FILE
+    url = RAIDEN_RELEASES_URL + PLATFORM_SEPCIFIC_VARS.latest_file_name()
     log.debug('Fetching latest Raiden release')
     response = requests.get(url)
     text = response.text
@@ -46,10 +56,7 @@ class ReleaseArchive:
 
     def __init__(self, path: pathlib.Path) -> None:
         self.path = path
-        if self.path.suffix.endswith('.gz'):
-            self._context = TarFile.open(self.path, 'r:*')
-        else:
-            self._context = ZipFile(self.path, 'r')
+        self._context = None
         self.validate()
 
     def __enter__(self):
@@ -102,6 +109,14 @@ class ReleaseArchive:
         self._context.extractall(members=[self.binary], path=target_dir)
         target_dir.chmod(0o770)
         return target_dir
+
+    def open(self):
+        if not self._context:
+            if self.path.suffix.endswith('.gz'):
+                self._context = TarFile.open(self.path, 'r:*')
+            else:
+                self._context = ZipFile(self.path, 'r')
+        return self
 
     def close(self):
         """Close the context, if possible."""
@@ -176,7 +191,7 @@ class Release:
 
     def download(self, target_folder: Union[str, pathlib.Path], overwrite=False) -> pathlib.Path:
         """Download this release's binary from our servers to the given `target_folder`."""
-        target_file = RELEASE_ARCHIVE_NAME_TEMPLATE.format(version=self.version)
+        target_file = PLATFORM_SEPCIFIC_VARS.archive_name_template().format(version=self.version)
 
         download_destination = pathlib.Path(target_folder).joinpath(target_file)
 
