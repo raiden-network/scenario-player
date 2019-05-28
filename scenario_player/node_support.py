@@ -8,7 +8,7 @@ import socket
 import stat
 import sys
 import time
-from datetime import timedelta
+from datetime import timedelta, datetime
 from enum import Enum
 from pathlib import Path
 from tarfile import TarFile
@@ -176,7 +176,7 @@ class NodeRunner:
         self._index = index
         self._raiden_version = raiden_version
         self._options = options
-        self._datadir = runner.data_path.joinpath(f"{datetime.datetime.today():%Y-%m-%d}_node_{index:03d}")
+        self._datadir = runner.data_path.joinpath(f"{datetime.today():%Y-%m-%d}_node_{index:03d}")
 
         self._address = None
         self._eth_rpc_endpoint = None
