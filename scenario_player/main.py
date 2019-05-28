@@ -6,7 +6,6 @@ import tarfile
 import traceback
 from collections import defaultdict
 from datetime import datetime
-from os.path import basename
 from pathlib import Path
 
 import click
@@ -254,7 +253,7 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
 
     # Now that we have all our files, create a tar archive at the requested location.
     archive_fpath = target_dir.joinpath(
-        f'Scenario_player_Logs-{scenario_name}-{pack_n_latest or "all"}-latest.tar.gz'
+        f'Scenario_player_Logs-{scenario_name}-{pack_n_latest or "all"}-latest-{datetime.today():%Y-%m-%d}.tar.gz'
     )
 
     with tarfile.open(str(archive_fpath), mode='w:gz') as archive:
