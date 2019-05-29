@@ -348,7 +348,7 @@ class NodeRunner:
             log.debug("Initializing keystore", node=self._index)
             gevent.sleep()
             privkey = hashlib.sha256(
-                f"{self._runner.scenario_name}-{self._index}".encode()
+                f"{self._runner.scenario_name}-{self._runner.run_number}-{self._index}".encode()
             ).digest()
             keystore_file.write_text(json.dumps(create_keyfile_json(privkey, b"")))
         return keystore_file
