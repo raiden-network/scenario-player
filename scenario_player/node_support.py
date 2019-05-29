@@ -176,7 +176,7 @@ class NodeRunner:
         self._index = index
         self._raiden_version = raiden_version
         self._options = options
-        self._datadir = runner.data_path.joinpath(f"node_{index:03d}")
+        self._datadir = runner.data_path.joinpath(f"node_{self._runner.run_number}_{index:03d}")
 
         self._address = None
         self._eth_rpc_endpoint = None
