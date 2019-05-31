@@ -24,5 +24,6 @@ Besides that a CSV file is created which contains the raw deltas between the tas
 
 Limitations
 """""""""""
-- The duration of a task is done by looking at the next event in the list of events (sorted by time), parallel task might not visualized not correctly
-- The number of ticks on the y-axis can be to much when too many tasks have been emitted in the log, in that case uncomment the ``showticklabels`` line.
+- The duration of a task is done by looking at the next event in the list of events (sorted by time)
+- parallel task processing might not be visualized not correctly
+- The number of ticks on the y-axis can be to much when too many tasks have been emitted in the log, in that case uncomment the ``showticklabels`` line in the ``draw_gantt()`` method.
