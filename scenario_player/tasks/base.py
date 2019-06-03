@@ -48,7 +48,7 @@ class Task:
         self._config = copy(config)
         self._parent = parent
         self._abort_on_fail = abort_on_fail
-        self.state = TaskState.INITIALIZED
+        self._state = TaskState.INITIALIZED
         self.exception = None
         self.level = parent.level + 1 if parent else 0
         self._start_time = None
@@ -134,6 +134,15 @@ class Task:
     @property
     def done(self):
         return self.state in {TaskState.FINISHED, TaskState.ERRORED}
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, new_state):
+        self._state = new_state
+        self._runner.task_state_changed(self, self._state)
 
 
 T_Task = TypeVar("T_Task", bound=Task)
