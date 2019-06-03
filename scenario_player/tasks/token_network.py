@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from scenario_player.tasks.raiden_api import RaidenAPIActionTask
 
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import pathlib
@@ -9,7 +11,7 @@ from collections import defaultdict, deque
 from datetime import datetime
 from itertools import islice
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
 import click
 import mirakuru
@@ -30,7 +32,10 @@ from requests.adapters import HTTPAdapter
 from web3 import HTTPProvider, Web3
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
+from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
+from scenario_player.tasks.base import Task, TaskState
+from scenario_player.tasks.execution import ParallelTask, SerialTask
 
 RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)
 VALUE_TX_GAS_COST = 21_000
@@ -397,10 +402,9 @@ def reclaim_eth(
         log.info("Reclaimed", chain=chain_name, amount=amount.__format__(",d"))
 
 
-def post_task_state_to_rc(scenario: "ScenarioRunner", task: "Task", state: "TaskState") -> None:
-    from scenario_player.tasks.base import Task, TaskState
-    from scenario_player.tasks.execution import SerialTask, ParallelTask
-
+def post_task_state_to_rc(
+    scenario: scenario_runner.ScenarioRunner, task: Task, state: TaskState
+) -> None:
     color = "#c0c0c0"
     if state is TaskState.RUNNING:
         color = "#ffbb20"

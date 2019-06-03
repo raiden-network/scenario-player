@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 import inspect
 import pkgutil
@@ -11,8 +13,8 @@ import click
 import gevent
 import structlog
 
+from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import UnknownTaskTypeError
-from scenario_player.runner import ScenarioRunner
 
 log = structlog.get_logger(__name__)
 
@@ -37,8 +39,14 @@ _TASK_ID = 0
 
 
 class Task:
+    _name = None
+
     def __init__(
-        self, runner: ScenarioRunner, config: Any, parent: "Task" = None, abort_on_fail=True
+        self,
+        runner: scenario_runner.ScenarioRunner,
+        config: Any,
+        parent: "Task" = None,
+        abort_on_fail=True,
     ) -> None:
         global _TASK_ID
 
