@@ -28,23 +28,23 @@ def has_more_specific_task_bracket(task_bracket, task_indices):
 
 
 def append_subtask(gantt_rows, csv_rows, subtasks):
-    if len(subtasks) == 2:
-        gantt_rows.append({"Task": subtasks[0][1] + "/" + subtasks[1][1], "Start": subtasks[0][0], "Finish": subtasks[1][0], "Description": json.dumps(
-            subtasks[0][2], sort_keys=True, indent=4).replace('\n', '<br>') + "<br>------------------------------------<br>" + json.dumps(subtasks[1][2], sort_keys=True, indent=4).replace('\n', '<br>')})
-        csv_rows.append(['', subtasks[0][1] + "/" + subtasks[1][1],
-                         calculate_duration(subtasks[0][0], subtasks[1][0])])
-        return
-    for index, item in enumerate(subtasks):
-        start = item[0]
-        if index == subtasks.__len__() - 1:
-            finish = start
-        else:
-            finish = subtasks[index + 1][0]
-        if re.match('starting task', item[1], re.IGNORECASE) or re.match('task successful', item[1], re.IGNORECASE):
-            continue
-        gantt_rows.append({"Task": item[1], "Start": start, "Finish": finish, "Description": json.dumps(
-            item[2], sort_keys=True, indent=4).replace('\n', '<br>')})
-        csv_rows.append(['', item[1], calculate_duration(start, finish)])
+    ids = set(map(lambda t: t[2]['id'], subtasks))
+    tasks_length = len(subtasks)
+    for id in ids:
+        filtered_tasks = []
+        for i in range(tasks_length):
+            if "id" not in subtasks[i][2]:
+                continue
+            if id == subtasks[i][2]["id"]:
+                filtered_tasks.append(subtasks[i])
+
+        joined_content = '<br>------------------------------------<br>'.join(
+            map(lambda t: json.dumps(t, sort_keys=True, indent=4).replace('\n', '<br>'), filtered_tasks))
+        start = filtered_tasks[0][0]
+        finish = filtered_tasks[-1][0]
+        gantt_rows.append({"Task": "Subtasks(#" + id + ")", "Start": start,
+                           "Finish": finish, "Description": joined_content})
+        csv_rows.append(['', "Subtasks(#" + id + ")", calculate_duration(start, finish)])
 
 
 def calculate_duration(start, finish):
@@ -109,11 +109,11 @@ def write_csv(csv_rows):
 
 
 def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
-    for task_bracket_index, task_bracket in enumerate(task_brackets):
+    for task_bracket in task_brackets:
         task_start_item = stripped_content[task_bracket[0]]
         task_finish_item = stripped_content[task_bracket[1]]
         task_body = task_start_item[2]["task"].split(":", 1)
-        task_name = re.sub('<', '', task_body[0]).strip()
+        task_name = re.sub('<', '', task_body[0]).strip() + "(#" + task_start_item[2]["id"] + ")"
         task_desc = re.sub('>', '', task_body[1]).strip()
 
         # add main task to rows
@@ -123,7 +123,7 @@ def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
             task_start_item[0], task_finish_item[0])])
 
         # Only add subtasks for leafs of the tree
-        main_task_debug_string = str(task_bracket) + ": " + task_name + " - (" + task_desc + ")"
+        main_task_debug_string = str(task_bracket) + " " + task_name + ": " + task_desc
         if not has_more_specific_task_bracket(task_bracket, task_brackets):
             subtasks = stripped_content[task_bracket[0] + 1:task_bracket[1]]
             print(main_task_debug_string + " - subtasks = " + str(len(subtasks)))
