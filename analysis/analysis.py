@@ -61,7 +61,7 @@ def create_task_brackets(stripped_content):
             for j in range(i, content_length):
                 if "task" not in stripped_content[j][2]:
                     continue
-                if stripped_content[i][2]["task"] == stripped_content[j][2]["task"] and (re.match('task successful', stripped_content[j][1], re.IGNORECASE) or re.match('task errored', stripped_content[j][1], re.IGNORECASE)):
+                if stripped_content[i][2]["id"] == stripped_content[j][2]["id"] and (re.match('task successful', stripped_content[j][1], re.IGNORECASE) or re.match('task errored', stripped_content[j][1], re.IGNORECASE)):
                     task_indices.append([i, j])
                     break
     return task_indices

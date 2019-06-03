@@ -58,7 +58,7 @@ class Task:
         runner.task_count += 1
 
     def __call__(self, *args, **kwargs):
-        log.info("Starting task", task=self)
+        log.info("Starting task", task=self, id=self.id)
         self.state = TaskState.RUNNING
         self._runner.running_task_count += 1
         self._start_time = time.monotonic()
@@ -66,7 +66,7 @@ class Task:
             return self._run(*args, **kwargs)
         except BaseException as ex:
             self.state = TaskState.ERRORED
-            log.exception("Task errored", task=self)
+            log.exception("Task errored", task=self, id=self.id)
             self.exception = ex
             if self._abort_on_fail:
                 raise
@@ -74,7 +74,7 @@ class Task:
             self._stop_time = time.monotonic()
             self._runner.running_task_count -= 1
             if self.state is TaskState.RUNNING:
-                log.info("Task successful", task=self)
+                log.info("Task successful", task=self, id=self.id)
                 self.state = TaskState.FINISHED
 
     def _run(self, *args, **kwargs):  # pylint: disable=unused-argument,no-self-use
