@@ -1,4 +1,5 @@
-import pathlib
+from __future__ import annotations
+
 import random
 from collections import defaultdict
 from pathlib import Path
@@ -30,6 +31,7 @@ from scenario_player.constants import (
 )
 from scenario_player.exceptions import NodesUnreachableError, ScenarioError, TokenRegistrationError
 from scenario_player.scenario import Scenario
+from scenario_player.tasks.base import Task, TaskState
 from scenario_player.utils import (
     TimeOutHTTPAdapter,
     get_or_deploy_token,
@@ -49,9 +51,7 @@ class ScenarioRunner:
         auth: str,
         data_path: Path,
         scenario_file: Path,
-        task_state_callback: Optional[
-            Callable[["ScenarioRunner", "Task", "TaskState"], None]
-        ] = None,
+        task_state_callback: Optional[Callable[["ScenarioRunner", Task, TaskState], None]] = None,
     ):
         from scenario_player.node_support import RaidenReleaseKeeper, NodeController
 

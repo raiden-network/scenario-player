@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import hashlib
 from typing import Any
 
 import structlog
 from toolz import first
 
+from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
-from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import Task
 from scenario_player.tasks.raiden_api import RaidenAPIActionTask
 
@@ -72,7 +74,7 @@ class TransferTask(ChannelActionTask):
     _transfer_count = 0
 
     def __init__(
-        self, runner: ScenarioRunner, config: Any, parent=None, abort_on_fail=True
+        self, runner: scenario_runner.ScenarioRunner, config: Any, parent=None, abort_on_fail=True
     ) -> None:
         super().__init__(runner, config, parent, abort_on_fail)
         # Unique transfer identifier
@@ -99,7 +101,11 @@ class StoreChannelInfoTask(ChannelActionTask):
     _method = "get"
 
     def __init__(
-        self, runner: ScenarioRunner, config: Any, parent: Task = None, abort_on_fail=True
+        self,
+        runner: scenario_runner.ScenarioRunner,
+        config: Any,
+        parent: Task = None,
+        abort_on_fail=True,
     ) -> None:
         super().__init__(runner, config, parent, abort_on_fail)
         if "key" not in config:

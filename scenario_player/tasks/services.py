@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from typing import Any
 
 import structlog
 
+from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
-from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.api_base import RESTAPIActionTask
 from scenario_player.tasks.base import Task
 
@@ -235,7 +237,11 @@ class AssertPFSIoUTask(RESTAPIActionTask):
     _url_template = "{pfs_url}/api/v1/_debug/ious/{source_address}"
 
     def __init__(
-        self, runner: ScenarioRunner, config: Any, parent: Task = None, abort_on_fail: bool = True
+        self,
+        runner: scenario_runner.ScenarioRunner,
+        config: Any,
+        parent: Task = None,
+        abort_on_fail: bool = True,
     ) -> None:
         super().__init__(runner, config, parent, abort_on_fail)
 

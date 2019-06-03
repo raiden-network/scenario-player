@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pathlib
 from collections.abc import Mapping
 from typing import Any, Callable, Dict, List, Tuple, Union

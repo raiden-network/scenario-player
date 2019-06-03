@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -52,7 +54,10 @@ class TaskNotifyType(Enum):
 def construct_log_file_name(sub_command, data_path, scenario_fpath: Path = None) -> str:
     directory = data_path
     if scenario_fpath:
-        file_name = f"scenario-player-{sub_command}_{scenario_fpath.stem}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
+        file_name = (
+            f"scenario-player-{sub_command}_{scenario_fpath.stem}"
+            f"_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
+        )
         directory = directory.joinpath("scenarios", scenario_fpath.stem)
     else:
         file_name = f"scenario-player-{sub_command}_{datetime.now():%Y-%m-%dT%H:%M:%S}.log"
@@ -266,7 +271,8 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
     target_dir = Path(target_dir)
     target_dir.mkdir(exist_ok=True)
 
-    # The logs are located at .raiden/scenario-player/scenarios/<scenario-name> - make sure the path exists.
+    # The logs are located at .raiden/scenario-player/scenarios/<scenario-name>
+    # - make sure the path exists.
     scenario_log_dir = data_path.joinpath("scenarios", scenario_name)
     if not scenario_log_dir.exists():
         print(f"No log directory found for scenario {scenario_name} at {scenario_log_dir}")
@@ -280,14 +286,16 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
 
     # Now that we have all our files, create a tar archive at the requested location.
     archive_fpath = target_dir.joinpath(
-        f'Scenario_player_Logs-{scenario_name}-{pack_n_latest or "all"}-latest-{datetime.today():%Y-%m-%d}.tar.gz'
+        f'Scenario_player_Logs-{scenario_name}-{pack_n_latest or "all"}-latest'
+        f"-{datetime.today():%Y-%m-%d}.tar.gz"
     )
 
     with tarfile.open(str(archive_fpath), mode="w:gz") as archive:
         for obj in (*folders, *files):
             archive.add(str(obj))
 
-    # Print some feedback to stdout. This is also a sanity check, asserting the archive is readable.
+    # Print some feedback to stdout. This is also a sanity check,
+    # asserting the archive is readable.
     # Race conditions are ignored.
     print(f"Created archive at {archive_fpath}")
     print(f"- {archive_fpath}")
@@ -306,7 +314,9 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
 
 
 def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path, n) -> list:
-    """Add the `n` latest log files for `scenario_name` in `scenario_dir` to a :cls:`set` and return it."""
+    """ Add the `n` latest log files for ``scenario_name`` in ``scenario_dir`` to a :cls:``set``
+        and return it.
+    """
     scenario_logs = [
         path for path in scenario_log_dir.iterdir() if (path.is_file() and "-run_" in path.name)
     ]
