@@ -6,6 +6,7 @@ import structlog
 from gevent import Greenlet
 from gevent.pool import Group
 
+from scenario_player.exceptions import ScenarioError
 from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import Task, get_task_class_for_type
 

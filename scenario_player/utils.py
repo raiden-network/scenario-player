@@ -9,7 +9,7 @@ from collections import defaultdict, deque
 from datetime import datetime
 from itertools import islice
 from pathlib import Path
-from typing import Callable, Dict, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import click
 import mirakuru
@@ -331,7 +331,9 @@ def get_gas_price_strategy(gas_price: Union[int, str]) -> Callable:
         raise ValueError(f'Invalid gas_price value: "{gas_price}"')
 
 
-def reclaim_eth(account: Account, chain_rpc_urls: dict, data_path: pathlib.Path, min_age_hours: int):
+def reclaim_eth(
+    account: Account, chain_rpc_urls: dict, data_path: pathlib.Path, min_age_hours: int
+):
     web3s: Dict[str, Web3] = {
         name: Web3(HTTPProvider(urls[0])) for name, urls in chain_rpc_urls.items()
     }
@@ -393,3 +395,42 @@ def reclaim_eth(account: Account, chain_rpc_urls: dict, data_path: pathlib.Path,
         wait_for_txs(web3s[chain_name], chain_txs, 1000)
     for chain_name, amount in reclaim_amount.items():
         log.info("Reclaimed", chain=chain_name, amount=amount.__format__(",d"))
+
+
+def post_task_state_to_rc(scenario: "ScenarioRunner", task: "Task", state: "TaskState") -> None:
+    from scenario_player.tasks.base import Task, TaskState
+    from scenario_player.tasks.execution import SerialTask, ParallelTask
+
+    color = "#c0c0c0"
+    if state is TaskState.RUNNING:
+        color = "#ffbb20"
+    elif state is TaskState.FINISHED:
+        color = "#20ff20"
+    elif state is TaskState.ERRORED:
+        color = "#ff2020"
+
+    fields = [
+        {"title": "Scenario", "value": scenario.scenario.name, "short": True},
+        {"title": "State", "value": state.name.title(), "short": True},
+        {"title": "Level", "value": task.level, "short": True},
+    ]
+    if state is TaskState.FINISHED:
+        fields.append({"title": "Duration", "value": task._duration, "short": True})
+    if not isinstance(task, (SerialTask, ParallelTask)):
+        fields.append({"title": "Details", "value": task._str_details, "short": False})
+    task_name = task._name
+    if task_name and isinstance(task_name, str):
+        task_name = task_name.title().replace("_", " ")
+    else:
+        task_name = task.__class__.__name__
+    send_rc_message(f"Task {task_name}", color, fields)
+
+
+def send_rc_message(text: str, color: str, fields: List[Dict[str, str]]) -> None:
+    rc_webhook_url = os.environ.get("RC_WEBHOOK_URL")
+    if not rc_webhook_url:
+        raise RuntimeError("Environment variable 'RC_WEBHOOK_URL' is missing")
+
+    requests.post(
+        rc_webhook_url, json={"attachments": [{"title": text, "color": color, "fields": fields}]}
+    )
