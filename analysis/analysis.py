@@ -116,14 +116,14 @@ def write_csv(csv_output_file, csv_rows):
 def generate_summary(csv_rows):
     result = {}
     duration_transfers = list(map(lambda r: r[2].total_seconds(), filter(
-        lambda r: r[0].startswith('Transfer'), csv_rows)))
+        lambda r: re.match('transfer', r[0], re.IGNORECASE) , csv_rows)))
     data = np.array(duration_transfers)
     description = stats.describe(data)
     result['name'] = 'Transfer'
     result['min'] = description.minmax[0]
     result['max'] = description.minmax[1]
     result['mean'] = description.mean
-    result['median'] = stats.scoreatpercentile(data,50)
+    result['median'] = stats.scoreatpercentile(data, 50)
     result['stdev'] = math.sqrt(description.variance)
     result['count'] = description.nobs
     return result
