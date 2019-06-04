@@ -27,7 +27,7 @@ def has_more_specific_task_bracket(task_bracket, task_indices):
     return False
 
 
-def append_subtask(gantt_rows, csv_rows, subtasks):
+def append_subtask(main_task_name, gantt_rows, csv_rows, subtasks):
     ids = set(map(lambda t: t[2]['id'], subtasks))
     tasks_length = len(subtasks)
     for id in ids:
@@ -44,7 +44,7 @@ def append_subtask(gantt_rows, csv_rows, subtasks):
         finish = filtered_tasks[-1][0]
         gantt_rows.append({"Task": "Subtasks(#" + id + ")", "Start": start,
                            "Finish": finish, "Description": joined_content})
-        csv_rows.append(['', "Subtasks(#" + id + ")", calculate_duration(start, finish)])
+        csv_rows.append([main_task_name, "Subtasks(#" + id + ")", calculate_duration(start, finish)])
 
 
 def calculate_duration(start, finish):
@@ -103,7 +103,7 @@ def write_csv(csv_rows):
     with open('raiden-gantt-analysis.csv', 'w', newline='') as csv_file:
         csv_writer = csv.writer(
             csv_file, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(['Task', 'Sub-Task', 'Duration'])
+        csv_writer.writerow(['MainTask', 'SubTask', 'Duration'])
         for r in csv_rows:
             csv_writer.writerow(r)
 
@@ -128,7 +128,7 @@ def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
             subtasks = stripped_content[task_bracket[0] + 1:task_bracket[1]]
             print(main_task_debug_string + " - subtasks = " + str(len(subtasks)))
             print("----------------------------------------------------------------")
-            append_subtask(gantt_rows, csv_rows, subtasks)
+            append_subtask(task_name, gantt_rows, csv_rows, subtasks)
         else:
             print(main_task_debug_string)
             print("----------------------------------------------------------------")
