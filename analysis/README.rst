@@ -20,17 +20,21 @@ Installation
 
 How To Use
 """"""""""
+Either start the analysis directly or print out the help:
 
 .. code-block:: bash
 
     python analysis.py $PATH_TO_SCENARIO_LOG_FILE
 
+    python analysis.py -h
+
 Result
 """"""
 There are currently two output files generated:
 
-- a gantt plot is rendered in a HTML file called ``raiden-gantt-analysis.html``
-- a CSV file is created which contains the duration of the tasks: ``raiden-gantt-analysis.csv``.
+- a gantt plot is rendered in a HTML file called (default: ``raiden-gantt-analysis.html``)
+- a CSV file is created which contains the duration of the tasks: (default: ``raiden-gantt-analysis.csv``)
+- a JSON file is with the statistic summary calculated on base of transfers (default: ``raiden-scenario-player-analysis.json``)
 
 Limitations/Caveats
 """""""""""""""""""

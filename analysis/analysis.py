@@ -8,9 +8,11 @@ import json
 from scipy import stats
 import numpy as np
 import csv
+import os
 import math
 from datetime import datetime
 from datetime import timedelta
+from jinja2 import Environment, FileSystemLoader
 
 
 def index_of_first(lst, pred):
@@ -92,7 +94,7 @@ def read_raw_content(input_file):
     return stripped_content
 
 
-def draw_gantt(gantt_output_file, gantt_rows):
+def draw_gantt(gantt_output_file, gantt_rows, summary):
     fig = ff.create_gantt(gantt_rows, title='Raiden Analysis', show_colorbar=False,
                           bar_width=0.5, showgrid_x=True, showgrid_y=True, height=928, width=1680)
 
@@ -101,7 +103,23 @@ def draw_gantt(gantt_output_file, gantt_rows):
         'automargin': True
     }, hoverlabel={'align': 'left'})
 
-    py.offline.plot(fig, filename=gantt_output_file)
+    div = py.offline.plot(fig, output_type='div')
+
+    j2_env = Environment(loader=FileSystemLoader(os.path.dirname(os.path.abspath(__file__))),
+                         trim_blocks=True)
+    output_content = j2_env.get_template('chart_template.html').render(
+        gantt_div=div,
+        summary_header='Tasks matched "' + summary['name'] + '" (in ' + summary['unit'] + ')',
+        count=summary['count'],
+        min=summary['min'],
+        max=summary['max'],
+        mean=summary['mean'],
+        median=summary['median'],
+        stdev=summary['stdev']
+    )
+
+    with open(gantt_output_file, 'w') as text_file:
+        text_file.write(output_content)
 
 
 def write_csv(csv_output_file, csv_rows):
@@ -115,11 +133,13 @@ def write_csv(csv_output_file, csv_rows):
 
 def generate_summary(csv_rows):
     result = {}
+    # TODO: match too greedy
     duration_transfers = list(map(lambda r: r[2].total_seconds(), filter(
         lambda r: re.match('transfer', r[0], re.IGNORECASE) , csv_rows)))
     data = np.array(duration_transfers)
     description = stats.describe(data)
     result['name'] = 'Transfer'
+    result['unit'] = 'Seconds'
     result['min'] = description.minmax[0]
     result['max'] = description.minmax[1]
     result['mean'] = description.mean
@@ -129,8 +149,7 @@ def generate_summary(csv_rows):
     return result
 
 
-def write_summary(summary_output_file, csv_rows):
-    summary = generate_summary(csv_rows)
+def write_summary(summary_output_file, summary):
     with open(summary_output_file, 'w', newline='') as summary_file:
         json.dump(summary, summary_file)
 
@@ -163,7 +182,7 @@ def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Raiden Scenario-Player Analysis')
-    parser.add_argument('input_file', type=str, help='Input dir for videos')
+    parser.add_argument('input_file', type=str, help='File name of scenario-player log file as main input')
     parser.add_argument('--output-csv-file', type=str, dest='csv_output_file',
                         default='raiden-scenario-player-analysis.csv', help='File name of the CSV output file')
     parser.add_argument('--output-gantt-file', type=str, dest='gantt_output_file',
@@ -184,10 +203,11 @@ def main():
     csv_rows = []
 
     fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content)
+    summary = generate_summary(csv_rows)
 
-    draw_gantt(args.gantt_output_file, gantt_rows)
+    draw_gantt(args.gantt_output_file, gantt_rows, summary)
     write_csv(args.csv_output_file, csv_rows)
-    write_summary(args.summary_output_file, csv_rows)
+    write_summary(args.summary_output_file, summary)
 
 
 if __name__ == '__main__':
