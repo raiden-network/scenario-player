@@ -5,36 +5,47 @@
 </head>
 
 <body>
-    <div style="font-family: Arial, Helvetica, sans-serif;">
-        <h3>Summary</h3>
-        <h4>{{ summary_header }}</h4>
-        <table>
-            <tr>
-                <td>Count</td>
-                <td id="count">{{ count }}</td>
-            </tr>
-            <tr>
-                <td>Min</td>
-                <td id="min">{{ min }}</td>
-            </tr>
-            <tr>
-                <td>Max</td>
-                <td id="max">{{ max }}</td>
-            </tr>
-            <tr>
-                <td>Mean</td>
-                <td id="mean">{{ mean }}</td>
-            </tr>
-            <tr>
-                <td>Median</td>
-                <td id="median">{{ median }}</td>
-            </tr>
-            <tr>
-                <td>StDev</td>
-                <td id="stdev">{{ stdev }}</td>
-            </tr>
-        </table>
-    </div>
+    <table style="font-family: Arial, Helvetica, sans-serif; margin: 50px 100px 10px 50px">
+        <tr>
+            <td>
+                <div>
+                    <h3>Summary</h3>
+                    <h4>{{ summary_header }}</h4>
+                    <table>
+                        <tr>
+                            <td>Count</td>
+                            <td id="count">{{ count }}</td>
+                        </tr>
+                        <tr>
+                            <td>Min</td>
+                            <td id="min">{{ min }}</td>
+                        </tr>
+                        <tr>
+                            <td>Max</td>
+                            <td id="max">{{ max }}</td>
+                        </tr>
+                        <tr>
+                            <td>Mean</td>
+                            <td id="mean">{{ mean }}</td>
+                        </tr>
+                        <tr>
+                            <td>Median</td>
+                            <td id="median">{{ median }}</td>
+                        </tr>
+                        <tr>
+                            <td>StDev</td>
+                            <td id="stdev">{{ stdev }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+            <td>
+                <div>
+                    <h3>Legend</h3>
+                </div>
+            </td>
+        </tr>
+    </table>
     {{ gantt_div }}
 </body>
 
