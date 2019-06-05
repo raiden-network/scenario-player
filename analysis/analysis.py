@@ -88,7 +88,7 @@ def read_raw_content(input_file):
 
     # remove startup and teardown events
     stripped_content = stripped_content[:index_of_first(
-        stripped_content, lambda e: e[1] == 'Run finished') + 1]
+        stripped_content, lambda e: e[1] == 'Run finished')]
     stripped_content = stripped_content[index_of_first(
         stripped_content, lambda e: e[1] == 'Received token network address') + 1:]
     return stripped_content
@@ -159,7 +159,8 @@ def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
         task_start_item = stripped_content[task_bracket[0]]
         task_finish_item = stripped_content[task_bracket[1]]
         task_body = task_start_item[2]['task'].split(':', 1)
-        task_name = re.sub('<', '', task_body[0]).strip() + '(#' + task_start_item[2]['id'] + ')'
+        task_id = task_start_item[2]['id']
+        task_name = re.sub('<', '', task_body[0]).strip() + '(#' + task_id + ')'
         task_desc = re.sub('>', '', task_body[1]).strip()
 
         # add main task to rows
@@ -171,7 +172,7 @@ def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
         # Only add subtasks for leafs of the tree
         main_task_debug_string = str(task_bracket) + ' ' + task_name + ': ' + task_desc
         if not has_more_specific_task_bracket(task_bracket, task_brackets):
-            subtasks = stripped_content[task_bracket[0] + 1:task_bracket[1]]
+            subtasks = list(filter(lambda t: t[2]['id'] == task_id, stripped_content))
             print(main_task_debug_string + ' - subtasks = ' + str(len(subtasks)))
             print('----------------------------------------------------------------')
             append_subtask(task_name, gantt_rows, csv_rows, subtasks)
@@ -182,7 +183,8 @@ def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Raiden Scenario-Player Analysis')
-    parser.add_argument('input_file', type=str, help='File name of scenario-player log file as main input')
+    parser.add_argument('input_file', type=str,
+                        help='File name of scenario-player log file as main input')
     parser.add_argument('--output-csv-file', type=str, dest='csv_output_file',
                         default='raiden-scenario-player-analysis.csv', help='File name of the CSV output file')
     parser.add_argument('--output-gantt-file', type=str, dest='gantt_output_file',
