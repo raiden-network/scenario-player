@@ -32,7 +32,7 @@ Result
 """"""
 There are currently two output files generated:
 
-- a gantt plot is rendered in a HTML file called (default: ``raiden-gantt-analysis.html``)
+- a gantt plot is rendered in an HTML file called (default: ``raiden-gantt-analysis.html``)
 - a CSV file is created which contains the duration of the tasks: (default: ``raiden-gantt-analysis.csv``)
 - a JSON file with the statistic summary on the basis of transfers is getting calculated (default: ``raiden-scenario-player-analysis.json``)
 
