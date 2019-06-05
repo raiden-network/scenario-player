@@ -5,9 +5,9 @@
 </head>
 
 <body>
-    <table style="font-family: Arial, Helvetica, sans-serif; margin: 50px 100px 10px 50px">
+    <table style="font-family: Arial, Helvetica, sans-serif; padding: 50px 100px 10px 50px">
         <tr>
-            <td>
+            <td valign="top" width="512px">
                 <div>
                     <h3>Summary</h3>
                     <h4>{{ summary_header }}</h4>
@@ -39,9 +39,17 @@
                     </table>
                 </div>
             </td>
-            <td>
+            <td valign="top" width="928px">
                 <div>
-                    <h3>Legend</h3>
+                    <h3>Notes</h3>
+                </div>
+                <div>
+                    <ul>
+                        <li>Tasks are grouped by their ID and may have subtasks (e.g. the actual API calls)</li>
+                        <li>Some tasks may have a very short duration which makes them almost invisible</li>
+                        <li>Hover over the start or end of a task to get more information</li>
+                        <li>Request and Response of subtasks are grouped together and visible in the tooltips</li>
+                    </ul>
                 </div>
             </td>
         </tr>
