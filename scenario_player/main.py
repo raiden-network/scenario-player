@@ -125,8 +125,16 @@ def main(ctx, chains, data_path):
     default=TaskNotifyType.NONE.value,
     help="Notify of task status via chosen method.",
 )
+@click.option(
+    "--ui/--no-ui",
+    "enable_ui",
+    default=sys.stdout.isatty(),
+    help="En-/disable console UI. [default: auto-detect]",
+)
 @click.pass_context
-def run(ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, notify_tasks):
+def run(
+    ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, notify_tasks, enable_ui
+):
     scenario_file = Path(scenario_file.name).absolute()
     data_path = ctx.obj["data_path"]
     chain_rpc_urls = ctx.obj["chain_rpc_urls"]
@@ -148,7 +156,7 @@ def run(ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, noti
     log_buffer = None
 
     # If the output is a terminal, beautify our output.
-    if sys.stdout.isatty():
+    if enable_ui:
         log_buffer = UrwidLogWalker([])
         for handler in logging.getLogger("").handlers:
             if isinstance(handler, logging.StreamHandler):
@@ -166,8 +174,11 @@ def run(ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, noti
     runner = ScenarioRunner(
         account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
     )
-    ui = ScenarioUI(runner, log_buffer, log_file_name)
-    ui_greenlet = ui.run()
+    ui = None
+    ui_greenlet = None
+    if enable_ui:
+        ui = ScenarioUI(runner, log_buffer, log_file_name)
+        ui_greenlet = ui.run()
     success = False
 
     try:
@@ -208,7 +219,7 @@ def run(ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, noti
         )
     finally:
         try:
-            if sys.stdout.isatty():
+            if enable_ui and ui:
                 ui.set_success(success)
                 log.warning("Press q to exit")
                 while not ui_greenlet.dead:
@@ -216,7 +227,7 @@ def run(ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, noti
         finally:
             if runner.is_managed:
                 runner.node_controller.stop()
-            if not ui_greenlet.dead:
+            if ui_greenlet is not None and not ui_greenlet.dead:
                 ui_greenlet.kill(ExitMainLoop)
                 ui_greenlet.join()
 
