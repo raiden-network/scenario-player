@@ -9,7 +9,7 @@ import time
 import uuid
 from collections import defaultdict, deque
 from datetime import datetime
-from itertools import islice
+from itertools import chain, islice
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
@@ -346,7 +346,7 @@ def reclaim_eth(
     log.info("Starting eth reclaim", data_path=data_path)
 
     addresses = dict()
-    for node_dir in data_path.glob("**/node_???"):
+    for node_dir in chain(data_path.glob("**/node_??_???"), data_path.glob("**/node_???")):
         scenario_name: Path = node_dir.parent.name
         last_run = next(
             iter(

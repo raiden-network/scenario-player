@@ -236,7 +236,7 @@ def run(ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, noti
 def reclaim_eth(ctx, min_age, password, keystore_file):
     from scenario_player.utils import reclaim_eth
 
-    data_path = Path(ctx.obj["data_path"].name)
+    data_path = ctx.obj["data_path"]
     chain_rpc_urls = ctx.obj["chain_rpc_urls"]
     account = load_account_obj(keystore_file, password)
 
