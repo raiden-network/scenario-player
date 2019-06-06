@@ -9,7 +9,9 @@ import traceback
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
+from itertools import chain
 from pathlib import Path
+from typing import List
 
 import click
 import gevent
@@ -245,7 +247,7 @@ def run(
 def reclaim_eth(ctx, min_age, password, keystore_file):
     from scenario_player.utils import reclaim_eth
 
-    data_path = Path(ctx.obj["data_path"].name)
+    data_path = ctx.obj["data_path"]
     chain_rpc_urls = ctx.obj["chain_rpc_urls"]
     account = load_account_obj(keystore_file, password)
 
@@ -269,11 +271,11 @@ def reclaim_eth(ctx, min_age, password, keystore_file):
     help="Specify the max num of log history you would like to pack. Defaults to 1."
     "Specifying 0 will pack all available logs for a scenario.",
 )
-@click.option("--post-to-rocket", default=True)
+@click.option("--post-to-rocket/--no-post-to-rocket")
 @click.argument("scenario-file", type=click.File(), required=True)
 @click.pass_context
 def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
-    data_path = ctx.obj["data_path"].absolute()
+    data_path: Path = ctx.obj["data_path"].absolute()
     scenario_file = Path(scenario_file.name).absolute()
     scenario_name = Path(scenario_file.name).stem
     log_file_name = construct_log_file_name("pack-logs", data_path, scenario_file)
@@ -284,7 +286,8 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
 
     # The logs are located at .raiden/scenario-player/scenarios/<scenario-name>
     # - make sure the path exists.
-    scenario_log_dir = data_path.joinpath("scenarios", scenario_name)
+    scenarios_path = data_path.joinpath("scenarios")
+    scenario_log_dir = scenarios_path.joinpath(scenario_name)
     if not scenario_log_dir.exists():
         print(f"No log directory found for scenario {scenario_name} at {scenario_log_dir}")
         return
@@ -302,8 +305,8 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
     )
 
     with tarfile.open(str(archive_fpath), mode="w:gz") as archive:
-        for obj in (*folders, *files):
-            archive.add(str(obj))
+        for obj in chain(folders, files):
+            archive.add(str(obj), arcname=str(obj.relative_to(scenarios_path)))
 
     # Print some feedback to stdout. This is also a sanity check,
     # asserting the archive is readable.
@@ -324,7 +327,7 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
         post_to_rocket_chat(archive_fpath, **rc_message)
 
 
-def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path, n) -> list:
+def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path, n) -> List[Path]:
     """ Add the `n` latest log files for ``scenario_name`` in ``scenario_dir`` to a :cls:``set``
         and return it.
     """
@@ -361,12 +364,12 @@ def construct_rc_message(log_fpath) -> str:
                 exc = json_obj.get("exception", None)
     if result == "success":
         return ":white_check_mark: Succesfully ran scenario!"
-
-    message = f":x: Error while running scenario: {result}!"
-    if exc:
-        message += "\n```\n" + exc + "\n```"
-    if result is None:
-        raise RuntimeError(f"Could not find result in logfile {log_fpath}")
+    elif result is None:
+        message = f":skull_and_crossbones: Scenario incomplete. No result found in log file."
+    else:
+        message = f":x: Error while running scenario: {result}!"
+        if exc:
+            message += "\n```\n" + exc + "\n```"
     return message
 
 
