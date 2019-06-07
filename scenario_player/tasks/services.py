@@ -211,6 +211,24 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                         f"Expected route {exp_route} but got {actual_route} at index {i}"
                     )
 
+        exp_fees = self._config.get("expected_fees")
+        if exp_fees:
+            actual_fees = [
+                route["estimated_fee"]
+                for response in response_dict["responses"]
+                for route in response["routes"]
+                if response["routes"]
+            ]
+            if len(exp_fees) != len(actual_fees):
+                raise ScenarioAssertionError(
+                    f"Expected {len(exp_fees)} fees but got {len(actual_fees)}."
+                )
+            for i, (exp_fee, actual_fee) in enumerate(zip(exp_fees, actual_fees)):
+                if exp_fee != actual_fee:
+                    raise ScenarioAssertionError(
+                        f"Expected fee {exp_fee} but got {actual_fee} at index {i}"
+                    )
+
 
 class AssertPFSIoUTask(RESTAPIActionTask):
     """
