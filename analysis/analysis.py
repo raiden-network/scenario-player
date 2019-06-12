@@ -81,16 +81,12 @@ def read_raw_content(input_file):
     stripped_content = []
     for row in content:
         x = json.loads(row)
-        stripped_content.append([x['timestamp'], x['event'], x])
+        if 'id' in x:
+            stripped_content.append([x['timestamp'], x['event'], x])
 
     # sort by timestamp
     stripped_content.sort(key=lambda e: e[0])
 
-    # remove startup and teardown events
-    stripped_content = stripped_content[:index_of_first(
-        stripped_content, lambda e: e[1] == 'Run finished')]
-    stripped_content = stripped_content[index_of_first(
-        stripped_content, lambda e: e[1] == 'Received token network address') + 1:]
     return stripped_content
 
 
