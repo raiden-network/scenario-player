@@ -217,6 +217,11 @@ class AssertMSClaimTask(Task):
         events = [e for e in events if match_event(e)]
         log.info("Matching events", events=events)
 
+        must_claim = self._config.get("must_claim", True)
+        found_events = len(events) > 0
+
         # Raise exception when no event was found
-        if len(events) == 0:
+        if must_claim and not found_events:
             raise ScenarioAssertionError("No RewardClaimed event found for this channel.")
+        elif not must_claim and found_events:
+            raise ScenarioAssertionError("Unexpected RewardClaimed event found for this channel.")
