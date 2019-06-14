@@ -1,4 +1,4 @@
-raiden-scenario-player-analysis.html
+./raiden-scenario-player-analysis.html
 *.log
-raiden-scenario-player-analysis.csv
-raiden-scenario-player-analysis.json
+./raiden-scenario-player-analysis.csv
+./raiden-scenario-player-analysis.json
