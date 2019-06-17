@@ -27,7 +27,7 @@ jobs:
           command: pip install -e .
       - run:
           name: Run Unit-tests
-          command: tox -e unittests
+          command: tox
       - save_cache:
           key: python-deps-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
           paths:
