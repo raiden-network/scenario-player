@@ -1,4 +1,0 @@
-[flake8]
-ignore = E731, E203, E402, W503, W504, C814
-max-line-length = 99
-exclude = build,dist,.git,.venv,tools/ansible/contrib
