@@ -10,10 +10,8 @@ build-backend = "flit.buildapi"
 # General Meta data
 dist-name = "raiden-scenario-player"
 module = "scenario_player"
-author = "Ulrich Petri"
-author-email = "noreply@brainbot.com"
-maintainer = "Nils Diefenbach"
-maintainer-email = "nlsdfnbch.foss@kolabnow.com"
+author = "Brainbot Labs Est."
+author-email = "contact@brainbot.li"
 home-page = "https://github.com/raiden-network/scenario-player"
 description-file = "README.rst"
 
