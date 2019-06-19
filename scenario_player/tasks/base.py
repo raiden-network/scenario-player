@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 import inspect
 import pkgutil
@@ -11,8 +13,8 @@ import click
 import gevent
 import structlog
 
+from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import UnknownTaskTypeError
-from scenario_player.runner import ScenarioRunner
 
 log = structlog.get_logger(__name__)
 
@@ -37,8 +39,14 @@ _TASK_ID = 0
 
 
 class Task:
+    _name = None
+
     def __init__(
-        self, runner: ScenarioRunner, config: Any, parent: "Task" = None, abort_on_fail=True
+        self,
+        runner: scenario_runner.ScenarioRunner,
+        config: Any,
+        parent: "Task" = None,
+        abort_on_fail=True,
     ) -> None:
         global _TASK_ID
 
@@ -48,7 +56,7 @@ class Task:
         self._config = copy(config)
         self._parent = parent
         self._abort_on_fail = abort_on_fail
-        self.state = TaskState.INITIALIZED
+        self._state = TaskState.INITIALIZED
         self.exception = None
         self.level = parent.level + 1 if parent else 0
         self._start_time = None
@@ -134,6 +142,15 @@ class Task:
     @property
     def done(self):
         return self.state in {TaskState.FINISHED, TaskState.ERRORED}
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, new_state):
+        self._state = new_state
+        self._runner.task_state_changed(self, self._state)
 
 
 T_Task = TypeVar("T_Task", bound=Task)

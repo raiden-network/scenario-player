@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import json
 import os
@@ -176,7 +178,7 @@ class NodeRunner:
         self._index = index
         self._raiden_version = raiden_version
         self._options = options
-        self._datadir = runner.data_path.joinpath(f"node_{index:03d}")
+        self._datadir = runner.data_path.joinpath(f"node_{self._runner.run_number}_{index:03d}")
 
         self._address = None
         self._eth_rpc_endpoint = None
@@ -348,7 +350,7 @@ class NodeRunner:
             log.debug("Initializing keystore", node=self._index)
             gevent.sleep()
             privkey = hashlib.sha256(
-                f"{self._runner.scenario_name}-{self._index}".encode()
+                f"{self._runner.scenario_name}-{self._runner.run_number}-{self._index}".encode()
             ).digest()
             keystore_file.write_text(json.dumps(create_keyfile_json(privkey, b"")))
         return keystore_file

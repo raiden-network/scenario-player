@@ -2,18 +2,37 @@ version: 2
 jobs:
   build:
     docker:
-      - image: python/python:3-alpine-3.9
+      - image: circleci/python:3.7
     steps:
       - checkout
+      - restore_cache:
+          key: pip-cache
       - run:
-          name: Install build dependencies
-          command: apk add python3-dev
+          name: Create virtualenv
+          command: |
+            python -m venv ~/venv
+            echo 'export PATH=~/venv/bin:$PATH' >> ${BASH_ENV}
+      - restore_cache:
+          keys:
+          - python-deps-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          - python-deps-
+      - run:
+          name: Install lint requirements
+          command: pip install -r requirements-dev.txt
+      - run:
+          name: Run linters
+          command: tox -e lint
       - run:
           name: Install project
-          command: pip install .
+          command: pip install -e .
       - run:
-          name: Run linters.
-          command: make lint
-      - run:
-          name: Run Unit-tests.
-          command: pytest tests/unit-tests
+          name: Run Unit-tests
+          command: tox
+      - save_cache:
+          key: python-deps-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          paths:
+          - "~/venv"
+      - save_cache:
+          key: pip-cache
+          paths:
+          - "~/.cache/pip"

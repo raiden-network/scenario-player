@@ -1,8 +1,9 @@
-import pathlib
+from __future__ import annotations
+
 import random
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 import gevent
 import structlog
@@ -30,6 +31,7 @@ from scenario_player.constants import (
 )
 from scenario_player.exceptions import NodesUnreachableError, ScenarioError, TokenRegistrationError
 from scenario_player.scenario import Scenario
+from scenario_player.tasks.base import Task, TaskState
 from scenario_player.utils import (
     TimeOutHTTPAdapter,
     get_or_deploy_token,
@@ -49,6 +51,7 @@ class ScenarioRunner:
         auth: str,
         data_path: Path,
         scenario_file: Path,
+        task_state_callback: Optional[Callable[["ScenarioRunner", Task, TaskState], None]] = None,
     ):
         from scenario_player.node_support import RaidenReleaseKeeper, NodeController
 
@@ -57,6 +60,7 @@ class ScenarioRunner:
         self.auth = auth
         self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
         self.task_cache = {}
+        self.task_state_callback = task_state_callback
         # Storage for arbitrary data tasks might need to persist
         self.task_storage = defaultdict(dict)
 
@@ -348,6 +352,10 @@ class ScenarioRunner:
             node_addresses = set(self.node_to_address.values())
             node_count = len(self.node_to_address)
         return fund_tx, node_starter, node_addresses, node_count
+
+    def task_state_changed(self, task: "Task", state: "TaskState"):
+        if self.task_state_callback:
+            self.task_state_callback(self, task, state)
 
     def register_token(self, token_address, node):
         try:

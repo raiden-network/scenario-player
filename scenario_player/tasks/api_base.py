@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import re
 from typing import Any, Union
 
 import structlog
 from requests import ConnectTimeout, ReadTimeout, RequestException
 
+from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import RESTAPIError, RESTAPIStatusMismatchError, RESTAPITimeout
-from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import Task
 
 log = structlog.get_logger(__name__)
@@ -18,7 +20,11 @@ class RESTAPIActionTask(Task):
     _expected_http_status: Union[int, str] = "2.."
 
     def __init__(
-        self, runner: ScenarioRunner, config: Any, parent: "Task" = None, abort_on_fail=True
+        self,
+        runner: scenario_runner.ScenarioRunner,
+        config: Any,
+        parent: "Task" = None,
+        abort_on_fail=True,
     ) -> None:
         super().__init__(runner, config, parent, abort_on_fail)
 

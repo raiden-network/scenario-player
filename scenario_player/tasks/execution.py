@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 import click
@@ -6,7 +8,7 @@ import structlog
 from gevent import Greenlet
 from gevent.pool import Group
 
-from scenario_player.runner import ScenarioRunner
+from scenario_player import runner as scenario_runner
 from scenario_player.tasks.base import Task, get_task_class_for_type
 
 log = structlog.get_logger(__name__)
@@ -16,7 +18,11 @@ class SerialTask(Task):
     _name = "serial"
 
     def __init__(
-        self, runner: ScenarioRunner, config: Any, parent: "Task" = None, abort_on_fail=True
+        self,
+        runner: scenario_runner.ScenarioRunner,
+        config: Any,
+        parent: "Task" = None,
+        abort_on_fail=True,
     ) -> None:
         super().__init__(runner, config, parent, abort_on_fail)
         self._name = config.get("name")

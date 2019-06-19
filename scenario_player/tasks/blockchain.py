@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict, List
 
 import structlog
@@ -14,8 +16,8 @@ from web3 import Web3
 from web3.utils.abi import filter_by_type
 from web3.utils.events import get_event_data
 
+from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
-from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import Task
 from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
 
@@ -84,7 +86,7 @@ class AssertBlockchainEventsTask(Task):
 
     def __init__(
         self,
-        runner: ScenarioRunner,
+        runner: scenario_runner.ScenarioRunner,
         config: Any,
         parent: "Task" = None,
         abort_on_fail: bool = True,
@@ -145,9 +147,9 @@ class AssertMSClaimTask(Task):
 
     def __init__(
         self,
-        runner: ScenarioRunner,
+        runner: scenario_runner.ScenarioRunner,
         config: Any,
-        parent: "Task" = None,
+        parent: Task = None,
         abort_on_fail: bool = True,
     ) -> None:
         super().__init__(runner, config, parent, abort_on_fail)
@@ -215,6 +217,11 @@ class AssertMSClaimTask(Task):
         events = [e for e in events if match_event(e)]
         log.info("Matching events", events=events)
 
+        must_claim = self._config.get("must_claim", True)
+        found_events = len(events) > 0
+
         # Raise exception when no event was found
-        if len(events) == 0:
+        if must_claim and not found_events:
             raise ScenarioAssertionError("No RewardClaimed event found for this channel.")
+        elif not must_claim and found_events:
+            raise ScenarioAssertionError("Unexpected RewardClaimed event found for this channel.")

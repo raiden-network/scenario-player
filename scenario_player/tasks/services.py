@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from typing import Any
 
 import structlog
 
+from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
-from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.api_base import RESTAPIActionTask
 from scenario_player.tasks.base import Task
 
@@ -209,6 +211,24 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                         f"Expected route {exp_route} but got {actual_route} at index {i}"
                     )
 
+        exp_fees = self._config.get("expected_fees")
+        if exp_fees:
+            actual_fees = [
+                route["estimated_fee"]
+                for response in response_dict["responses"]
+                for route in response["routes"]
+                if response["routes"]
+            ]
+            if len(exp_fees) != len(actual_fees):
+                raise ScenarioAssertionError(
+                    f"Expected {len(exp_fees)} fees but got {len(actual_fees)}."
+                )
+            for i, (exp_fee, actual_fee) in enumerate(zip(exp_fees, actual_fees)):
+                if exp_fee != actual_fee:
+                    raise ScenarioAssertionError(
+                        f"Expected fee {exp_fee} but got {actual_fee} at index {i}"
+                    )
+
 
 class AssertPFSIoUTask(RESTAPIActionTask):
     """
@@ -235,7 +255,11 @@ class AssertPFSIoUTask(RESTAPIActionTask):
     _url_template = "{pfs_url}/api/v1/_debug/ious/{source_address}"
 
     def __init__(
-        self, runner: ScenarioRunner, config: Any, parent: Task = None, abort_on_fail: bool = True
+        self,
+        runner: scenario_runner.ScenarioRunner,
+        config: Any,
+        parent: Task = None,
+        abort_on_fail: bool = True,
     ) -> None:
         super().__init__(runner, config, parent, abort_on_fail)
 
