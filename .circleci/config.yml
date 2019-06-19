@@ -21,13 +21,13 @@ jobs:
           command: pip install -r requirements-dev.txt
       - run:
           name: Run linters
-          command: make lint
+          command: tox -e lint
       - run:
           name: Install project
           command: pip install -e .
       - run:
           name: Run Unit-tests
-          command: pytest tests/unit-tests
+          command: tox
       - save_cache:
           key: python-deps-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
           paths:
