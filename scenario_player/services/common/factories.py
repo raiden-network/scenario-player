@@ -3,9 +3,7 @@ import flask
 from scenario_player.services.common.blueprints import metrics_view
 
 
-def construct_flask_app(
-    *blueprints, db_name="default", test_config=None, secret="dev", config_file="config.py"
-):
+def construct_flask_app(*blueprints, db_name="default", test_config=None, secret="dev", config_file="config.py"):
     """Construct a flask app with the given blueprints registered.
 
     By default all constructed apps have `/metrics` endpoint, which exposes

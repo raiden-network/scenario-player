@@ -24,44 +24,44 @@ class TestREDMetricContextManager:
 
     def test_requests_made_counter(self):
         method, path = 'TEST', 'PATH'
-        before = REGISTRY.get_sample_value('http_requests_total', [method, path]) or 0
+        before = REGISTRY.get_sample_value('http_requests_total', {'method': method, 'path': path}) or 0
 
         trigger_metrics(method, path)
 
-        after = REGISTRY.get_sample_value('http_requests_total', [method, path])
+        after = REGISTRY.get_sample_value('http_requests_total', {'method': method, 'path': path})
         assert after is not None
         assert after - before == 1
 
     def test_requests_exceptions_counter(self):
         method, path = 'TEST', 'PATH'
-        before = REGISTRY.get_sample_value('http_exceptions_total', [method, path]) or 0
+        before = REGISTRY.get_sample_value('http_exceptions_total', {'method': method, 'path': path}) or 0
 
         with pytest.raises(ValueError):
             trigger_metrics(method, path, raise_exc=True)
 
-        after = REGISTRY.get_sample_value('http_exceptions_total', [method, path])
+        after = REGISTRY.get_sample_value('http_exceptions_total', {'method': method, 'path': path})
         assert after is not None
         assert after - before == 1
 
     def test_request_latency_count(self):
         method, path = 'TEST', 'PATH'
 
-        before = REGISTRY.get_sample_value('http_requests_latency_seconds_count', [method, path]) or 0
+        before = REGISTRY.get_sample_value('http_requests_latency_seconds_count', {'method': method, 'path': path}) or 0
 
         trigger_metrics(method, path, wait=True)
 
-        after = REGISTRY.get_sample_value('http_requests_latency_seconds_count', [method, path])
+        after = REGISTRY.get_sample_value('http_requests_latency_seconds_count', {'method': method, 'path': path})
         assert after is not None
         assert after - before == 1
 
     def test_request_latency_sum(self):
         method, path = 'TEST', 'PATH'
 
-        before = REGISTRY.get_sample_value('http_requests_latency_seconds_sum', [method, path]) or 0
+        before = REGISTRY.get_sample_value('http_requests_latency_seconds_sum', {'method': method, 'path': path}) or 0
 
         trigger_metrics(method, path, wait=True)
 
-        after = REGISTRY.get_sample_value('http_requests_latency_seconds_sum', [method, path])
+        after = REGISTRY.get_sample_value('http_requests_latency_seconds_sum', {'method': method, 'path': path})
         assert after is not None
 
         diff = after - before

@@ -9,13 +9,12 @@ class TestRedis(MutableMapping):
     Beware that this is NOT Thread Safe!
     Concurrent access is NOT supported!
     """
-
     DB = {}
 
     def __init__(self, table, *args, encoding_options=None, decoding_options=None, **kwargs):
         self.table = table
-        self.encoding_options = encoding_options.items()
-        self.decoding_options = decoding_options.items()
+        self.encoding_options = (encoding_options or {}).items()
+        self.decoding_options = (decoding_options or {}).items()
         self.args = args
         self.kwargs = kwargs
 

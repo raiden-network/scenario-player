@@ -1,8 +1,16 @@
+import copy
 import json
 import uuid
 
 from flask import current_app
 from redis import Redis
+from typing import Dict, Optional, Union
+
+from scenario_player.exceptions.db import CorruptedDBEntry
+
+
+DecodedJSONDict = Dict[str, Union[dict, list, str, int, float, bool, None]]
+JSONEncodableDict = Dict[str, Union[dict, list, tuple, str, int, float, bool, None]]
 
 
 class JSONRedis(Redis):
@@ -16,27 +24,20 @@ class JSONRedis(Redis):
         Default options to pass :func:`json.loads` when fetching a key-value pair.
     """
 
-    def __init__(self, table, *args, encoding_options=None, decoding_options=None, **kwargs):
-        self.table = table
-        self.encoding_options = encoding_options.items()
-        self.decoding_options = decoding_options.items()
+    def __init__(self, table: str, *args, encoding_options: Optional[dict]=None, decoding_options: Optional[dict]=None, **kwargs):
+        self.default_table = table
+        self.encoding_options = encoding_options or {}
+        self.decoding_options = decoding_options or {}
         super().__init__(*args, **kwargs)
 
-    def tset(self, key, value, **kwargs):
+    def tset(self, key: str, value: JSONEncodableDict, **encode_kwargs):
         """Set the `value` at given `key` in the default `table`.
 
         The default table is stored at the instance's :attr:`.table` attribute.
         """
-        return self.set_json(self.table, key, value, **kwargs)
+        return self.set_json(self.default_table, key, value, **encode_kwargs)
 
-    def tget(self, key, *args, **kwargs):
-        """Get the `value` at given `key` in the default `table`.
-
-        The default table is stored at the instance's :attr:`.table` attribute.
-        """
-        return self.get_json(key, value, *args, **kwargs)
-
-    def set_json(self, table, key, value, **encode_kwargs):
+    def set_json(self, table: str, key: str, value: JSONEncodableDict, **encode_kwargs):
         """Store the given `value` in `table` under `key`.
 
         The `value` must be JSON-serializable, as it will be converted to a
@@ -44,12 +45,26 @@ class JSONRedis(Redis):
 
         `encode_kwargs` are passed to :func:`json.dumps`.
         """
-        encode_options = dict(self.encoding_options)
+        encode_options = copy.deepcopy(self.encoding_options)
         encode_options.update(encode_kwargs)
         json_string = json.dumps(value, **encode_options)
         self.hmset(table, {key: json_string})
 
-    def get_json(self, table, key, *get_args, **decode_kwargs):
+    def tget(self, key, *get_args, **decode_kwargs) -> DecodedJSONDict:
+        """Get the `value` at given `key` in the default `table`.
+
+        The default table is stored at the instance's :attr:`.table` attribute.
+
+        :raises CorruptedDBEntry:
+            if downstream was not able to decode the string stored at ``key``
+            of :attr:``.default_table`` as JSON.
+        """
+        try:
+            return self.get_json(self.default_table, key, *get_args, **decode_kwargs)
+        except json.JSONDecodeError as e:
+            raise CorruptedDBEntry(table=self.default_table, key=key) from e
+
+    def get_json(self, table: str, key: str, *get_args, **decode_kwargs) -> DecodedJSONDict:
         """Return the value given at `key` in `table`.
 
         The value is decoded into a python object before it's returned.
@@ -57,7 +72,7 @@ class JSONRedis(Redis):
         `get_args` are passed to :meth:`redis.Redis.get`.
         `decode_kwargs` are passed to :func:`json.loads`.
         """
-        decode_options = dict(self.decoding_options)
+        decode_options = copy.deepcopy(self.decoding_options)
         decode_options.update(decode_kwargs)
         json_string = self.hmget(table, key, *get_args)
         decoded = json.loads(json_string, **decode_options)
@@ -71,42 +86,16 @@ def get_db():
     Otherwise, we return the real deal.
 
     If you do not specify a  redis table name in the `DATABASE` field of
-    the app's config, we'll generate a new table name using :func:`uuid.uuid4`.
+    the app's config, the table ``default`` will be used.
 
-    Additionally, the table will be dropped once the application shuts down.
-
-    ..NOTE::
-
-        While we do not persist data in auto-generated tables (using :func:`uuid.uuid4`),
-        data that is written to **other tables than the one stored at :attr:`.table`**
-        may be persistent - depending on the nature of the table the data was written to.
-
-        The same holds true the other way around - data is persisted if a table is
-        explicitly stated: however, this guarantee only regards the internally
-        set table.
-
-        It is therefore recommended to either
-
-            **a) always specify a table name**
-                Data is persistently stored, even after the app shuts down.
-
-        or
-            **b) never specify a table name**
-                All data will be dropped once the application shuts down.
-
+    Data is persisted by default, unless ``PERSIST_DB=False`` is set in the app's
+    config.
     """
-    db_name = current_app.config.get("DATABASE", False)
-    if not db_name:
-        # Generate a table name to store data under.
-        db_name = uuid.uuid4()
-        current_app.config["PERSIST_DB"] = False
-        current_app.config["DATABASE"] = db_name
-
+    db_name = current_app.config.get("DATABASE", "default")
     if "db" not in g:
         if current_app.config.get("TESTING", False):
             # Import the test db class on the fly, to avoid circular import fuck-ups.
             from scenario_player.services.utils.testing import TestRedis
-
             g.db = TestRedis(db_name)
         else:
             g.db = JSONRedis(db_name)
@@ -115,9 +104,21 @@ def get_db():
 
 
 def close_db(e=None):
-    """Close the database connection, saving its state if applicable."""
+    """Close the database connection.
+
+    If there is no `'db'` key in the thread-local :var:`flask.g`, this is a no-op.
+
+    If  `PERSIST_DB=False` in the app's config or the key-value pair is absent entirely,
+    we explicitly drop the database.
+
+    If `TESTING=False` in the app's config or the key-value pair is absent entirely,
+    we explicitly drop the database.
+
+    If a `'db'` key existed, we call the `save()` method on the object returned
+    by accessing it from the thread-local :var:`flask.g`.
+    """
     db = g.pop("db", None)
     if db is not None:
-        if not current_app.config.get("PERSIST_DB", True):
+        if not current_app.config.get("PERSIST_DB", True) or current_app.config.get('TESTING', False):
             db.delete(db.table)
         db.save()

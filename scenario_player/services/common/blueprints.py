@@ -8,3 +8,4 @@ metrics_view = Blueprint("metrics_view", __name__)
 @metrics_view.route("/metrics", methods=["GET"])
 def metrics_route():
     return Response(generate_latest, mimetype=CONTENT_TYPE_LATEST)
+
