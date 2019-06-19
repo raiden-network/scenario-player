@@ -10,6 +10,7 @@ import numpy as np
 import csv
 import os
 import math
+import fileinput
 from datetime import datetime
 from datetime import timedelta
 from jinja2 import Environment, FileSystemLoader
@@ -61,23 +62,34 @@ def calculate_duration(start, finish):
 
 
 def create_task_brackets(stripped_content):
-    content_length = len(stripped_content)
     task_indices = []
-    for i in range(content_length):
-        if re.match('starting task', stripped_content[i][1], re.IGNORECASE):
-            for j in range(i, content_length):
-                if 'task' not in stripped_content[j][2]:
+    for i, start_content in enumerate(stripped_content):
+        start_event = start_content[1]
+        start_id = start_content[2]['id']
+        if re.match('starting task', start_event, re.IGNORECASE):
+            for j, following_content in enumerate(stripped_content[i:]):
+                following_event = following_content[1]
+                following_id = following_content[2]['id']
+                if 'task' not in following_content[2]:
                     continue
-                if stripped_content[i][2]['id'] == stripped_content[j][2]['id'] and (re.match('task successful', stripped_content[j][1], re.IGNORECASE) or re.match('task errored', stripped_content[j][1], re.IGNORECASE)):
+                ids_identical = start_id == following_id
+                event_matches_successful = re.match(
+                    'task successful', following_event, re.IGNORECASE)
+                event_matches_errored = re.match('task errored', following_event, re.IGNORECASE)
+                if ids_identical and (event_matches_successful or event_matches_errored):
                     task_indices.append([i, j])
                     break
     return task_indices
 
 
 def read_raw_content(input_file):
-    with open(input_file) as f:
-        content = f.readlines()
-    content = [x.strip() for x in content]
+    content = []
+    if not input_file:
+        content = [line.strip() for line in fileinput.input(input_file)]
+    else:
+        with open(input_file[0]) as f:
+            content = [line.strip() for line in f.readlines()]
+
     stripped_content = []
     for row in content:
         x = json.loads(row)
@@ -91,8 +103,14 @@ def read_raw_content(input_file):
 
 
 def draw_gantt(gantt_output_file, gantt_rows, summary):
-    fig = ff.create_gantt(gantt_rows, title='Raiden Analysis', show_colorbar=False,
-                          bar_width=0.5, showgrid_x=True, showgrid_y=True, height=928, width=1680)
+    fig = ff.create_gantt(gantt_rows,
+                          title='Raiden Analysis',
+                          show_colorbar=False,
+                          bar_width=0.5,
+                          showgrid_x=True,
+                          showgrid_y=True,
+                          height=928,
+                          width=1680)
 
     fig['layout'].update(yaxis={
         # 'showticklabels':False
@@ -156,20 +174,26 @@ def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
         task_finish_item = stripped_content[task_bracket[1]]
         task_body = task_start_item[2]['task'].split(':', 1)
         task_id = task_start_item[2]['id']
-        task_name = re.sub('<', '', task_body[0]).strip() + '(#' + task_id + ')'
-        task_desc = re.sub('>', '', task_body[1]).strip()
+        task_name = task_body[0].replace('<', '').strip() + '(#' + task_id + ')'
+        task_desc = task_body[1].replace('>', '').strip()
 
         # add main task to rows
-        gantt_rows.append({'Task': task_name, 'Start': task_start_item[0], 'Finish': task_finish_item[0], 'Description': json.dumps(
-            json.loads(re.sub('\'', '"', task_desc)), sort_keys=True, indent=4).replace('\n', '<br>')})
+        task_full_desc = json.dumps(
+            json.loads(task_desc.replace('\'', '"')),
+            sort_keys=True,
+            indent=4).replace('\n', '<br>')
+        gantt_rows.append({'Task': task_name,
+                           'Start': task_start_item[0],
+                           'Finish': task_finish_item[0],
+                           'Description': task_full_desc})
         csv_rows.append([task_name, '', calculate_duration(
             task_start_item[0], task_finish_item[0])])
 
         # Only add subtasks for leafs of the tree
-        main_task_debug_string = str(task_bracket) + ' ' + task_name + ': ' + task_desc
+        main_task_debug_string = '{0} {1}: {2}'.format(str(task_bracket), task_name, task_desc)
         if not has_more_specific_task_bracket(task_bracket, task_brackets):
             subtasks = list(filter(lambda t: t[2]['id'] == task_id, stripped_content))
-            print(main_task_debug_string + ' - subtasks = ' + str(len(subtasks)))
+            print('{0} - subtasks = {1}'.format(main_task_debug_string, str(len(subtasks))))
             print('----------------------------------------------------------------')
             append_subtask(task_name, gantt_rows, csv_rows, subtasks)
         else:
@@ -179,15 +203,18 @@ def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Raiden Scenario-Player Analysis')
-    parser.add_argument('input_file', type=str,
-                        help='File name of scenario-player log file as main input')
+    parser.add_argument('input_file', nargs='*',
+                        help='File name of scenario-player log file as main input, if empty, stdin is used')
     parser.add_argument('--output-csv-file', type=str, dest='csv_output_file',
                         default='raiden-scenario-player-analysis.csv', help='File name of the CSV output file')
     parser.add_argument('--output-gantt-file', type=str, dest='gantt_output_file',
                         default='raiden-scenario-player-analysis.html', help='File name of the Gantt Chart output file')
     parser.add_argument('--output-summary-file', type=str, dest='summary_output_file',
                         default='raiden-scenario-player-analysis.json', help='File name of the summary output file')
-    return parser.parse_args()
+
+    args = parser.parse_args()
+
+    return args
 
 
 def main():
