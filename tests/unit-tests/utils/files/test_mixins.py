@@ -6,7 +6,6 @@ from scenario_player.utils.files.mixins import (
     VersionedMixin,
     ArchitectureSpecificMixin,
     PlatformSpecificMixin,
-    RaidenReleaseLikeMixin,
 )
 from scenario_player.utils.files.parsing import parse_architecture, parse_platform, parse_version
 
@@ -32,9 +31,3 @@ def test_mixin_property_calls_expected_parsing_function(mixin, prop_name, parse_
         instance = Mixed(tmp_path)
         getattr(instance, prop_name)
         mocked_func.assert_called_once_wth(tmp_path)
-
-
-def test_RaidenReleaseLikeMixin_is_a_convenience_mixin_inheriting_from_all_other_mixins():
-    assert issubclass(RaidenReleaseLikeMixin, VersionedMixin)
-    assert issubclass(RaidenReleaseLikeMixin, ArchitectureSpecificMixin)
-    assert issubclass(RaidenReleaseLikeMixin, PlatformSpecificMixin)
