@@ -67,7 +67,7 @@ def create_task_brackets(stripped_content):
         start_event = start_content[1]
         start_id = start_content[2]['id']
         if re.match('starting task', start_event, re.IGNORECASE):
-            for j, following_content in enumerate(stripped_content[i:]):
+            for j, following_content in enumerate(stripped_content[i:], start=i):
                 following_event = following_content[1]
                 following_id = following_content[2]['id']
                 if 'task' not in following_content[2]:
