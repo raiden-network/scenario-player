@@ -339,6 +339,8 @@ class NodeRunner:
 
     @property
     def _raiden_bin(self):
+        if self._raiden_version.lower() == 'local':
+            return shutil.cmd('raiden')
         return self._runner.release_keeper.get_release(self._raiden_version)
 
     @property
