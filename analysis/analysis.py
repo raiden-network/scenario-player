@@ -34,7 +34,7 @@ def has_more_specific_task_bracket(task_bracket, task_indices):
     return False
 
 
-def append_subtask(main_task_name, gantt_rows, csv_rows, subtasks):
+def append_subtask(main_task_name, table_rows, csv_rows, subtasks):
     ids = set(map(lambda t: t[2]['id'], subtasks))
     tasks_length = len(subtasks)
     for id in ids:
@@ -49,8 +49,12 @@ def append_subtask(main_task_name, gantt_rows, csv_rows, subtasks):
             map(lambda t: json.dumps(t, sort_keys=True, indent=4).replace('\n', '<br>'), filtered_tasks))
         start = filtered_tasks[0][0]
         finish = filtered_tasks[-1][0]
-        gantt_rows.append({'Task': 'Subtasks(#' + id + ')', 'Start': start,
-                           'Finish': finish, 'Description': joined_content})
+        table_rows.append({
+            'id': id,
+            'name': 'Subtasks(#' + id + ')',
+            'duration': calculate_duration(start, finish),
+            'description': joined_content
+        })
         csv_rows.append([main_task_name, 'Subtasks(#' + id + ')',
                          calculate_duration(start, finish)])
 
@@ -102,7 +106,7 @@ def read_raw_content(input_file):
     return stripped_content
 
 
-def draw_gantt(gantt_output_file, gantt_rows, summary):
+def draw_gantt(gantt_output_file, gantt_rows, table_rows, summary):
     fig = ff.create_gantt(gantt_rows,
                           title='Raiden Analysis',
                           show_colorbar=False,
@@ -129,7 +133,8 @@ def draw_gantt(gantt_output_file, gantt_rows, summary):
         max=summary['max'],
         mean=summary['mean'],
         median=summary['median'],
-        stdev=summary['stdev']
+        stdev=summary['stdev'],
+        task_table=table_rows
     )
 
     with open(gantt_output_file, 'w') as text_file:
@@ -168,7 +173,7 @@ def write_summary(summary_output_file, summary):
         json.dump(summary, summary_file)
 
 
-def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
+def fill_rows(gantt_rows, csv_rows, table_rows, task_brackets, stripped_content):
     for task_bracket in task_brackets:
         task_start_item = stripped_content[task_bracket[0]]
         task_finish_item = stripped_content[task_bracket[1]]
@@ -176,16 +181,28 @@ def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
         task_id = task_start_item[2]['id']
         task_name = task_body[0].replace('<', '').strip() + '(#' + task_id + ')'
         task_desc = task_body[1].replace('>', '').strip()
+        task_body_json = json.loads(task_desc.replace('\'', '"'))
 
         # add main task to rows
         task_full_desc = json.dumps(
-            json.loads(task_desc.replace('\'', '"')),
-            sort_keys=True,
-            indent=4).replace('\n', '<br>')
-        gantt_rows.append({'Task': task_name,
-                           'Start': task_start_item[0],
-                           'Finish': task_finish_item[0],
-                           'Description': task_full_desc})
+            task_body_json, sort_keys=True, indent=4).replace('\n', '<br>')
+        gantt_rows.append({
+            'Task': task_name,
+            'Start': task_start_item[0],
+            'Finish': task_finish_item[0],
+            'Description': task_full_desc})
+        add_info = ''
+        if task_name.startswith('Transfer'):
+            transfer_from = task_body_json['from']
+            transfer_to = task_body_json['to']
+            add_info = 'Hops: {0}'.format(abs(transfer_from - transfer_to))
+        table_rows.append({
+            'id': task_id,
+            'name': task_name,
+            'duration': calculate_duration(task_start_item[0], task_finish_item[0]),
+            'description': task_full_desc,
+            'add_info': add_info
+        })
         csv_rows.append([task_name, '', calculate_duration(
             task_start_item[0], task_finish_item[0])])
 
@@ -195,7 +212,7 @@ def fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content):
             subtasks = list(filter(lambda t: t[2]['id'] == task_id, stripped_content))
             print('{0} - subtasks = {1}'.format(main_task_debug_string, str(len(subtasks))))
             print('----------------------------------------------------------------')
-            append_subtask(task_name, gantt_rows, csv_rows, subtasks)
+            append_subtask(task_name, table_rows, csv_rows, subtasks)
         else:
             print(main_task_debug_string)
             print('----------------------------------------------------------------')
@@ -226,11 +243,12 @@ def main():
 
     gantt_rows = []
     csv_rows = []
+    table_rows = []
 
-    fill_rows(gantt_rows, csv_rows, task_brackets, stripped_content)
+    fill_rows(gantt_rows, csv_rows, table_rows, task_brackets, stripped_content)
     summary = generate_summary(csv_rows)
 
-    draw_gantt(args.gantt_output_file, gantt_rows, summary)
+    draw_gantt(args.gantt_output_file, gantt_rows, table_rows, summary)
     write_csv(args.csv_output_file, csv_rows)
     write_summary(args.summary_output_file, summary)
 

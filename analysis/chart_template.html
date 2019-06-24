@@ -5,7 +5,8 @@
 </head>
 
 <body>
-    <table style="font-family: Arial, Helvetica, sans-serif; padding: 50px 100px 10px 50px">
+    {{ gantt_div }}
+    <table style="font-family: Arial, Helvetica, sans-serif; padding: 0px 0px 10px 50px">
         <tr>
             <td valign="top" width="512px">
                 <div>
@@ -39,7 +40,7 @@
                     </table>
                 </div>
             </td>
-            <td valign="top" width="928px">
+            <td valign="top" align="left">
                 <div>
                     <h3>Notes</h3>
                 </div>
@@ -53,8 +54,34 @@
                 </div>
             </td>
         </tr>
+        <tr>
+            <td colspan="2">
+                <div style="padding: 30px 0px 0px 0px">
+                    <h3>Tasks</h3>
+                    <table style="font-family: Arial, Helvetica, sans-serif">
+                        <tr>
+                            <th align="left">ID</th>
+                            <th align="left">Name</th>
+                            <th align="left">Duration</th>
+                            <th align="left">Info</th>
+                            <th align="left">Description</th>
+                        </tr>
+                        {% for item in task_table %}
+                        <tr>
+                            <td valign="top"><b>{{item.id}}</b></td>
+                            <td valign="top">{{item.name}}</td>
+                            <td valign="top">{{item.duration}}</td>
+                            <td valign="top">{{item.add_info}}</td>
+                            <td valign="top">
+                                <pre>{{item.description}}</pre>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </td>
+        </tr>
     </table>
-    {{ gantt_div }}
 </body>
 
 </html>
