@@ -1,6 +1,26 @@
+"""Send and track a transaction via JSONRPC.
+
+The blueprint offers endpoints to send a transaction, as well
+as tracking one or more transactions by their hashes.
+
+The following endpoints are supplied by this blueprint:
+
+    * [POST, GET] /transactions
+        Request the status of one or more transactions using their hashes, or
+        create a new transaction. The parameters for the latter must be supplied as
+        form data.
+
+"""
 from flask import Blueprint, abort
 
 from scenario_player.services.common.metrics import REDMetricsTracker
+from scenario_player.services.transactions.schemas.transactions import (
+    TransactionSendRequest,
+    TransactionSendResponse,
+    TransactionTrackRequest,
+    TransactionTrackResponse,
+)
+
 
 transactions_view = Blueprint("transactions_view", __name__)
 
@@ -9,32 +29,37 @@ transactions_view = Blueprint("transactions_view", __name__)
 def transactions_route():
     handlers = {"GET": get_transaction_status, "POST": new_transaction}
     with REDMetricsTracker(request.method, "/transactions"):
-        handlers[request.method]()
+        return handlers[request.method]()
 
 
 def new_transaction():
     """Create a new transaction.
+
+    The given parameters will be passed to the service's :class:`raiden.network.rpc.client.JSONRPCClient`
+    instance, which will then execute the transaction.
+
+    The resulting transaction hash will be returned to the requester.
 
     Example::
 
         POST /transactions
 
             {
-                "to": <ACCOUNT_ADDRESS>,
-                "start_gas": <float>,
-                "value": <float>,
+                "to": <str>,
+                "start_gas": <number>,
+                "value": <number>,
             }
 
         200 OK
 
             {
-                TODO: What should the response look like?
+                "tx_hash": <bytes>,
             }
+
     """
-    to_address = request.form["to"]
-    start_gas = request.form["start_gas"]
-    value = request.form["value"]
+    data = TransactionSendRequest().validate_and_serialize(request.form)
     abort(501)
+    return TransactionSendResponse().dump(data)
 
 
 def get_transaction_status():
@@ -47,17 +72,19 @@ def get_transaction_status():
         200 OK
 
             {
-                "transactions": [],
+                "transactions": [<tx_hash>, ...],
             }
 
         408 Request Timeout
 
             {
-                "error": "Exceeded timeout for transaction lookup request!"
-                "missing": [],
-                "found": [],
+                "missing": [<tx_hash>, ...],
+                # If any transactions have been found before the
+                # request timed out, they will be listed here.
+                "found": [<tx_hash>, ...],
             }
 
     """
-    hashes = request.args["hashes"]
+    data = TransactionTrackRequest().validate_and_serialize(reuqest.form)
     abort(501)
+    return TransactionTrackResponse().dump(data)
