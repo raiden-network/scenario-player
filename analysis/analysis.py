@@ -56,7 +56,7 @@ def append_subtask(main_task_name, table_rows, csv_rows, subtasks):
             'description': joined_content
         })
         csv_rows.append([main_task_name, 'Subtasks(#' + id + ')',
-                         calculate_duration(start, finish)])
+                         calculate_duration(start, finish),''])
 
 
 def calculate_duration(start, finish):
@@ -145,7 +145,7 @@ def write_csv(csv_output_file, csv_rows):
     with open(csv_output_file, 'w', newline='') as csv_file:
         csv_writer = csv.writer(
             csv_file, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(['MainTask', 'SubTask', 'Duration'])
+        csv_writer.writerow(['MainTask', 'SubTask', 'Duration', 'Hops'])
         for r in csv_rows:
             csv_writer.writerow(r)
 
@@ -191,20 +191,20 @@ def fill_rows(gantt_rows, csv_rows, table_rows, task_brackets, stripped_content)
             'Start': task_start_item[0],
             'Finish': task_finish_item[0],
             'Description': task_full_desc})
-        add_info = ''
+        hops = ''
         if task_name.startswith('Transfer'):
             transfer_from = task_body_json['from']
             transfer_to = task_body_json['to']
-            add_info = 'Hops: {0}'.format(abs(transfer_from - transfer_to))
+            hops = str(abs(transfer_from - transfer_to))
         table_rows.append({
             'id': task_id,
             'name': task_name,
             'duration': calculate_duration(task_start_item[0], task_finish_item[0]),
             'description': task_full_desc,
-            'add_info': add_info
+            'hops': hops
         })
         csv_rows.append([task_name, '', calculate_duration(
-            task_start_item[0], task_finish_item[0])])
+            task_start_item[0], task_finish_item[0]), hops])
 
         # Only add subtasks for leafs of the tree
         main_task_debug_string = '{0} {1}: {2}'.format(str(task_bracket), task_name, task_desc)

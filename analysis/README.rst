@@ -33,25 +33,25 @@ See an example result below.
 
 Example
 ^^^^^^^
-The following files are generated after the run:
+Two different scenarios are currently available as examples and each have three generated files:
 
-Gantt-Diagram
-"""""""""""""
-A gantt plot is rendered in an HTML file - it contains a legend and a summary:
+- A gantt plot is rendered in an HTML file - it contains a legend and a summary
+- A CSV file is created which contains the duration of the tasks
+- A JSON file with a statistic summary on the basis of transfers is getting calculated
 
-Example: `<example/raiden-scenario-player-analysis.html>`_
+Simple-Scenario
+"""""""""""""""
 
-CSV with Durations
-""""""""""""""""""
-A CSV file is created which contains the duration of the tasks: 
+- Gantt: `<example/simple-scenario/raiden-scenario-player-analysis.html>`_
+- CSV: `<example/simple-scenario/raiden-scenario-player-analysis.csv>`_
+- JSON-Summary: `<example/simple-scenario/raiden-scenario-player-analysis.json>`_
 
-Example: `<example/raiden-scenario-player-analysis.csv>`_
+Mediated-Transfers-Scenario
+"""""""""""""""""""""""""""
 
-JSON-Summary
-""""""""""""
-A JSON file with a statistic summary on the basis of transfers is getting calculated:
-
-Example: `<example/raiden-scenario-player-analysis.json>`_
+- Gantt: `<example/mediated-transfers-scenario/raiden-scenario-player-analysis.html>`_
+- CSV: `<example/mediated-transfers-scenario/raiden-scenario-player-analysis.csv>`_
+- JSON-Summary: `<example/mediated-transfers-scenario/raiden-scenario-player-analysis.json>`_
 
 
 Limitations/Caveats

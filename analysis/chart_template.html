@@ -2,6 +2,29 @@
 
 <head>
     <meta charset="utf-8" />
+    <style>
+        .collapsible {
+            background-color: #777;
+            color: white;
+            cursor: pointer;
+            width: 90px;
+            border: none;
+            text-align: center;
+            outline: none;
+            font-size: 15px;
+        }
+
+        .active,
+        .collapsible:hover {
+            background-color: #555;
+        }
+
+        .content {
+            display: none;
+            overflow: hidden;
+            background-color: #f1f1f1;
+        }
+    </style>
 </head>
 
 <body>
@@ -58,22 +81,23 @@
             <td colspan="2">
                 <div style="padding: 30px 0px 0px 0px">
                     <h3>Tasks</h3>
-                    <table style="font-family: Arial, Helvetica, sans-serif">
+                    <table style="font-family: Arial, Helvetica, sans-serif" width="1680">
                         <tr>
-                            <th align="left">ID</th>
-                            <th align="left">Name</th>
-                            <th align="left">Duration</th>
-                            <th align="left">Info</th>
-                            <th align="left">Description</th>
+                            <th align="left" style="width:40px">ID</th>
+                            <th align="left" style="width:200px">Name</th>
+                            <th align="left" style="width:140px">Duration</th>
+                            <th align="left" style="width:100px">Hops</th>
+                            <th align="left" style="width:1150px">Description</th>
                         </tr>
                         {% for item in task_table %}
                         <tr>
                             <td valign="top"><b>{{item.id}}</b></td>
                             <td valign="top">{{item.name}}</td>
                             <td valign="top">{{item.duration}}</td>
-                            <td valign="top">{{item.add_info}}</td>
+                            <td valign="top">{{item.hops}}</td>
                             <td valign="top">
-                                <pre>{{item.description}}</pre>
+                                <button class="collapsible">Show</button>
+                                <pre class="content" style="width:1150px;overflow:auto">{{item.description}}</pre>
                             </td>
                         </tr>
                         {% endfor %}
@@ -82,6 +106,24 @@
             </td>
         </tr>
     </table>
+    <script>
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+
+        for (i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function () {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.display === "block") {
+                    this.innerHTML = "Show";
+                    content.style.display = "none";
+                } else {
+                    this.innerHTML = "Hide";
+                    content.style.display = "block";
+                }
+            });
+        }
+    </script>
 </body>
 
 </html>
