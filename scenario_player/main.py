@@ -271,7 +271,7 @@ def reclaim_eth(ctx, min_age, password, keystore_file):
     help="Specify the max num of log history you would like to pack. Defaults to 1."
     "Specifying 0 will pack all available logs for a scenario.",
 )
-@click.option("--post-to-rocket/--no-post-to-rocket")
+@click.option("--post-to-rocket/--no-post-to-rocket", default=True)
 @click.argument("scenario-file", type=click.File(), required=True)
 @click.pass_context
 def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
