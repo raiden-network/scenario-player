@@ -31,8 +31,8 @@ Either start the analysis directly or print out the help:
 
 See an example result below.
 
-Example
-^^^^^^^
+Examples
+^^^^^^^^
 Two different scenarios are currently available as examples and each have three generated files:
 
 - A gantt plot is rendered in an HTML file - it contains a legend and a summary
