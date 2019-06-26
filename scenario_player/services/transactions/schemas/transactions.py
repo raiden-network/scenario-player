@@ -7,8 +7,8 @@ class TransactionSendSchema(ValidatorSchema):
     """Validator for POST /transaction requests"""
 
     # Serialization fields.
-    to = String(required=True, load_only=True)
-    start_gas = Float(required=True, load_only=True)
+    to = BytesField(required=True, load_only=True)
+    startgas = Float(required=True, load_only=True)
     value = Float(required=True, load_only=True)
 
     # Deserialization fields.

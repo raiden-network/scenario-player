@@ -11,7 +11,7 @@ The following endpoints are supplied by this blueprint:
         form data.
 
 """
-from flask import Blueprint, abort, current_app, request
+from flask import Blueprint, abort, current_app, request, Response
 
 from raiden.network.rpc.client import JSONRPCClient
 
@@ -57,7 +57,7 @@ def new_transaction():
             }
 
     """
-    data = transaction_send_schema.validate_and_serialize(request.form)
+    data = transaction_send_schema.load(request.form)
 
     # Get the services JSONRPCClient from the flask app's app_context (`g`).
     try:
@@ -68,5 +68,5 @@ def new_transaction():
         abort(500, "No JSONRPCClient instance available on service!")
     result = rpc_client.send_transaction(**data)
 
-    return transaction_send_schema.dump({"tx_hash": result})
+    return Response(transaction_send_schema.dumps({"tx_hash": result}), status=200)
 
