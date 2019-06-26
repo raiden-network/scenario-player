@@ -38,7 +38,7 @@ log = structlog.get_logger(__name__)
 
 
 RAIDEN_RELEASES_URL = "https://raiden-nightlies.ams3.digitaloceanspaces.com/"
-RAIDEN_RELEASES_LATEST_FILE_TEMPLATE = "_LATEST-{platform}-{arch}.txt"
+RAIDEN_RELEASES_LATEST_FILE_TEMPLATE = "_LATEST-NIGHTLY-{platform}-{arch}.txt"
 RAIDEN_RELEASES_VERSIONED_NAME_TEMPLATE = "raiden-v{version}-{platform}-{arch}.zip"
 
 
