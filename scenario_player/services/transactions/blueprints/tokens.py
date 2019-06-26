@@ -26,11 +26,11 @@ from scenario_player.services.transactions.schemas.tokens import (
     TokenMintResponse,
 )
 
-tokens_view = Blueprint("tokens_view", __name__)
+tokens_blueprint = Blueprint("tokens_view", __name__)
 
 
 @tokens_view.add_route('/tokens', methods=["GET"])
-def tokens_view():
+def list_tokens_view():
     handlers = {
         "GET": list_tokens,
     }
