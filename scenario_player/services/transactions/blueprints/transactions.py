@@ -22,12 +22,12 @@ from scenario_player.services.transactions.schemas.transactions import (
 )
 
 
-transactions_view = Blueprint("transactions_view", __name__)
+transactions_blueprint = Blueprint("transactions_view", __name__)
 
 
-@transactions_view.route("/transactions", methods=["POST", "GET"])
+@transactions_view.route("/transactions", methods=["POST"])
 def transactions_route():
-    handlers = {"GET": get_transaction_status, "POST": new_transaction}
+    handlers = {"POST": new_transaction}
     with REDMetricsTracker(request.method, "/transactions"):
         return handlers[request.method]()
 
@@ -58,33 +58,14 @@ def new_transaction():
 
     """
     data = TransactionSendRequest().validate_and_serialize(request.form)
-    abort(501)
-    return TransactionSendResponse().dump(data)
 
+    # Get the services JSONRPCClient from the flask app's app_context (`g`).
+    try:
+        rpc_client = g.config['rpc-client']
+    except KeyError:
+        abort(500, "No JSONRPCClient instance available on service!")
 
-def get_transaction_status():
-    """Return a list of transaction objects by a list of `hashes`.
+    result = rpc_client.send_transaction(**data)
 
-    Example::
+    return TransactionSendResponse().dump({"tx_hash": result})
 
-        GET /transactions?hashes=<str>,<str>,<str>
-
-        200 OK
-
-            {
-                "transactions": [<tx_hash>, ...],
-            }
-
-        408 Request Timeout
-
-            {
-                "missing": [<tx_hash>, ...],
-                # If any transactions have been found before the
-                # request timed out, they will be listed here.
-                "found": [<tx_hash>, ...],
-            }
-
-    """
-    data = TransactionTrackRequest().validate_and_serialize(reuqest.form)
-    abort(501)
-    return TransactionTrackResponse().dump(data)
