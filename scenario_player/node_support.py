@@ -339,6 +339,11 @@ class NodeRunner:
 
     @property
     def _raiden_bin(self):
+        if self._raiden_version.lower() == 'local':
+            binary = shutil.which('raiden')
+            if not binary:
+                raise FileNotFoundError('Could not use local binary! No Binary found in env!')
+            return binary
         return self._runner.release_keeper.get_release(self._raiden_version)
 
     @property
