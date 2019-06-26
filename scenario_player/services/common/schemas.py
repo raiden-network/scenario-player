@@ -11,12 +11,6 @@ class ValidatorSchema(Schema):
     Provides a convenience method for validation and deserialization.
     """
 
-    def dump(self, *args, **kwargs):
-        raise SyntaxError(f"ValidatorSchema subclasses cannot be used to dump data! {self.__class__.__qualname__}")
-
-    def dumps(self, *args, **kwargs):
-        raise SyntaxError(f"ValidatorSchema subclasses cannot be used to dump data! {self.__class__.__qualname__}")
-
     def validate_and_serialize(self, data_obj):
         """Validate `data_obj` and deserialize its fields to native python objects.
 
@@ -26,16 +20,7 @@ class ValidatorSchema(Schema):
         errors = self.validate(data_obj)
         if errors:
             flask.abort(400, str(errors))
-        return self.load(data_obj)
-
-
-class SerializerSchema(Schema):
-    """A modified :class:`marshmallow.Schema` class, disallowing loading of data using one of its instances."""
-    def load(self, *args, **kwargs):
-        raise SyntaxError(f"SerializerSchema subclasses cannot be used to load data! {self.__class__.__qualname__}")
-
-    def loads(self, *args, **kwargs):
-        raise SyntaxError(f"SerializerSchema subclasses cannot be used to load data! {self.__class__.__qualname__}")
+        return self.load(data_obj).data
 
 
 class BytesField(Field):
