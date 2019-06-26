@@ -29,7 +29,7 @@ from scenario_player.services.transactions.schemas.tokens import (
 tokens_blueprint = Blueprint("tokens_view", __name__)
 
 
-@tokens_view.add_route('/tokens', methods=["GET"])
+@tokens_blueprint.route('/tokens', methods=["GET"])
 def list_tokens_view():
     handlers = {
         "GET": list_tokens,
@@ -58,7 +58,7 @@ def list_tokens():
     return TokenListResponse().dump(data)
 
 
-@tokens_view.add_route('/tokens/<token_address>', methods=["POST", "GET"])
+@tokens_blueprint.route('/tokens/<token_address>', methods=["POST", "GET"])
 def token_details_view(token_address):
     handlers = {
         "POST": create_token,
@@ -107,7 +107,7 @@ def get_token(token_address):
     return TokenDetailsResponse().dump(data)
 
 
-@token_contracts_view.add_route('/tokens/<token_address>/mint', methods=["POST"])
+@tokens_blueprint.route('/tokens/<token_address>/mint', methods=["POST"])
 def mint_token_view(token_address):
     """Mint tokens for the given token address.."""
     handlers = {
