@@ -1,27 +1,26 @@
 from marshmallow.fields import Float, List, String
 
-from scenario_player.services.common.schemas import BytesField, ValidatorSchema, SerializerSchema
+from scenario_player.services.common.schemas import BytesField, ValidatorSchema
 
 
-class TransactionSendRequest(ValidatorSchema):
+class TransactionSendSchema(ValidatorSchema):
     """Validator for POST /transaction requests"""
-    to = String(required=True)
-    start_gas = Float(required=True)
-    value = Float(required=True)
 
+    # Serialization fields.
+    to = String(required=True, load_only=True)
+    start_gas = Float(required=True, load_only=True)
+    value = Float(required=True, load_only=True)
 
-class TransactionSendResponse(SerializerSchema):
-    """Serializer for POST /transaction responses"""
-    tx_hash = BytesField(required=True)
+    # Deserialization fields.
+    tx_hash = BytesField(required=True, dump_only=True)
 
 
 class TransactionTrackRequest(ValidatorSchema):
     """Validator for GET /transaction requests"""
 
-    hashes = List(BytesField(), required=True)
+    # Serialization fields.
+    hashes = List(BytesField(), required=True, load_only=True)
 
-
-class TransactionTrackResponse(SerializerSchema):
-    """Serializer for GET /transaction responses"""
-    missing = List(BytesField(), missing=[])
-    found = List(BytesField(), missing=[])
+    # Deserialization fields.
+    missing = List(BytesField(), missing=[], dump_only=True)
+    found = List(BytesField(), missing=[], dump_only=True)

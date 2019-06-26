@@ -12,6 +12,6 @@ def attach_transaction_service(app, **JSONRPCClient_kwargs):
 
 
 def construct_transaction_service(test_config=None, **JSONRPCClien_kwargs):
-    app = construct_flask_app(tokens_blueprint, transactions_blueprint, "transactions_service", test_config)
+    app = construct_flask_app(tokens_blueprint, transactions_blueprint, db_name="transactions_service", test_config=test_config)
     attach_transaction_service(app, **JSONRPCClien_kwargs)
     return app

@@ -14,16 +14,13 @@ The following endpoints are supplied by this blueprint:
         Mint a number of tokens for a given address. `token_address` determines
         what token contract is used to do this.aa
 """
-from flask import Blueprint, abort
+from flask import Blueprint, abort, request
 
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.transactions.schemas.tokens import (
     TokenCreateRequest,
-    TokenCreateResponse,
     TokenListRequest,
-    TokenListResponse,
     TokenMintRequest,
-    TokenMintResponse,
 )
 
 tokens_blueprint = Blueprint("tokens_view", __name__)

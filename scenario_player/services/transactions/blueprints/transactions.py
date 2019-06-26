@@ -11,18 +11,18 @@ The following endpoints are supplied by this blueprint:
         form data.
 
 """
-from flask import Blueprint, abort
+from flask import Blueprint, abort, current_app, request
 
 from raiden.network.rpc.client import JSONRPCClient
 
 from scenario_player.services.common.metrics import REDMetricsTracker
-from scenario_player.services.transactions.schemas.transactions import (
-    TransactionSendRequest,
-    TransactionSendResponse,
-)
+from scenario_player.services.transactions.schemas.transactions import TransactionSendSchema
 
 
 transactions_blueprint = Blueprint("transactions_view", __name__)
+
+
+transaction_send_schema = TransactionSendSchema()
 
 
 @transactions_blueprint.route("/transactions", methods=["POST"])
@@ -45,7 +45,7 @@ def new_transaction():
         POST /transactions
 
             {
-                "to": <str>,
+                "to_address": <str>,
                 "start_gas": <number>,
                 "value": <number>,
             }
@@ -57,16 +57,16 @@ def new_transaction():
             }
 
     """
-    data = TransactionSendRequest().validate_and_serialize(request.form)
+    data = transaction_send_schema.validate_and_serialize(request.form)
 
     # Get the services JSONRPCClient from the flask app's app_context (`g`).
     try:
-        rpc_client = g.config['rpc-client']
+        rpc_client = current_app.config['rpc-client']
         if not isinstance(rpc_client, JSONRPCClient):
             raise RuntimeError
     except (RuntimeError, KeyError):
         abort(500, "No JSONRPCClient instance available on service!")
     result = rpc_client.send_transaction(**data)
 
-    return TransactionSendResponse().dump({"tx_hash": result})
+    return transaction_send_schema.dump({"tx_hash": result})
 
