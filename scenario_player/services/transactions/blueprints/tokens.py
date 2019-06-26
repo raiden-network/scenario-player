@@ -18,12 +18,15 @@ from flask import Blueprint, abort, request
 
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.transactions.schemas.tokens import (
-    TokenCreateRequest,
-    TokenListRequest,
-    TokenMintRequest,
+    TokenCreateSchema, TokenListSchema, TokenDetailsSchema, TokenMintSchema,
 )
 
 tokens_blueprint = Blueprint("tokens_view", __name__)
+
+token_list_schema = TokenListSchema()
+token_details_schema = TokenDetailsSchema()
+token_mint_schema = TokenMintSchema()
+token_create_schema = TokenCreateSchema()
 
 
 @tokens_blueprint.route('/tokens', methods=["GET"])
@@ -50,9 +53,7 @@ def list_tokens():
                 ]
             }
     """
-    data = TokenListRequest().validate_and_serialize(request.args)
     abort(501)
-    return TokenListResponse().dump(data)
 
 
 @tokens_blueprint.route('/tokens/<token_address>', methods=["POST", "GET"])
@@ -81,9 +82,7 @@ def create_token():
 
         200 OK
     """
-    data = TokenCreateRequest().validate_and_serialize(request.form)
     abort(501)
-    return TokenCreateResponse().dump(data)
 
 
 def get_token(token_address):
@@ -99,9 +98,7 @@ def get_token(token_address):
                 TODO: Determine what this is going to look like.
             }
     """
-    data = TokenDetailsRequest().validate_and_serialize(request.args)
     abort(501)
-    return TokenDetailsResponse().dump(data)
 
 
 @tokens_blueprint.route('/tokens/<token_address>/mint', methods=["POST"])
@@ -132,6 +129,4 @@ def mint_token(token_address):
                 TODO: Determine what this is going to look like.
             }
     """
-    data = TokenMintRequest().validate_and_serialize(request.form)
     abort(501)
-    return TokenMintResponse().dump(data)
