@@ -1,17 +1,5 @@
-from marshmallow.fields import Field, Nested, Number, String
+from marshmallow.fields import Number, String
 from scenario_player.services.common.schemas import ValidatorSchema, SerializerSchema
-
-
-class MintReceipt(SPEndpointSchema):
-    """Schema for serializing mint_token results."""
-
-
-class TokenCreateReceipt(SPEndpointSchema):
-    """Schema field serializing token contract deploy results."""
-
-
-class TokenListReceipt(SPEndpointSchema):
-    """Schema field for serializing token data."""
 
 
 class TokenListRequest(ValidatorSchema):
