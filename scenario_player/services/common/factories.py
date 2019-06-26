@@ -3,6 +3,12 @@ import flask
 from scenario_player.services.common.blueprints import metrics_view
 
 
+def attach_blueprints(app, *blueprints):
+    """Attach the given `blueprints` to the given `app` and return it."""
+    for blueprint in blueprints:
+        app.register_blueprint(blueprint)
+
+
 def construct_flask_app(*blueprints, db_name="default", test_config=None, secret="dev", config_file="config.py"):
     """Construct a flask app with the given blueprints registered.
 
@@ -20,8 +26,5 @@ def construct_flask_app(*blueprints, db_name="default", test_config=None, secret
         # load the test config if passed in
         app.config.from_mapping(test_config)
 
-    app.register_blueprint(metrics_view)
-    for blueprint in blueprints:
-        app.register_blueprint(blueprint)
-
+    attach_blueprints(app, metrics_view, *blueprints)
     return app
