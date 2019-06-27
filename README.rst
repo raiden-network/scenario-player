@@ -51,4 +51,9 @@ Scenario Examples
 -------------------
 
 For example scenarios have a look at the `raiden` repository's scenarios. These
-can be found [here](https://github.com/raiden-network/raiden/tree/develop/raiden/tests/scenarios).
+can be found `here <https://github.com/raiden-network/raiden/tree/develop/raiden/tests/scenarios>`_.
+
+Tools
+-----
+
+The first tool is `the analysis tool <./analysis/>`_. to show performance metrics using the logs of a scenario player run.
