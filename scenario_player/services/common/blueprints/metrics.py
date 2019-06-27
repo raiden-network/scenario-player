@@ -2,7 +2,7 @@ from flask import Blueprint, Response
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 
-metrics_view = Blueprint("metrics_view", __name__)
+metrics_blueprint = Blueprint("metrics_view", __name__)
 
 
 @metrics_view.route("/metrics", methods=["GET"])
