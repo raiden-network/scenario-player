@@ -81,11 +81,11 @@ line_length = 99
 known_future_library = "future"
 known_first_party = "scenario_player"
 default_section = "THIRDPARTY"
-combine_as_imports = 1
+combine_as_imports = true
 # black compatibility
 multi_line_output = 3
 include_trailing_comma = true
-force_grid_wrap = 0
+force_grid_wrap = false
 use_parentheses = true
 
 [tool.black]

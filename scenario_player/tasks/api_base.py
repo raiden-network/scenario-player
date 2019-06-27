@@ -45,7 +45,9 @@ class RESTAPIActionTask(Task):
 
     def _run(self, *args, **kwargs):  # pylint: disable=unused-argument
         url = self._expand_url()
-        log.debug("Requesting", url=url, method=self._method, json=self._request_params, id=self.id)
+        log.debug(
+            "Requesting", url=url, method=self._method, json=self._request_params, id=self.id
+        )
         try:
             resp = self._runner.session.request(
                 method=self._method, url=url, json=self._request_params, timeout=self._timeout
