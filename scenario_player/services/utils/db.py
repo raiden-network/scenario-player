@@ -1,8 +1,7 @@
 import copy
 import json
-import uuid
 
-from flask import current_app
+from flask import current_app, g
 from redis import Redis
 from typing import Dict, Optional, Union
 
