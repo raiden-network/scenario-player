@@ -15,3 +15,22 @@ from scenario_player.exceptions.legacy import (
     TransferFailed,
     UnknownTaskTypeError,
 )
+
+
+__all__ = [
+    "CannotImplicitlyChangeFileType",
+    "ChannelError",
+    "InvalidScenarioVersion",
+    "MultipleTaskDefinitions",
+    "MissingNodesConfiguration",
+    "NodesUnreachableError",
+    "RESTAPIError",
+    "RESTAPIStatusMismatchError",
+    "RESTAPITimeout",
+    "ScenarioAssertionError",
+    "ScenarioError",
+    "ScenarioTxError",
+    "TokenRegistrationError",
+    "TransferFailed",
+    "UnknownTaskTypeError",
+]

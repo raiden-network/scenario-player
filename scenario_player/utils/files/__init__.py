@@ -15,3 +15,17 @@ from scenario_player.utils.files.parsing import (
     parse_platform,
     detect_target_config,
 )
+
+__all__ = [
+    "ManagedFile",
+    "ARCHIVE_FNAME_TEMPLATE",
+    "BINARY_FNAME_TEMPLATE",
+    "CLOUD_STORAGE_URL",
+    "ArchitectureSpecificMixin",
+    "PlatformSpecificMixin",
+    "VersionedMixin",
+    "parse_version",
+    "parse_platform",
+    "parse_architecture",
+    "detect_target_config",
+]

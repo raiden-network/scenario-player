@@ -41,14 +41,14 @@ class TestRedis(MutableMapping):
 
     def tset(self, key, value, **encode_kwargs):
         encode_ops = dict(self.encoding_options)
-        enccode_ops.update(encode_kwargs)
+        encode_ops.update(encode_kwargs)
         return self.set_json(self.table, key, value, **encode_ops)
 
     def set_json(self, table, key, value, **encode_kwargs):
         json_string = json.dumps(value, **encode_kwargs)
         self.__setitem__(table, {key: json_string})
 
-    def get_json(self, table, key, *get_args, **decode_kwargs):
+    def get_json(self, table, key, *_, **decode_kwargs):
         json_string = self.__getitem__(table, key)
         decoded = json.loads(json_string, **decode_kwargs)
         return decoded

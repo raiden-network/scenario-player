@@ -6,7 +6,7 @@ from marshmallow.fields import Field
 
 
 class SPSchema(Schema):
-    """A modified :class:`marshmallow.Schema` class, disallowing dumping of data using one of its instances.
+    """A modified :class:`.Schema` class, disallowing dumping of data using one of its instances.
 
     Provides a convenience method for validation and deserialization.
     """

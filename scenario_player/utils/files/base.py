@@ -3,7 +3,6 @@ import shutil
 
 from os import PathLike
 from typing import Iterable, Generator, Optional, Union
-from scenario_player.exceptions.files import CannotImplicitlyChangeFileType
 
 PathList = Iterable[Union[pathlib.Path, PathLike]]
 
