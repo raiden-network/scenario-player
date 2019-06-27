@@ -1,11 +1,11 @@
 import flask
 
 from marshmallow.exceptions import ValidationError
-from marshmallow.fields import  Field
+from marshmallow.fields import Field
 from marshmallow.schema import Schema
 
 
-class ValidatorSchema(Schema):
+class SPSchema(Schema):
     """A modified :class:`marshmallow.Schema` class, disallowing dumping of data using one of its instances.
 
     Provides a convenience method for validation and deserialization.
