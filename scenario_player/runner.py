@@ -44,6 +44,8 @@ log = structlog.get_logger(__name__)
 
 
 class ScenarioRunner:
+    # TODO: #73 Drop support for version 1 scenario files.
+
     def __init__(
         self,
         account: Account,

@@ -28,6 +28,8 @@ class NodesConfig(Mapping):
 
     :param nodes_config: The node configuration as set in the scenario yaml.
     :param scenario_version: Version of the scenario yaml file.
+
+    TODO: #73 Drop support for version 1 scenario files.
     """
 
     def __init__(self, nodes_config: Dict, scenario_version: int = 1):
@@ -134,6 +136,8 @@ class Scenario(Mapping):
     Handles default values as well as exception handling on missing settings.
 
     :param pathlib.Path yaml_path: Path to the scenario's yaml file.
+
+    TODO: #73 Drop support for version 1 scenario files.
     """
 
     def __init__(self, yaml_path: pathlib.Path) -> None:
