@@ -24,7 +24,7 @@ class ServiceProcess(mp.Process):
     """
 
     def __init__(self, app, *args, host: str = "http://localhost", port: int = 5000, **kwargs):
-        if 'target' in kwargs:
+        if "target" in kwargs:
             raise ValueError("'target' is not supported by this class!")
         super(ServiceProcess, self).__init__(*args, **kwargs)
         self.daemon = True
