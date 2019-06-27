@@ -133,6 +133,8 @@ class ScenarioRunner:
 
         We check for a run number file, and use any number that is logged
         there after incrementing it.
+
+        REFAC: Replace this with a property.
         """
         run_number = 0
         run_number_file = self.data_path.joinpath("run_number.txt")
