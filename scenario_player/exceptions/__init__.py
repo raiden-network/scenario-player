@@ -1,6 +1,4 @@
-from scenario_player.exceptions.files import (
-    CannotImplicitlyChangeFileType
-)
+from scenario_player.exceptions.files import CannotImplicitlyChangeFileType
 from scenario_player.exceptions.legacy import (
     ChannelError,
     InvalidScenarioVersion,

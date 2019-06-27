@@ -2,7 +2,7 @@ from scenario_player.utils.files.base import ManagedFile
 from scenario_player.utils.files.constants import (
     ARCHIVE_FNAME_TEMPLATE,
     BINARY_FNAME_TEMPLATE,
-    CLOUD_STORAGE_URL
+    CLOUD_STORAGE_URL,
 )
 from scenario_player.utils.files.mixins import (
     ArchitectureSpecificMixin,

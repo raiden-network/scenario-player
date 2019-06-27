@@ -23,7 +23,14 @@ class JSONRedis(Redis):
         Default options to pass :func:`json.loads` when fetching a key-value pair.
     """
 
-    def __init__(self, table: str, *args, encoding_options: Optional[dict]=None, decoding_options: Optional[dict]=None, **kwargs):
+    def __init__(
+        self,
+        table: str,
+        *args,
+        encoding_options: Optional[dict] = None,
+        decoding_options: Optional[dict] = None,
+        **kwargs,
+    ):
         self.default_table = table
         self.encoding_options = encoding_options or {}
         self.decoding_options = decoding_options or {}
@@ -95,6 +102,7 @@ def get_db():
         if current_app.config.get("TESTING", False):
             # Import the test db class on the fly, to avoid circular import fuck-ups.
             from scenario_player.services.utils.testing import TestRedis
+
             g.db = TestRedis(db_name)
         else:
             g.db = JSONRedis(db_name)
@@ -118,6 +126,8 @@ def close_db(e=None):
     """
     db = g.pop("db", None)
     if db is not None:
-        if not current_app.config.get("PERSIST_DB", True) or current_app.config.get('TESTING', False):
+        if not current_app.config.get("PERSIST_DB", True) or current_app.config.get(
+            "TESTING", False
+        ):
             db.delete(db.table)
         db.save()

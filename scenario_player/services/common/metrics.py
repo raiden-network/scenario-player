@@ -58,4 +58,3 @@ class REDMetricsTracker:
 
         duration = max(timeit.default_timer() - self.start, 0)
         HTTP_REQUESTS_LATENCY.labels(self.method, self.path).observe(duration)
-

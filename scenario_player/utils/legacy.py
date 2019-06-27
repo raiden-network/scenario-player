@@ -331,7 +331,9 @@ def get_gas_price_strategy(gas_price: Union[int, str]) -> Callable:
         raise ValueError(f'Invalid gas_price value: "{gas_price}"')
 
 
-def reclaim_eth(account: Account, chain_rpc_urls: dict, data_path: pathlib.Path, min_age_hours: int):
+def reclaim_eth(
+    account: Account, chain_rpc_urls: dict, data_path: pathlib.Path, min_age_hours: int
+):
     web3s: Dict[str, Web3] = {
         name: Web3(HTTPProvider(urls[0])) for name, urls in chain_rpc_urls.items()
     }

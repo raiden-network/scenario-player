@@ -35,16 +35,16 @@ class BytesField(Field):
     def _validate_encoding(value: str):
         """Validate the field value is a UTF-8 decodable string object."""
         try:
-            value.encode('UTF-8')
+            value.encode("UTF-8")
         except (AttributeError, UnicodeEncodeError):
-            raise ValidationError('Bytesfield must be a UTF-8 encoded string!')
+            raise ValidationError("Bytesfield must be a UTF-8 encoded string!")
         return True
 
     @staticmethod
     def _validate_length(value: str):
         """Validate the field value is a non-empty string object."""
         if not len(value):
-            raise ValidationError('Bytesfield must not be empty!')
+            raise ValidationError("Bytesfield must not be empty!")
         return True
 
     def _deserialize(self, value: str, attr, data):
@@ -54,11 +54,11 @@ class BytesField(Field):
         """
         self._validate_encoding(value)
         self._validate_length(value)
-        return value.encode('utf-8')
+        return value.encode("utf-8")
 
     def _serialize(self, value: bytes, attr, obj):
         """Prepare :class:`bytes` object for JSON-encoding.
 
         This decodes the :class:`bytes` object using UTF-8.
         """
-        return value.decode('utf-8')
+        return value.decode("utf-8")

@@ -9,7 +9,9 @@ def attach_blueprints(app, *blueprints):
         app.register_blueprint(blueprint)
 
 
-def construct_flask_app(*blueprints, db_name="default", test_config=None, secret="dev", config_file="config.py"):
+def construct_flask_app(
+    *blueprints, db_name="default", test_config=None, secret="dev", config_file="config.py"
+):
     """Construct a flask app with the given blueprints registered.
 
     By default all constructed apps have `/metrics` endpoint, which exposes

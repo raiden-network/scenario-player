@@ -47,11 +47,12 @@ class ManagedFile(PathLike):
         >>>ManagedFile(**mf.as_dict())
 
     """
+
     def __init__(
-            self,
-            path: Union[pathlib.Path, PathLike],
-            existing_symlinks: Optional[PathList]=None,
-            existing_copies: Optional[PathList]=None
+        self,
+        path: Union[pathlib.Path, PathLike],
+        existing_symlinks: Optional[PathList] = None,
+        existing_copies: Optional[PathList] = None,
     ) -> None:
         self.path = pathlib.Path(path).absolute()
         if not self.path.exists():
@@ -84,9 +85,9 @@ class ManagedFile(PathLike):
     def as_dict(self):
         """Dump the class to a loadable kwargs dict for the class constructor."""
         return {
-            'path': str(self.path),
-            'existing_symlinnks': [str(symlink) for symlink in self.symlinks],
-            'existing_copies': [str(copy) for copy in self.copies],
+            "path": str(self.path),
+            "existing_symlinnks": [str(symlink) for symlink in self.symlinks],
+            "existing_copies": [str(copy) for copy in self.copies],
         }
 
     def yield_unchanged_copies(self) -> Generator[pathlib.Path, None, None]:
@@ -189,7 +190,7 @@ class ManagedFile(PathLike):
             self.copies.add(target_dir)
         return target
 
-    def create_symlink(self, target_dir: pathlib.Path, overwrite: bool=False) -> pathlib.Path:
+    def create_symlink(self, target_dir: pathlib.Path, overwrite: bool = False) -> pathlib.Path:
         """Create a symlink to the managed file in the given `target_dir`.
 
         The symlink created has the same file name as the string returned by :attr:`.path.name`.

@@ -6,6 +6,7 @@ class VersionedMixin:
 
     Requires a :attr:`.path` attribute on the class.
     """
+
     @property
     def version(self):
         return parse_version(self.path)
@@ -16,6 +17,7 @@ class PlatformSpecificMixin:
 
     Requires a :attr:`.path` attribute on the class.
     """
+
     @property
     def platform(self):
         return parse_platform(self.path)
@@ -26,6 +28,7 @@ class ArchitectureSpecificMixin:
 
     Requires a :attr:`.path` attribute on the class.
     """
+
     @property
     def architecture(self):
         return parse_architecture(self.path)
