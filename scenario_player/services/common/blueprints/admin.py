@@ -1,5 +1,4 @@
-from flask import Blueprint, request, Response
-
+from flask import Blueprint, Response, request
 
 admin_blueprint = Blueprint("admin_view", __name__)
 

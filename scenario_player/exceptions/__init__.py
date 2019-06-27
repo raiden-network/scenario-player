@@ -2,8 +2,8 @@ from scenario_player.exceptions.files import CannotImplicitlyChangeFileType
 from scenario_player.exceptions.legacy import (
     ChannelError,
     InvalidScenarioVersion,
-    MultipleTaskDefinitions,
     MissingNodesConfiguration,
+    MultipleTaskDefinitions,
     NodesUnreachableError,
     RESTAPIError,
     RESTAPIStatusMismatchError,
@@ -15,7 +15,6 @@ from scenario_player.exceptions.legacy import (
     TransferFailed,
     UnknownTaskTypeError,
 )
-
 
 __all__ = [
     "CannotImplicitlyChangeFileType",

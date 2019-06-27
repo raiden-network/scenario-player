@@ -1,12 +1,11 @@
 import copy
 import json
+from typing import Dict, Optional, Union
 
 from flask import current_app, g
 from redis import Redis
-from typing import Dict, Optional, Union
 
 from scenario_player.exceptions.db import CorruptedDBEntry
-
 
 DecodedJSONDict = Dict[str, Union[dict, list, str, int, float, bool, None]]
 JSONEncodableDict = Dict[str, Union[dict, list, tuple, str, int, float, bool, None]]

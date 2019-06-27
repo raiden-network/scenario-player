@@ -6,14 +6,14 @@ from scenario_player.utils.files.constants import (
 )
 from scenario_player.utils.files.mixins import (
     ArchitectureSpecificMixin,
-    VersionedMixin,
     PlatformSpecificMixin,
+    VersionedMixin,
 )
 from scenario_player.utils.files.parsing import (
-    parse_version,
+    detect_target_config,
     parse_architecture,
     parse_platform,
-    detect_target_config,
+    parse_version,
 )
 
 __all__ = [

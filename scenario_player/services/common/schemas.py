@@ -1,5 +1,4 @@
 import flask
-
 from flask_marshmallow.schema import Schema
 from marshmallow.exceptions import ValidationError
 from marshmallow.fields import Field

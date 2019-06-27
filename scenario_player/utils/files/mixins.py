@@ -1,4 +1,4 @@
-from scenario_player.utils.files.parsing import parse_platform, parse_architecture, parse_version
+from scenario_player.utils.files.parsing import parse_architecture, parse_platform, parse_version
 
 
 class VersionedMixin:

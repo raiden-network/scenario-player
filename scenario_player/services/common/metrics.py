@@ -26,7 +26,6 @@ import timeit
 
 from prometheus_client import Counter, Histogram
 
-
 HTTP_REQUESTS_TOTAL = Counter(
     "http_requests_total", "Total amount of HTTP Requests made.", labelnames=["method", "path"]
 )

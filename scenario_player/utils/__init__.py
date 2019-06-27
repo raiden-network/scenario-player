@@ -1,19 +1,18 @@
 from scenario_player.utils.legacy import (
-    TimeOutHTTPAdapter,
-    LogBuffer,
+    ChainConfigType,
     ConcatenableNone,
     DummyStream,
-    ChainConfigType,
     HTTPExecutor,
-    wait_for_txs,
+    LogBuffer,
+    TimeOutHTTPAdapter,
+    get_gas_price_strategy,
     get_or_deploy_token,
     get_udc_and_token,
     mint_token_if_balance_low,
-    send_notification_mail,
-    get_gas_price_strategy,
     reclaim_eth,
+    send_notification_mail,
+    wait_for_txs,
 )
-
 
 __all__ = [
     "TimeOutHTTPAdapter",

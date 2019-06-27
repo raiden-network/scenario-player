@@ -1,10 +1,9 @@
 from flask import Blueprint, Response
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
-
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 metrics_blueprint = Blueprint("metrics_view", __name__)
 
 
-@metrics_view.route("/metrics", methods=["GET"])
+@metrics_blueprint.route("/metrics", methods=["GET"])
 def metrics_route():
     return Response(generate_latest, mimetype=CONTENT_TYPE_LATEST)
