@@ -1,6 +1,6 @@
 import flask
 
-from scenario_player.services.common.blueprints import metrics_blueprint
+from scenario_player.services.common.blueprints import admin_blueprint, metrics_blueprint
 
 
 def attach_blueprints(app, *blueprints):
@@ -28,5 +28,5 @@ def construct_flask_app(
         # load the test config if passed in
         app.config.from_mapping(test_config)
 
-    attach_blueprints(app, metrics_blueprint, *blueprints)
+    attach_blueprints(app, metrics_blueprint, admin_blueprint, *blueprints)
     return app
