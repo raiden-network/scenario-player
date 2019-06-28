@@ -71,13 +71,13 @@ def calculate_duration(start, finish):
 def create_task_brackets(stripped_content):
     task_indices = []
     for i, start_content in enumerate(stripped_content):
-        start_event = start_content[1]
-        start_id = start_content[2]["id"]
+        start_event = start_content.event
+        start_id = start_content.json["id"]
         if start_event.lower() == "starting task":
             for j, following_content in enumerate(stripped_content[i:], start=i):
-                following_event = following_content[1]
-                following_id = following_content[2]["id"]
-                if "task" not in following_content[2]:
+                following_event = following_content.event
+                following_id = following_content.json["id"]
+                if "task" not in following_content.json:
                     continue
                 ids_identical = start_id == following_id
                 event_matches_successful = following_event.lower() == "task successful"
@@ -97,10 +97,11 @@ def read_raw_content(input_file):
             content = [line.strip() for line in f.readlines()]
 
     stripped_content = []
+    Content = namedtuple('Content', 'timestamp, event, json')
     for row in content:
         x = json.loads(row)
         if "id" in x:
-            stripped_content.append([x["timestamp"], x["event"], x])
+            stripped_content.append(Content(x["timestamp"], x["event"], x))
 
     # sort by timestamp
     stripped_content.sort(key=lambda e: e[0])
@@ -192,19 +193,20 @@ def fill_rows(task_brackets, stripped_content):
     for task_bracket in task_brackets:
         task_start_item = stripped_content[task_bracket[0]]
         task_finish_item = stripped_content[task_bracket[1]]
-        task_body = task_start_item[2]["task"].split(":", 1)
-        task_id = task_start_item[2]["id"]
+        task_body = task_start_item.json["task"].split(":", 1)
+        task_id = task_start_item.json["id"]
         task_name = f'{task_body[0].replace("<", "").strip()}(#{task_id})'
         task_desc = task_body[1].replace(">", "").strip()
         task_body_json = json.loads(task_desc.replace("'", '"'))
+        duration = calculate_duration(task_start_item.timestamp, task_finish_item.timestamp)
 
         # add main task to rows
         task_full_desc = json.dumps(task_body_json, sort_keys=True, indent=4).replace("\n", "<br>")
         gantt_rows.append(
             {
                 "Task": task_name,
-                "Start": task_start_item[0],
-                "Finish": task_finish_item[0],
+                "Start": task_start_item.timestamp,
+                "Finish": task_finish_item.timestamp,
                 "Description": task_full_desc,
             }
         )
@@ -217,19 +219,19 @@ def fill_rows(task_brackets, stripped_content):
             {
                 "id": task_id,
                 "name": task_name,
-                "duration": calculate_duration(task_start_item[0], task_finish_item[0]),
+                "duration": duration,
                 "description": task_full_desc,
                 "hops": hops,
             }
         )
         csv_rows.append(
-            [task_name, "", calculate_duration(task_start_item[0], task_finish_item[0]), hops]
+            [task_name, "", duration, hops]
         )
 
         # Only add subtasks for leafs of the tree
-        main_task_debug_string = "{0} {1}: {2}".format(str(task_bracket), task_name, task_desc)
+        main_task_debug_string = f"{str(task_bracket)} {task_name}: {task_desc}"
         if not has_more_specific_task_bracket(task_bracket, task_brackets):
-            subtasks = list(filter(lambda t: t[2]["id"] == task_id, stripped_content))
+            subtasks = list(filter(lambda t: t.json["id"] == task_id, stripped_content))
             print(f"{main_task_debug_string} - subtasks = {len(subtasks)}")
             print("----------------------------------------------------------------")
             append_subtask(task_name, table_rows, csv_rows, subtasks)
