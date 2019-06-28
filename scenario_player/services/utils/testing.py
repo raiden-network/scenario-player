@@ -1,5 +1,6 @@
 import json
-from collections.abc import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any, Optional
 
 
 class TestRedis(MutableMapping):
@@ -11,7 +12,7 @@ class TestRedis(MutableMapping):
 
     DB = {}
 
-    def __init__(self, table: str, *args, encoding_options: Optional[dict]=None, decoding_options: =None, **kwargs):
+    def __init__(self, table: str, *args, encoding_options: Optional[dict]=None, decoding_options: Optional[dict]=None, **kwargs):
         self.table = table
         self.encoding_options = (encoding_options or {}).items()
         self.decoding_options = (decoding_options or {}).items()
