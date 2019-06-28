@@ -4,10 +4,10 @@ This is an analysis tool to show performance metrics using the logs of a scenari
 
 Prerequisites
 ^^^^^^^^^^^^^
-- `pyenv <https://github.com/pyenv/pyenv>`_
-- `virtualenvwrapper <https://github.com/virajkanwade/venvwrapper>`_
+- Python 3.7
 
-You may also use other python virtual environments.
+We strongly recommend using a virtual python env like `pyenv <https://github.com/pyenv/pyenv>`_
+(in addition to that you can use `virtualenvwrapper <https://github.com/virajkanwade/venvwrapper>`_)
 
 Installation
 ^^^^^^^^^^^^
