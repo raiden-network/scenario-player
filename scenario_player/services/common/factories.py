@@ -7,6 +7,7 @@ def attach_blueprints(app, *blueprints):
     """Attach the given `blueprints` to the given `app` and return it."""
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
+    return app
 
 
 def construct_flask_app(
