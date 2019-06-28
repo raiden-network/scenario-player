@@ -9,14 +9,14 @@ def shutdown_server():
     if func is None:
         raise RuntimeError("Not running with the Werkzeug Server")
     func()
+    Response(response="Server shutting down...", status=200)
 
 
 @admin_blueprint.route("/shutdown", methods=["POST"])
-def shutdown():
-    shutdown_server()
-    return "Server shutting down..."
+def shutdown() -> Response:
+    return shutdown_server()
 
 
 @admin_blueprint.route("/status")
-def status_view():
+def status_view() -> Response:
     return Response(status=200)

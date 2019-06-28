@@ -10,11 +10,14 @@ class SPSchema(Schema):
     Provides a convenience method for validation and deserialization.
     """
 
-    def validate_and_deserialize(self, data_obj):
+    def validate_and_deserialize(self, data_obj) -> dict:
         """Validate `data_obj` and deserialize its fields to native python objects.
 
         If validation fails, this raises a :exc:`werkzeug.exceptions.BadRequest`,
         ending the request sequence.
+
+        :raises werkzeug.exceptions.BadRequest:
+            if validaing the `data_obj` did not succeed..
         """
         errors = self.validate(data_obj)
         if errors:
@@ -31,8 +34,13 @@ class BytesField(Field):
         self.validators.append(self._validate_length)
 
     @staticmethod
-    def _validate_encoding(value: str):
-        """Validate the field value is a UTF-8 decodable string object."""
+    def _validate_encoding(value: str) -> bool:
+        """Validate the field value is a UTF-8 decodable string object.
+
+        :raises ValidationError:
+            if we cannot encode the string using UTF-8, or if `value` does not
+            have a :meth:`str.encode` method.
+        """
         try:
             value.encode("UTF-8")
         except (AttributeError, UnicodeEncodeError):
@@ -40,8 +48,11 @@ class BytesField(Field):
         return True
 
     @staticmethod
-    def _validate_length(value: str):
-        """Validate the field value is a non-empty string object."""
+    def _validate_length(value: str) -> bool:
+        """Validate the field value is a non-empty string object.
+
+        :raises ValidationError: if the length is `0`.
+        """
         if not len(value):
             raise ValidationError("Bytesfield must not be empty!")
         return True

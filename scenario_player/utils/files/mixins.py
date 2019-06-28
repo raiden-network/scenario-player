@@ -8,7 +8,7 @@ class VersionedMixin:
     """
 
     @property
-    def version(self):
+    def version(self) -> str:
         return parse_version(self.path)
 
 
@@ -19,7 +19,7 @@ class PlatformSpecificMixin:
     """
 
     @property
-    def platform(self):
+    def platform(self) -> str:
         return parse_platform(self.path)
 
 
@@ -30,5 +30,5 @@ class ArchitectureSpecificMixin:
     """
 
     @property
-    def architecture(self):
+    def architecture(self) -> str:
         return parse_architecture(self.path)

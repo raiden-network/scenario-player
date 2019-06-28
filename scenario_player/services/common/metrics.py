@@ -42,7 +42,7 @@ HTTP_REQUESTS_LATENCY = Histogram(
 class REDMetricsTracker:
     """Prometheus RED metrics tracker class."""
 
-    def __init__(self, method, path):
+    def __init__(self, method: str, path: str):
         self.method, self.path = method, path
         self.timer = None
 

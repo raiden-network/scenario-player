@@ -1,6 +1,6 @@
 import copy
 import json
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, MutableMapping
 
 from flask import current_app, g
 from redis import Redis
@@ -9,6 +9,7 @@ from scenario_player.exceptions.db import CorruptedDBEntry
 
 DecodedJSONDict = Dict[str, Union[dict, list, str, int, float, bool, None]]
 JSONEncodableDict = Dict[str, Union[dict, list, tuple, str, int, float, bool, None]]
+RedisTestInstance = MutableMapping
 
 
 class JSONRedis(Redis):
@@ -52,7 +53,7 @@ class JSONRedis(Redis):
         """
         encode_options = copy.deepcopy(self.encoding_options)
         encode_options.update(encode_kwargs)
-        json_string = json.dumps(value, **encode_options)
+        json_string: str = json.dumps(value, **encode_options)
         self.hmset(table, {key: json_string})
 
     def tget(self, key, *get_args, **decode_kwargs) -> DecodedJSONDict:
@@ -79,12 +80,12 @@ class JSONRedis(Redis):
         """
         decode_options = copy.deepcopy(self.decoding_options)
         decode_options.update(decode_kwargs)
-        json_string = self.hmget(table, key, *get_args)
+        json_string: str = self.hmget(table, key, *get_args)
         decoded = json.loads(json_string, **decode_options)
         return decoded
 
 
-def get_db():
+def get_db() -> Union[JSONRedis, RedisTestInstance]:
     """Get a connection object for the database.
 
     If the config's `TESTING` setting is truthy, we return a mock connection.
@@ -109,7 +110,7 @@ def get_db():
     return g.db
 
 
-def close_db(e=None):
+def close_db(e=None) -> None:
     """Close the database connection.
 
     If there is no `'db'` key in the thread-local :var:`flask.g`, this is a no-op.

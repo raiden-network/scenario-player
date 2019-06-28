@@ -1,9 +1,11 @@
+from typing import List, Mapping
+
 import flask
 
 from scenario_player.services.common.blueprints import admin_blueprint, metrics_blueprint
 
 
-def attach_blueprints(app, *blueprints):
+def attach_blueprints(app: flask.Flask, *blueprints: List[flask.Blueprint]):
     """Attach the given `blueprints` to the given `app` and return it."""
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
@@ -11,11 +13,12 @@ def attach_blueprints(app, *blueprints):
 
 
 def construct_flask_app(
-    *blueprints, db_name="default", test_config=None, secret="dev", config_file="config.py"
-):
+    *blueprints: List[flask.Blueprint], db_name: str="default", test_config: Mapping=None, secret: str="dev", config_file: str="config.py"
+) -> flask.Flask:
     """Construct a flask app with the given blueprints registered.
 
-    By default all constructed apps have the following endpoint:
+    By default all constructed apps use the :var:`admin_blueprint` and
+    :var:`metrics_blueprint`, and therefore have the following endpoints:
 
         `/metrics`
         Exposes prometheus compatible metrics, if available.

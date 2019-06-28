@@ -1,5 +1,6 @@
 import multiprocessing as mp
 
+import flask
 import requests
 
 from scenario_player.exceptions.services import ServiceProcessException
@@ -23,7 +24,7 @@ class ServiceProcess(mp.Process):
     code does not matter) and `False` if a connection error or timeout occurred.
     """
 
-    def __init__(self, app, *args, host: str = "http://localhost", port: int = 5000, **kwargs):
+    def __init__(self, app: flask.Flask, *args, host: str = "http://localhost", port: int = 5000, **kwargs):
         if "target" in kwargs:
             raise ValueError("'target' is not supported by this class!")
         super(ServiceProcess, self).__init__(*args, **kwargs)
