@@ -14,6 +14,10 @@ import plotly.figure_factory as ff
 import plotly.offline as py
 from jinja2 import Environment, FileSystemLoader
 
+DEFAULT_GANTT_FILENAME = "gantt-overview.html"
+DEFAULT_CSV_FILENAME = "durations.csv"
+DEFAULT_SUMMARY_FILENAME = "summary.json"
+
 
 def has_more_specific_task_bracket(task_bracket, task_indices):
     for other in task_indices:
@@ -47,13 +51,13 @@ def append_subtask(main_task_name, table_rows, csv_rows, subtasks):
         table_rows.append(
             {
                 "id": id,
-                "name": "Subtasks(#" + id + ")",
+                "name": f"Subtasks(#{id})",
                 "duration": calculate_duration(start, finish),
                 "description": joined_content,
             }
         )
         csv_rows.append(
-            [main_task_name, "Subtasks(#" + id + ")", calculate_duration(start, finish), ""]
+            [main_task_name, f"Subtasks(#{id})", calculate_duration(start, finish), ""]
         )
 
 
@@ -103,7 +107,7 @@ def read_raw_content(input_file):
     return stripped_content
 
 
-def draw_gantt(gantt_output_file, gantt_rows, table_rows, summary):
+def draw_gantt(output_directory, gantt_rows, table_rows, summary):
     fig = ff.create_gantt(
         gantt_rows,
         title="Raiden Analysis",
@@ -130,7 +134,7 @@ def draw_gantt(gantt_output_file, gantt_rows, table_rows, summary):
     )
     output_content = j2_env.get_template("chart_template.html").render(
         gantt_div=div,
-        summary_header='Tasks matched "' + summary["name"] + '" (in ' + summary["unit"] + ")",
+        summary_header=f'Tasks matched "{summary["name"]}" (in {summary["unit"]})',
         count=summary["count"],
         min=summary["min"],
         max=summary["max"],
@@ -140,12 +144,12 @@ def draw_gantt(gantt_output_file, gantt_rows, table_rows, summary):
         task_table=table_rows,
     )
 
-    with open(gantt_output_file, "w") as text_file:
+    with open(f"{output_directory}/{DEFAULT_GANTT_FILENAME}", "w") as text_file:
         text_file.write(output_content)
 
 
-def write_csv(csv_output_file, csv_rows):
-    with open(csv_output_file, "w", newline="") as csv_file:
+def write_csv(output_directory, csv_rows):
+    with open(f"{output_directory}/{DEFAULT_CSV_FILENAME}", "w", newline="") as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL)
         csv_writer.writerow(["MainTask", "SubTask", "Duration", "Hops"])
         for r in csv_rows:
@@ -173,8 +177,8 @@ def generate_summary(csv_rows):
     return result
 
 
-def write_summary(summary_output_file, summary):
-    with open(summary_output_file, "w", newline="") as summary_file:
+def write_summary(output_directory, summary):
+    with open(f"{output_directory}/{DEFAULT_SUMMARY_FILENAME}", "w", newline="") as summary_file:
         json.dump(summary, summary_file)
 
 
@@ -184,7 +188,7 @@ def fill_rows(gantt_rows, csv_rows, table_rows, task_brackets, stripped_content)
         task_finish_item = stripped_content[task_bracket[1]]
         task_body = task_start_item[2]["task"].split(":", 1)
         task_id = task_start_item[2]["id"]
-        task_name = task_body[0].replace("<", "").strip() + "(#" + task_id + ")"
+        task_name = f'{task_body[0].replace("<", "").strip()}(#{task_id})'
         task_desc = task_body[1].replace(">", "").strip()
         task_body_json = json.loads(task_desc.replace("'", '"'))
 
@@ -220,7 +224,7 @@ def fill_rows(gantt_rows, csv_rows, table_rows, task_brackets, stripped_content)
         main_task_debug_string = "{0} {1}: {2}".format(str(task_bracket), task_name, task_desc)
         if not has_more_specific_task_bracket(task_bracket, task_brackets):
             subtasks = list(filter(lambda t: t[2]["id"] == task_id, stripped_content))
-            print("{0} - subtasks = {1}".format(main_task_debug_string, str(len(subtasks))))
+            print(f"{main_task_debug_string} - subtasks = {len(subtasks)}")
             print("----------------------------------------------------------------")
             append_subtask(task_name, table_rows, csv_rows, subtasks)
         else:
@@ -236,25 +240,11 @@ def parse_args():
         help="File name of scenario-player log file as main input, if empty, stdin is used",
     )
     parser.add_argument(
-        "--output-csv-file",
+        "--output-directory",
         type=str,
-        dest="csv_output_file",
-        default="raiden-scenario-player-analysis.csv",
-        help="File name of the CSV output file",
-    )
-    parser.add_argument(
-        "--output-gantt-file",
-        type=str,
-        dest="gantt_output_file",
-        default="raiden-scenario-player-analysis.html",
-        help="File name of the Gantt Chart output file",
-    )
-    parser.add_argument(
-        "--output-summary-file",
-        type=str,
-        dest="summary_output_file",
-        default="raiden-scenario-player-analysis.json",
-        help="File name of the summary output file",
+        dest="output_directory",
+        default="raiden-scenario-player-analysis",
+        help="Output directory name",
     )
 
     args = parser.parse_args()
@@ -276,9 +266,12 @@ def main():
     fill_rows(gantt_rows, csv_rows, table_rows, task_brackets, stripped_content)
     summary = generate_summary(csv_rows)
 
-    draw_gantt(args.gantt_output_file, gantt_rows, table_rows, summary)
-    write_csv(args.csv_output_file, csv_rows)
-    write_summary(args.summary_output_file, summary)
+    if not os.path.exists(args.output_directory):
+        os.makedirs(args.output_directory)
+
+    draw_gantt(args.output_directory, gantt_rows, table_rows, summary)
+    write_csv(args.output_directory, csv_rows)
+    write_summary(args.output_directory, summary)
 
 
 if __name__ == "__main__":
