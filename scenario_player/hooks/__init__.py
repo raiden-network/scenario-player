@@ -17,8 +17,4 @@ def get_plugin_manager(namespace):
 SP_PM = get_plugin_manager(HOST_NAMESPACE)
 
 #: A list of all blueprints currently registered with the library.
-PLUGIN_BLUEPRINTS = [
-    blueprints
-    for blueprints in SP_PM.hook.register_blueprints()
-    if blueprints
-]
+PLUGIN_BLUEPRINTS = [blueprints for blueprints in SP_PM.hook.register_blueprints() if blueprints]
