@@ -8,6 +8,7 @@ import random
 import re
 import sys
 from datetime import datetime, timedelta
+from collections import namedtuple
 
 import numpy as np
 import plotly.figure_factory as ff
@@ -107,9 +108,9 @@ def read_raw_content(input_file):
     return stripped_content
 
 
-def draw_gantt(output_directory, gantt_rows, table_rows, summary):
+def draw_gantt(output_directory, filled_rows, summary):
     fig = ff.create_gantt(
-        gantt_rows,
+        filled_rows['gantt_rows'],
         title="Raiden Analysis",
         show_colorbar=False,
         bar_width=0.5,
@@ -141,7 +142,7 @@ def draw_gantt(output_directory, gantt_rows, table_rows, summary):
         mean=summary["mean"],
         median=summary["median"],
         stdev=summary["stdev"],
-        task_table=table_rows,
+        task_table=filled_rows['table_rows'],
     )
 
     with open(f"{output_directory}/{DEFAULT_GANTT_FILENAME}", "w") as text_file:
@@ -156,13 +157,13 @@ def write_csv(output_directory, csv_rows):
             csv_writer.writerow(r)
 
 
-def generate_summary(csv_rows):
+def generate_summary(filled_rows):
     result = {}
     # TODO: match too greedy
     duration_transfers = list(
         map(
             lambda r: r[2].total_seconds(),
-            filter(lambda r: r[0].lower().startswith("transfer"), csv_rows),
+            filter(lambda r: r[0].lower().startswith("transfer"), filled_rows['csv_rows']),
         )
     )
     data = np.array(duration_transfers)
@@ -182,7 +183,12 @@ def write_summary(output_directory, summary):
         json.dump(summary, summary_file)
 
 
-def fill_rows(gantt_rows, csv_rows, table_rows, task_brackets, stripped_content):
+def fill_rows(task_brackets, stripped_content):
+    filled_rows = dict()
+    gantt_rows = []
+    csv_rows = []
+    table_rows = []
+
     for task_bracket in task_brackets:
         task_start_item = stripped_content[task_bracket[0]]
         task_finish_item = stripped_content[task_bracket[1]]
@@ -230,6 +236,11 @@ def fill_rows(gantt_rows, csv_rows, table_rows, task_brackets, stripped_content)
         else:
             print(main_task_debug_string)
             print("----------------------------------------------------------------")
+    
+    filled_rows['gantt_rows'] = gantt_rows
+    filled_rows['csv_rows'] = csv_rows
+    filled_rows['table_rows'] = table_rows
+    return filled_rows
 
 
 def parse_args():
@@ -259,18 +270,14 @@ def main():
 
     task_brackets = create_task_brackets(stripped_content)
 
-    gantt_rows = []
-    csv_rows = []
-    table_rows = []
-
-    fill_rows(gantt_rows, csv_rows, table_rows, task_brackets, stripped_content)
-    summary = generate_summary(csv_rows)
+    filled_rows = fill_rows(task_brackets, stripped_content)
+    summary = generate_summary(filled_rows)
 
     if not os.path.exists(args.output_directory):
         os.makedirs(args.output_directory)
 
-    draw_gantt(args.output_directory, gantt_rows, table_rows, summary)
-    write_csv(args.output_directory, csv_rows)
+    draw_gantt(args.output_directory, filled_rows, summary)
+    write_csv(args.output_directory, filled_rows)
     write_summary(args.output_directory, summary)
 
 
