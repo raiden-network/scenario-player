@@ -23,18 +23,19 @@ def get_plugin_manager(namespace):
     return pm
 
 
+def register_hook_specifications(library):
+    pm = get_plugin_manager(library)
+    # load all hookimpls from the local module's namespace
+    pm.add_hookspecs(sys.modules[library])
+
+
+register_hook_specifications(HOST_NAMESPACE)
 #: A list of all blueprints currently registered with the library.
 PLUGIN_BLUEPRINTS = [
     blueprints
     for blueprints in get_plugin_manager(HOST_NAMESPACE).hook.register_blueprints()
     if blueprints
 ]
-
-
-def register_hook_specifications(library):
-    pm = get_plugin_manager(library)
-    # load all hookimpls from the local module's namespace
-    pm.add_hookspecs(sys.modules[library])
 
 
 def register_hook_implementations(library):
@@ -46,7 +47,3 @@ def register_hook_implementations(library):
 @HOOK_SPEC
 def register_blueprints() -> Union[None, List[flask.Blueprint]]:
     """Register a list of blueprints with :mode:`raiden-scenario-player`."""
-
-
-register_hook_specifications(HOST_NAMESPACE)
-register_hook_implementations(HOST_NAMESPACE)
