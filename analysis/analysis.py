@@ -29,14 +29,13 @@ def has_more_specific_task_bracket(task_bracket, task_indices):
 
 def append_subtask(main_task_name, table_rows, csv_rows, subtasks):
     ids = set(map(lambda t: t[2]["id"], subtasks))
-    tasks_length = len(subtasks)
     for id in ids:
         filtered_tasks = []
-        for i in range(tasks_length):
-            if "id" not in subtasks[i][2]:
+        for idx, subtask in enumerate(subtasks):
+            if "id" not in subtask[2]:
                 continue
-            if id == subtasks[i][2]["id"]:
-                filtered_tasks.append(subtasks[i])
+            if id == subtask[2]["id"]:
+                filtered_tasks.append(subtask)
 
         joined_content = "<br>------------------------------------<br>".join(
             map(
