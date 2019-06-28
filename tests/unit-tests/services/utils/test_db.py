@@ -11,8 +11,8 @@ from scenario_player.exceptions.db import CorruptedDBEntry
 db_import_path = 'scenario_player.services.utils.db'
 
 
-@mock.patch(f'{db_import_path}.JSONRedis.hmget')
-@mock.patch(f'{db_import_path}.JSONRedis.hmset')
+@mock.patch(f'{db_import_path}.Redis.hmget')
+@mock.patch(f'{db_import_path}.Redis.hmset')
 class TestJSONRedis:
 
     @mock.patch(f'{db_import_path}.JSONRedis.set_json')

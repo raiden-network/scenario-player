@@ -1,20 +1,24 @@
 import copy
 import json
-from typing import Dict, MutableMapping, Optional, Union
+from typing import Dict, Optional, Union
 
 from flask import current_app, g
 from redis import Redis
 
 from scenario_player.exceptions.db import CorruptedDBEntry
+from scenario_player.services.utils.testing import TestRedis
 
 DecodedJSONDict = Dict[str, Union[dict, list, str, int, float, bool, None]]
 JSONEncodableDict = Dict[str, Union[dict, list, tuple, str, int, float, bool, None]]
-RedisTestInstance = MutableMapping
 
 
-class JSONRedis(Redis):
-    """Extension around :cls:`redis.Redis`, taking care of storing python objects as
+class JSONRedis:
+    """Wrapper around :cls:`redis.Redis`, taking care of storing python objects as
     JSON-encoded strings.
+
+    If the :attr:`flask.Flask.config`'s `TESTING` setting is truthy, we load a
+    :class:`.TestRedis` instance instead of a regular :class:`.Redis` instance.
+    This object mocks interaction with a Redis server.
 
     :param table: The default table to store key-value pairs at.
     :param encoding_options:
@@ -31,10 +35,13 @@ class JSONRedis(Redis):
         decoding_options: Optional[dict] = None,
         **kwargs,
     ):
+        if current_app.config.get("TESTING", False):
+            self.redis = Redis(*args, **kwargs)
+        else:
+            self.redis = TestRedis(*args, **kwargs)
         self.default_table = table
         self.encoding_options = encoding_options or {}
         self.decoding_options = decoding_options or {}
-        super().__init__(*args, **kwargs)
 
     def tset(self, key: str, value: JSONEncodableDict, **encode_kwargs):
         """Set the `value` at given `key` in the default `table`.
@@ -54,7 +61,7 @@ class JSONRedis(Redis):
         encode_options = copy.deepcopy(self.encoding_options)
         encode_options.update(encode_kwargs)
         json_string: str = json.dumps(value, **encode_options)
-        self.hmset(table, {key: json_string})
+        self.redis.hmset(table, {key: json_string})
 
     def tget(self, key, *get_args, **decode_kwargs) -> DecodedJSONDict:
         """Get the `value` at given `key` in the default `table`.
@@ -80,16 +87,19 @@ class JSONRedis(Redis):
         """
         decode_options = copy.deepcopy(self.decoding_options)
         decode_options.update(decode_kwargs)
-        json_string: str = self.hmget(table, key, *get_args)
+        json_string: str = self.redis.hmget(table, key, *get_args)
         decoded = json.loads(json_string, **decode_options)
         return decoded
 
+    def delete(self, *tables):
+        return self.redis.delete(*tables)
 
-def get_db() -> Union[JSONRedis, RedisTestInstance]:
+    def save(self):
+        return self.redis.save()
+
+
+def get_db() -> Union[JSONRedis, TestRedis]:
     """Get a connection object for the database.
-
-    If the config's `TESTING` setting is truthy, we return a mock connection.
-    Otherwise, we return the real deal.
 
     If you do not specify a  redis table name in the `DATABASE` field of
     the app's config, the table ``default`` will be used.
@@ -99,14 +109,7 @@ def get_db() -> Union[JSONRedis, RedisTestInstance]:
     """
     db_name = current_app.config.get("DATABASE", "default")
     if "db" not in g:
-        if current_app.config.get("TESTING", False):
-            # Import the test db class on the fly, to avoid circular import fuck-ups.
-            from scenario_player.services.utils.testing import TestRedis
-
-            g.db = TestRedis(db_name)
-        else:
-            g.db = JSONRedis(db_name)
-
+        g.db = JSONRedis(db_name)
     return g.db
 
 
