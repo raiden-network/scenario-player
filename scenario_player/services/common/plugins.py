@@ -7,9 +7,6 @@ import pluggy
 #: The namespace plugins should use as a prefix when creating a :class:`pluggy.HookimplMarker`.
 HOST_NAMESPACE = "scenario_player"
 
-#: A list of all blueprints currently registered with the library.
-PLUGIN_BLUEPRINTS = [blueprints for blueprints in pm.hook.register_blueprints() if blueprints]
-
 #: Hook Specification Object for specifying new hooks.
 HOOK_SPEC = pluggy.hooks.HookspecMarker(HOST_NAMESPACE)
 
@@ -26,16 +23,24 @@ def get_plugin_manager(namespace):
     return pm
 
 
+#: A list of all blueprints currently registered with the library.
+PLUGIN_BLUEPRINTS = [
+    blueprints
+    for blueprints in get_plugin_manager(HOST_NAMESPACE).hook.register_blueprints()
+    if blueprints
+]
+
+
 def register_hook_specifications(library):
     pm = get_plugin_manager(library)
     # load all hookimpls from the local module's namespace
-    pm.add_hookspecs(sys.modules[library)
+    pm.add_hookspecs(sys.modules[library])
 
 
 def register_hook_implementations(library):
     pm = get_plugin_manager(library)
     # load all hookimpls from the local module's namespace
-    pm.register(sys.modules[library)
+    pm.register(sys.modules[library])
 
 
 @HOOK_SPEC
