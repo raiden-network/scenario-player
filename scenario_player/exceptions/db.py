@@ -1,5 +1,5 @@
 class CorruptedDBEntry(Exception):
-    """We treid calling :func:``json.dumps`` on a string fetched from the database,
+    """We tried calling :func:``json.loads`` on a string fetched from the database,
      but the operation resulted in a decodeing error."""
 
     def __init__(self, table: str, key: str):
