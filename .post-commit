@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 for line in $(git show --name-only --format=%b); do
     if [[ ${file} == *.py ]]; then
         black ${file}
