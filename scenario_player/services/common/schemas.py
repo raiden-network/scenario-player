@@ -53,7 +53,7 @@ class BytesField(Field):
 
         :raises ValidationError: if the length is `0`.
         """
-        if not len(value):
+        if not value:
             raise ValidationError("Bytesfield must not be empty!")
         return True
 
