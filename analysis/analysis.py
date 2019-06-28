@@ -31,7 +31,7 @@ def has_more_specific_task_bracket(task_bracket, task_indices):
 
 
 def append_subtask(main_task_name, table_rows, csv_rows, subtasks):
-    ids = set(map(lambda t: t[2]["id"], subtasks))
+    ids = {t[2]['id'] for t in subtasks}
     for id in ids:
         filtered_tasks = []
         for idx, subtask in enumerate(subtasks):
