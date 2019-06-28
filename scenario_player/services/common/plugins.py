@@ -18,7 +18,7 @@ pm = get_plugin_manager()
 
 PLUGIN_BLUEPRINTS = [blueprints for blueprints in pm.hook.register_blueprints() if blueprints]
 PLUGIN_NAMESPACE = "raiden-scenario-player"
-hook_spec = pluggy.hooks.HookSpec(PLUGIN_NAMESPACE)
+hook_spec = pluggy.hooks.HookspecMarker(PLUGIN_NAMESPACE)
 
 
 @hook_spec
