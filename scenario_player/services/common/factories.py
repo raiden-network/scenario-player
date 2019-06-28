@@ -15,8 +15,16 @@ def construct_flask_app(
 ):
     """Construct a flask app with the given blueprints registered.
 
-    By default all constructed apps have `/metrics` endpoint, which exposes
-    prometheus compatible metrics, if available.
+    By default all constructed apps have the following endpoint:
+
+        `/metrics`
+        Exposes prometheus compatible metrics, if available.
+
+        `/status`
+        Returns 200 OK as long as the underlying flask app is responsive and running.
+
+        `/shutdown`
+        Shuts the server down gracefully.
     """
     # create and configure the app
     app = flask.Flask(__name__, instance_relative_config=True)
