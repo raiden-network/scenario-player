@@ -14,7 +14,6 @@ pyrsistent==0.15.2
 pytz==2019.1
 requests==2.22.0
 retrying==1.3.3
-scipy==1.3.0
 six==1.12.0
 traitlets==4.3.2
 urllib3==1.25.3

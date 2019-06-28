@@ -13,7 +13,6 @@ import numpy as np
 import plotly.figure_factory as ff
 import plotly.offline as py
 from jinja2 import Environment, FileSystemLoader
-from scipy import stats
 
 
 def has_more_specific_task_bracket(task_bracket, task_indices):
@@ -69,17 +68,15 @@ def create_task_brackets(stripped_content):
     for i, start_content in enumerate(stripped_content):
         start_event = start_content[1]
         start_id = start_content[2]["id"]
-        if re.match("starting task", start_event, re.IGNORECASE):
+        if start_event.lower() == "starting task":
             for j, following_content in enumerate(stripped_content[i:], start=i):
                 following_event = following_content[1]
                 following_id = following_content[2]["id"]
                 if "task" not in following_content[2]:
                     continue
                 ids_identical = start_id == following_id
-                event_matches_successful = re.match(
-                    "task successful", following_event, re.IGNORECASE
-                )
-                event_matches_errored = re.match("task errored", following_event, re.IGNORECASE)
+                event_matches_successful = following_event.lower() == "task successful"
+                event_matches_errored = following_event.lower() == "task errored"
                 if ids_identical and (event_matches_successful or event_matches_errored):
                     task_indices.append([i, j])
                     break
@@ -161,19 +158,18 @@ def generate_summary(csv_rows):
     duration_transfers = list(
         map(
             lambda r: r[2].total_seconds(),
-            filter(lambda r: re.match("transfer", r[0], re.IGNORECASE), csv_rows),
+            filter(lambda r: r[0].lower().startswith("transfer"), csv_rows),
         )
     )
     data = np.array(duration_transfers)
-    description = stats.describe(data)
     result["name"] = "Transfer"
     result["unit"] = "Seconds"
-    result["min"] = description.minmax[0]
-    result["max"] = description.minmax[1]
-    result["mean"] = description.mean
-    result["median"] = stats.scoreatpercentile(data, 50)
-    result["stdev"] = math.sqrt(description.variance)
-    result["count"] = description.nobs
+    result["min"] = data.min()
+    result["max"] = data.max()
+    result["mean"] = data.mean()
+    result["median"] = np.median(data)
+    result["stdev"] = data.std()
+    result["count"] = data.size
     return result
 
 
