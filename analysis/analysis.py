@@ -16,13 +16,6 @@ from jinja2 import Environment, FileSystemLoader
 from scipy import stats
 
 
-def index_of_first(lst, pred):
-    for i, v in enumerate(lst):
-        if pred(v):
-            return i
-    return None
-
-
 def has_more_specific_task_bracket(task_bracket, task_indices):
     for other in task_indices:
         if other == task_bracket:
