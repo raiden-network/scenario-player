@@ -27,3 +27,6 @@ integration-tests:
 
 test-harness: unit-tests integration-tests
 
+install-post-commit-hook:
+	cat .post-commit > .git/hooks/post-commit
+	@echo "Isort and black are now automatically applied to commited .py files!"
