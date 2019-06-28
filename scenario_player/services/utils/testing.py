@@ -12,7 +12,14 @@ class TestRedis(MutableMapping):
 
     DB = {}
 
-    def __init__(self, table: str, *args, encoding_options: Optional[dict]=None, decoding_options: Optional[dict]=None, **kwargs):
+    def __init__(
+        self,
+        table: str,
+        *args,
+        encoding_options: Optional[dict] = None,
+        decoding_options: Optional[dict] = None,
+        **kwargs,
+    ):
         self.table = table
         self.encoding_options = (encoding_options or {}).items()
         self.decoding_options = (decoding_options or {}).items()

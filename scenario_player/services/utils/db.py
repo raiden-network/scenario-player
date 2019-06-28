@@ -1,6 +1,6 @@
 import copy
 import json
-from typing import Dict, Optional, Union, MutableMapping
+from typing import Dict, MutableMapping, Optional, Union
 
 from flask import current_app, g
 from redis import Redis

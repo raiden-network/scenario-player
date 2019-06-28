@@ -14,7 +14,11 @@ def attach_blueprints(app: flask.Flask, *blueprints: List[flask.Blueprint]):
 
 
 def construct_flask_app(
-    db_name: str="default", test_config: Mapping=None, secret: str="dev", config_file: str="config.py", enable_plugins: bool=True,
+    db_name: str = "default",
+    test_config: Mapping = None,
+    secret: str = "dev",
+    config_file: str = "config.py",
+    enable_plugins: bool = True,
 ) -> flask.Flask:
     """Construct a flask app with the given blueprints registered.
 
