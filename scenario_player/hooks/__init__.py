@@ -1,9 +1,7 @@
 import pluggy
 
+from scenario_player.constants import HOST_NAMESPACE
 from scenario_player.hooks import impl, specs
-
-#: The namespace plugins should use as a prefix when creating a :class:`pluggy.HookimplMarker`.
-HOST_NAMESPACE = "scenario_player"
 
 
 def get_plugin_manager(namespace):
@@ -16,7 +14,7 @@ def get_plugin_manager(namespace):
     return pm
 
 
-SP_PM = get_plugin_manager("scenario_player")
+SP_PM = get_plugin_manager(HOST_NAMESPACE)
 
 #: A list of all blueprints currently registered with the library.
 PLUGIN_BLUEPRINTS = [

@@ -2,8 +2,8 @@ from typing import List, Mapping
 
 import flask
 
+from scenario_player.hooks import PLUGIN_BLUEPRINTS
 from scenario_player.services.common.blueprints import admin_blueprint, metrics_blueprint
-from scenario_player.services.common.plugins import PLUGIN_BLUEPRINTS
 
 
 def attach_blueprints(app: flask.Flask, *blueprints: List[flask.Blueprint]):

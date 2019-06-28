@@ -3,8 +3,9 @@ from typing import List, Union
 import flask
 import pluggy
 
+from scenario_player.constants import HOST_NAMESPACE
 
-HOOK_SPEC = pluggy.hooks.HookspecMarker("scenario_player")
+HOOK_SPEC = pluggy.hooks.HookspecMarker(HOST_NAMESPACE)
 
 
 @HOOK_SPEC
