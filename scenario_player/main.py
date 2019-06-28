@@ -29,11 +29,8 @@ from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import (
-    LOGGING_PROCESSORS,
-    NonStringifyingProcessorFormatter,
     ScenarioUI,
-    UrwidLogRenderer,
-    UrwidLogWalker,
+    enable_gui_formatting,
 )
 from scenario_player.utils import (
     ChainConfigType,
@@ -159,15 +156,7 @@ def run(
 
     # If the output is a terminal, beautify our output.
     if enable_ui:
-        log_buffer = UrwidLogWalker([])
-        for handler in logging.getLogger("").handlers:
-            if isinstance(handler, logging.StreamHandler):
-                handler.terminator = ConcatenableNone()
-                handler.formatter = NonStringifyingProcessorFormatter(
-                    UrwidLogRenderer(), foreign_pre_chain=LOGGING_PROCESSORS
-                )
-                handler.stream = log_buffer
-                break
+        enable_gui_formatting()
 
     # Dynamically import valid Task classes from sceanrio_player.tasks package.
     collect_tasks(tasks)
