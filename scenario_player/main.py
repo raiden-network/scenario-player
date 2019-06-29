@@ -28,10 +28,7 @@ from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import collect_tasks
-from scenario_player.ui import (
-    ScenarioUI,
-    enable_gui_formatting,
-)
+from scenario_player.ui import ScenarioUI, enable_gui_formatting
 from scenario_player.utils import (
     ChainConfigType,
     ConcatenableNone,
