@@ -370,7 +370,7 @@ def construct_rc_message(log_fpath) -> str:
         message = f":x: Error while running scenario: {result}!"
         if exc:
             message += "\n```\n" + exc + "\n```"
-    message += f'\nLog can be downloaded from:\nscenario-player.ci.raiden.network/{str(log_fpath).split("/var/log/scenario-player/")[1]}'
+    message += f'\nLog can be downloaded from:\nhttps://scenario-player.ci.raiden.network/{log_fpath.relative_to("/var/log/scenario-player/")}'
     return message
 
 
