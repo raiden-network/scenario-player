@@ -37,6 +37,12 @@ from scenario_player.utils import (
     send_notification_mail,
 )
 
+# SPaaS Imports
+from scenario_player.exceptions.services import ServiceProcessException
+from scenario_player.services.common.app import ServiceProcess
+from scenario_player.services.common.factories import construct_flask_app
+
+
 log = structlog.get_logger(__name__)
 
 TRANSACTION_DEFAULTS["gas"] = lambda web3, tx: web3.eth.estimateGas(tx) * 2
@@ -158,6 +164,12 @@ def run(
     # Dynamically import valid Task classes from sceanrio_player.tasks package.
     collect_tasks(tasks)
 
+    # Start our Services
+    service = construct_flask_app()
+    service_process = ServiceProcess(service)
+
+    service_process.start()
+
     # Run the scenario using the configurations passed.
     runner = ScenarioRunner(
         account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
@@ -212,6 +224,9 @@ def run(
                 log.warning("Press q to exit")
                 while not ui_greenlet.dead:
                     gevent.sleep(1)
+            service_process.start()
+        except ServiceProcessException:
+            service_process.kill()
         finally:
             if runner.is_managed:
                 runner.node_controller.stop()
