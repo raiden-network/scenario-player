@@ -322,7 +322,7 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
         if pack_n_latest == 1:
             # Index 0 will always return the latest log file for the scenario.
             scenario_log_file = files[0]
-            rc_message["msg"] = construct_rc_message(scenario_log_file)
+            rc_message["text"] = construct_rc_message(scenario_log_file)
             rc_message["description"] = f"Log files for scenario {scenario_name}"
         post_to_rocket_chat(archive_fpath, **rc_message)
 
@@ -370,6 +370,7 @@ def construct_rc_message(log_fpath) -> str:
         message = f":x: Error while running scenario: {result}!"
         if exc:
             message += "\n```\n" + exc + "\n```"
+    message += f'\nLog can be downloaded from:\nscenario-player.ci.raiden.network/{str(log_fpath).split("/var/log/scenario-player/")[1]}'
     return message
 
 
@@ -378,6 +379,8 @@ def post_to_rocket_chat(fpath, **rc_payload_fields):
         user = os.environ["RC_USER"]
         pw = os.environ["RC_PW"]
         room_id = os.environ["RC_ROOM_ID"]
+        room_name = "#" + os.environ["RC_ROOM_NAME"]
+
     except KeyError as e:
         raise RuntimeError("Missing Rocket Char Env variables!") from e
 
@@ -385,18 +388,19 @@ def post_to_rocket_chat(fpath, **rc_payload_fields):
         "https://chat.brainbot.com/api/v1/login", data={"username": user, "password": pw}
     )
 
+    rc_payload_fields["room_id"] = room_id
+    rc_payload_fields["channel"] = room_name
     token = resp.json()["data"]["authToken"]
     user_id = resp.json()["data"]["userId"]
     headers = {"X-Auth-Token": token, "X-User-Id": user_id}
 
-    with fpath.open("rb") as f:
-        resp = requests.post(
-            f"https://chat.brainbot.com/api/v1/rooms.upload/{room_id}",
-            files={"file": f},
-            headers=headers,
-            data=rc_payload_fields,
-        )
-        resp.raise_for_status()
+
+    resp = requests.post(
+        f"https://chat.brainbot.com/api/v1/chat.postMessage",
+        headers=headers,
+        data=rc_payload_fields,
+    )
+    resp.raise_for_status()
 
 
 if __name__ == "__main__":
