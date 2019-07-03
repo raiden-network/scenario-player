@@ -371,7 +371,7 @@ def construct_rc_message(base_dir, packed_log, log_fpath) -> str:
             message += "\n```\n" + exc + "\n```"
     message += (
         f"\nLog can be downloaded from:\n"
-        f"https://scenario-player.ci.raiden.network/{packed_log.relative_to(base_dir)}"
+        f"http://scenario-player.ci.raiden.network/{packed_log.relative_to(base_dir)}"
     )
     return message
 
