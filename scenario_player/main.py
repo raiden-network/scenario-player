@@ -310,8 +310,7 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
         rc_message = {"msg": None, "description": None}
         if pack_n_latest == 1:
             # Index 0 will always return the latest log file for the scenario.
-            scenario_log_file = files[0]
-            rc_message["text"] = construct_rc_message(scenario_log_file)
+            rc_message["text"] = construct_rc_message(target_dir, archive_fpath)
             rc_message["description"] = f"Log files for scenario {scenario_name}"
         post_to_rocket_chat(archive_fpath, **rc_message)
 
@@ -341,7 +340,7 @@ def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path
     return history[:num_of_packable_iterations]
 
 
-def construct_rc_message(log_fpath) -> str:
+def construct_rc_message(base_dir, log_fpath) -> str:
     """Check the result of the log file at the given `log_fpath`."""
     result = None
     exc = None
@@ -359,7 +358,10 @@ def construct_rc_message(log_fpath) -> str:
         message = f":x: Error while running scenario: {result}!"
         if exc:
             message += "\n```\n" + exc + "\n```"
-    message += f'\nLog can be downloaded from:\nhttps://scenario-player.ci.raiden.network/{log_fpath.relative_to("/var/log/scenario-player/")}'
+    message += (
+        f"\nLog can be downloaded from:\n"
+        f"https://scenario-player.ci.raiden.network/{log_fpath.relative_to(base_dir)}"
+    )
     return message
 
 
@@ -382,7 +384,6 @@ def post_to_rocket_chat(fpath, **rc_payload_fields):
     token = resp.json()["data"]["authToken"]
     user_id = resp.json()["data"]["userId"]
     headers = {"X-Auth-Token": token, "X-User-Id": user_id}
-
 
     resp = requests.post(
         f"https://chat.brainbot.com/api/v1/chat.postMessage",
