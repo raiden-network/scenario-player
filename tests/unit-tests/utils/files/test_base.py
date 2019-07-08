@@ -281,7 +281,7 @@ class TestManagedFileInterface:
         # Inject a tar path.
         tar_file = tmp_target_dir.joinpath(tmp_src_fpath.name)
         tar_file.symlink_to(tmp_src_fpath)
-        managed_file.symlinks.add(pathlib.Path(tmp_target_dir))
+        managed_file.symlinks.add(tmp_target_dir)
 
         assert managed_file.remove_from_dir(tmp_target_dir) is True
         assert tar_file.is_symlink() is False
