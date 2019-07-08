@@ -118,7 +118,7 @@ class ManagedFile(PathLike):
         If the symlink is unchanged and valid, we yield it.
         """
         for symlink in self.symlinks:
-            symlink_resolved = symlink.resolve().joinpath(self.path.name)
+            symlink_resolved = symlink.joinpath(self.path.name).resolve()
             symlink_absolute = symlink.absolute().joinpath(self.path.name)
 
             if symlink_absolute.exists() and symlink_resolved == self.path:
@@ -148,6 +148,8 @@ class ManagedFile(PathLike):
         """
         if not target_dir.is_dir():
             raise NotADirectoryError(target_dir)
+
+        self.update_file_references()
 
         if target_dir in self.copies:
             self.copies.remove(target_dir)
@@ -182,6 +184,8 @@ class ManagedFile(PathLike):
         if not target_dir.is_dir():
             raise NotADirectoryError(target_dir)
 
+        self.update_file_references()
+
         target = target_dir.resolve().joinpath(self.path.name)
         if target_dir not in self.copies or overwrite:
             shutil.copyfile(str(self.path.resolve()), str(target.resolve()))
@@ -209,6 +213,9 @@ class ManagedFile(PathLike):
         """
         if not target_dir.is_dir():
             raise NotADirectoryError(target_dir)
+
+        self.update_file_references()
+
         target = target_dir.resolve().joinpath(self.path.name)
         if target_dir not in self.symlinks or overwrite:
             # Create a symlink at target.
