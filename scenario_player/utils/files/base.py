@@ -1,5 +1,6 @@
 import pathlib
 import shutil
+
 from os import PathLike
 from typing import Generator, Iterable, Optional, Union
 
@@ -65,6 +66,9 @@ class ManagedFile(PathLike):
     def __fspath__(self):
         return self.path.__fspath__()
 
+    def __str__(self):
+        return f"<{self.__class__.__qualname__}({self.path})>"
+
     @property
     def exists_locally(self) -> bool:
         """Whether or not the managed file exists on the local machine."""
@@ -106,6 +110,10 @@ class ManagedFile(PathLike):
             copy_absolute = hard_copy.joinpath(self.path.name)
             if copy_absolute.exists() and copy_absolute == copy_resolved:
                 yield hard_copy
+            else:
+                raise ResourceWarning(
+                    f"Reference {copy_absolute} changed on disk - dropping it from '{self}.symlinks'."
+                )
 
     def yield_unchanged_symlinks(self) -> Generator[pathlib.Path, None, None]:
         """Check each element in :attr:`.symlinnks` for on-disk changes.
@@ -123,6 +131,10 @@ class ManagedFile(PathLike):
 
             if symlink_absolute.exists() and symlink_resolved == self.path:
                 yield symlink
+            else:
+                raise ResourceWarning(
+                    f"Reference {symlink_absolute} changed on disk - dropping it from '{self}.symlinks'."
+                )
 
     def update_file_references(self):
         """Update our reference lists of copies and symlinks of the managed file.
