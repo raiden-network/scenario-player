@@ -174,7 +174,7 @@ class TestManagedFileInterface:
     def test_copy_to_dir_copies_file_to_target(self, tmp_src_fpath, tmp_target_dir):
         """:meth:`ManagedFile.copy_to_dir` creates a hard-copy of the managed file in a target directory."""
         managed_file = ManagedFile(tmp_src_fpath)
-        expected_fpath = tmp_target_dir.joinpath(tmp_src_fpath.name).resolve().exists()
+        expected_fpath = tmp_target_dir.joinpath(tmp_src_fpath.name).resolve()
         assert expected_fpath.exists() is False
 
         managed_file.copy_to_dir(tmp_target_dir)
