@@ -74,7 +74,7 @@ class TestManagedFile_properties:
         assert instance.has_symlinks is False
         mock_update_refs.assert_called_once()
 
-        instance.copies.add('/path/to/test')
+        instance.symlinks.add('/path/to/test')
         mock_update_refs.reset_mock()
 
         assert instance.has_symlinks is True
