@@ -1,5 +1,6 @@
 import pathlib
 import shutil
+import warnings
 
 from os import PathLike
 from typing import Generator, Iterable, Optional, Union
@@ -77,11 +78,13 @@ class ManagedFile(PathLike):
     @property
     def has_copies(self) -> bool:
         """Whether or not the managed file has copies created via this interface."""
+        self.update_file_references()
         return bool(self.copies)
 
     @property
     def has_symlinks(self) -> bool:
         """Whether or not the managed file has symlinks created via this interface."""
+        self.update_file_references()
         return bool(self.symlinks)
 
     def as_dict(self):
@@ -104,15 +107,17 @@ class ManagedFile(PathLike):
         """
         for hard_copy in self.copies:
             try:
-                copy_resolved = hard_copy.resolve(strict=True).joinpath(self.path.name)
+                copy_resolved = hard_copy.joinpath(self.path.name).resolve(strict=True)
             except FileNotFoundError:
                 continue
             copy_absolute = hard_copy.joinpath(self.path.name)
             if copy_absolute.exists() and copy_absolute == copy_resolved:
                 yield hard_copy
             else:
-                raise ResourceWarning(
-                    f"Reference {copy_absolute} changed on disk - dropping it from '{self}.symlinks'."
+                warnings.warn(
+                    f"Reference {copy_absolute} changed on disk - "
+                    f"dropping it from '{self}.symlinks'.",
+                    ResourceWarning
                 )
 
     def yield_unchanged_symlinks(self) -> Generator[pathlib.Path, None, None]:
@@ -132,8 +137,10 @@ class ManagedFile(PathLike):
             if symlink_absolute.exists() and symlink_resolved == self.path:
                 yield symlink
             else:
-                raise ResourceWarning(
-                    f"Reference {symlink_absolute} changed on disk - dropping it from '{self}.symlinks'."
+                warnings.warn(
+                    f"Reference {symlink_absolute} changed on disk - "
+                    f"dropping it from '{self}.symlinks'.",
+                    ResourceWarning,
                 )
 
     def update_file_references(self):
