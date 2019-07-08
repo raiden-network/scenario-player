@@ -146,7 +146,7 @@ class TestManagedFile_update_file_references_method:
         instance = ManagedFile(tmp_src_fpath)
         getattr(instance, attr).add(tmp_target_dir)
 
-        expected_msg = f"Reference {tmp_target_dir.joinpath(tmp_src_fpath.name)} changed on disk - dropping it from '{attr}'."
+        expected_msg = f"Reference {tmp_target_dir.joinpath(tmp_src_fpath.name)} changed on disk - dropping it from '{instance}.{attr}'."
 
         with pytest.warns(ResourceWarning, match=expected_msg):
             set(generator_method(instance))
