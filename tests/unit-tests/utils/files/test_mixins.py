@@ -30,4 +30,4 @@ def test_mixin_property_calls_expected_parsing_function(mixin, prop_name, parse_
 
         instance = Mixed(tmp_path)
         getattr(instance, prop_name)
-        mocked_func.assert_called_once_wth(tmp_path)
+        mocked_func.assert_called_once_with(tmp_path)
