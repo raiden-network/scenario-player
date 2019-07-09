@@ -1,13 +1,12 @@
 import pathlib
-import shutil
 
-from contextlib import contextmanager
 from unittest import mock
 from os import PathLike
 import pytest
 
 
 from scenario_player.utils.files import ManagedFile
+from scenario_player.exceptions.files import ReferenceDropped
 
 
 @pytest.fixture
@@ -148,7 +147,7 @@ class TestManagedFile_update_file_references_method:
 
         expected_msg = f"Reference {tmp_target_dir.joinpath(tmp_src_fpath.name)} changed on disk - dropping it from '{instance}.{attr}'."
 
-        with pytest.warns(ResourceWarning, match=expected_msg):
+        with pytest.warns(ReferenceDropped):
             set(generator_method(instance))
 
     @pytest.mark.parametrize('generator_method', argvalues=['yield_unchanged_symlinks', 'yield_unchanged_copies'])
