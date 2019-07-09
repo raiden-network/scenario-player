@@ -3,7 +3,10 @@ import pathlib
 import re
 from typing import Tuple, Union
 
-
+VERSION_REGEX = r".*_(?P<version>v\d+\.\d+\.\d+).*"
+PLATFORM_REGEX = r".*_(?P<platform>linux|macOS|win|cygwin).*"
+ARCH_REGEX = r".*_(?P<architecture>x86_64|i386|armv6|armv7|armv8).*"
+EXT_REGEX = r".*\.(?P<extenstion>tar\.gz]zip)?$"
 
 
 def match_pattern_in_path(pattern, path, key) -> Union[str, None]:
