@@ -41,6 +41,8 @@ def parse_platform(path: os.PathLike) -> Union[str, None]:
     return match_pattern_in_path(PLATFORM_REGEX, path, "platform")
 
 
-def detect_target_config(path: os.PathLike) -> Tuple[Union[str, None], Union[str, None], Union[str, None]]:
+def detect_target_config(
+    path: os.PathLike
+) -> Tuple[Union[str, None], Union[str, None], Union[str, None]]:
     """Parse the version, architecture and platform from the given  `path`."""
     return parse_version(path), parse_platform(path), parse_architecture(path)

@@ -1,12 +1,10 @@
 import pathlib
 import shutil
 import warnings
-
 from os import PathLike
 from typing import Generator, Iterable, Optional, Union
 
 from scenario_player.exceptions.files import ReferenceDropped
-
 
 PathList = Iterable[Union[pathlib.Path, PathLike]]
 
@@ -115,7 +113,9 @@ class ManagedFile(PathLike):
                 if copy_absolute.exists() and copy_absolute == copy_resolved:
                     yield hard_copy
                 else:
-                    raise ValueError(f"{hard_copy} no longer exists or was converted to a symlink!")
+                    raise ValueError(
+                        f"{hard_copy} no longer exists or was converted to a symlink!"
+                    )
             except (FileNotFoundError, ValueError):
                 warnings.warn(
                     ReferenceDropped(hard_copy.joinpath(self.path.name), f"{self}.copies")
@@ -139,7 +139,9 @@ class ManagedFile(PathLike):
                 if symlink_absolute.exists() and symlink_resolved == self.path:
                     yield symlink
                 else:
-                    raise ValueError(f"{symlink_absolute} no longer exists or was converted to a symlink!")
+                    raise ValueError(
+                        f"{symlink_absolute} no longer exists or was converted to a symlink!"
+                    )
             except (FileNotFoundError, ValueError):
                 warnings.warn(
                     ReferenceDropped(symlink.joinpath(self.path.name), f"{self}.symlinks")
