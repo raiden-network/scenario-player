@@ -92,8 +92,9 @@ class TestConstructFlaskApp:
         """:mod"`pluggy` is used to register blueprint addons. Make sure these are installed if any are present int the
         :var:`PLUGIN_BLUEPRINTS` constant."""
         app = construct_flask_app()
-
-        mock_attach_bp.assert_any_call(app, *factories_module.PLUGIN_BLUEPRINTS)
+        assert mock_attach_bp.called
+        assert mock_attach_bp.call_count == 2
+        mock_attach_bp.assert_any_call(app, *factories_module.PLUGIN_BLUEPRINTS[0])
 
     @mock.patch.object(factories_module, "PLUGIN_BLUEPRINTS", [[object() for i in range(6)]])
     @mock.patch('scenario_player.services.common.factories.attach_blueprints')
