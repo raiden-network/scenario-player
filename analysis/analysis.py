@@ -7,8 +7,9 @@ import os
 import random
 import re
 import sys
-from datetime import datetime, timedelta
 from collections import namedtuple
+from datetime import datetime, timedelta
+from itertools import groupby
 
 import numpy as np
 import plotly.figure_factory as ff
@@ -31,8 +32,8 @@ def has_more_specific_task_bracket(task_bracket, task_indices):
     return False
 
 
-def append_subtask(main_task_name, table_rows, csv_rows, subtasks):
-    ids = {t[2]['id'] for t in subtasks}
+def append_subtask(task_type, table_rows, subtasks):
+    ids = {t[2]["id"] for t in subtasks}
     for id in ids:
         filtered_tasks = []
         for idx, subtask in enumerate(subtasks):
@@ -52,13 +53,10 @@ def append_subtask(main_task_name, table_rows, csv_rows, subtasks):
         table_rows.append(
             {
                 "id": id,
-                "name": f"Subtasks(#{id})",
+                "type": task_type,
                 "duration": calculate_duration(start, finish),
                 "description": joined_content,
             }
-        )
-        csv_rows.append(
-            [main_task_name, f"Subtasks(#{id})", calculate_duration(start, finish), ""]
         )
 
 
@@ -97,7 +95,7 @@ def read_raw_content(input_file):
             content = [line.strip() for line in f.readlines()]
 
     stripped_content = []
-    Content = namedtuple('Content', 'timestamp, event, json')
+    Content = namedtuple("Content", "timestamp, event, json")
     for row in content:
         x = json.loads(row)
         if "id" in x:
@@ -111,7 +109,7 @@ def read_raw_content(input_file):
 
 def draw_gantt(output_directory, filled_rows, summary):
     fig = ff.create_gantt(
-        filled_rows['gantt_rows'],
+        filled_rows["gantt_rows"],
         title="Raiden Analysis",
         show_colorbar=False,
         bar_width=0.5,
@@ -136,14 +134,14 @@ def draw_gantt(output_directory, filled_rows, summary):
     )
     output_content = j2_env.get_template("chart_template.html").render(
         gantt_div=div,
-        summary_header=f'Tasks matched "{summary["name"]}" (in {summary["unit"]})',
-        count=summary["count"],
-        min=summary["min"],
-        max=summary["max"],
-        mean=summary["mean"],
-        median=summary["median"],
-        stdev=summary["stdev"],
-        task_table=filled_rows['table_rows'],
+        # summary_header=f'Tasks matched "{summary["name"]}" (in {summary["unit"]})',
+        # count=summary["count"],
+        # min=summary["min"],
+        # max=summary["max"],
+        # mean=summary["mean"],
+        # median=summary["median"],
+        # stdev=summary["stdev"],
+        task_table=filled_rows["table_rows"],
     )
 
     with open(f"{output_directory}/{DEFAULT_GANTT_FILENAME}", "w") as text_file:
@@ -153,35 +151,34 @@ def draw_gantt(output_directory, filled_rows, summary):
 def write_csv(output_directory, filled_rows):
     with open(f"{output_directory}/{DEFAULT_CSV_FILENAME}", "w", newline="") as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(["MainTask", "SubTask", "Duration"])
-        for r in filled_rows['csv_rows']:
+        csv_writer.writerow(["Id", "Type", "Duration"])
+        for r in filled_rows["csv_rows"]:
             csv_writer.writerow(r)
 
 
 def generate_summary(filled_rows):
-    result = {}
-    # TODO: match too greedy
-    duration_transfers = list(
-        map(
-            lambda r: r[2].total_seconds(),
-            filter(lambda r: r[0].lower().startswith("transfer"), filled_rows['csv_rows']),
-        )
-    )
-    data = np.array(duration_transfers)
-    result["name"] = "Transfer"
-    result["unit"] = "Seconds"
-    result["min"] = data.min()
-    result["max"] = data.max()
-    result["mean"] = data.mean()
-    result["median"] = np.median(data)
-    result["stdev"] = data.std()
-    result["count"] = data.size
-    return result
+    group_by_result = []
+    for key, group in groupby(filled_rows["csv_rows"], key=lambda r: r[1]):
+        result = {}
+        duration_transfers = list(map(lambda r: r[2].total_seconds(), list(group)))
+        data = np.array(list(duration_transfers))
+        result["name"] = key
+        result["unit"] = "Seconds"
+        result["min"] = data.min()
+        result["max"] = data.max()
+        result["mean"] = data.mean()
+        result["median"] = np.median(data)
+        result["stdev"] = data.std()
+        result["count"] = data.size
+        group_by_result.append(result)
+        print
+
+    return group_by_result
 
 
 def write_summary(output_directory, summary):
     with open(f"{output_directory}/{DEFAULT_SUMMARY_FILENAME}", "w", newline="") as summary_file:
-        json.dump(summary, summary_file)
+        json.dump(summary, summary_file, sort_keys=True, indent=4)
 
 
 def fill_rows(task_brackets, stripped_content):
@@ -195,7 +192,7 @@ def fill_rows(task_brackets, stripped_content):
         task_finish_item = stripped_content[task_bracket[1]]
         task_body = task_start_item.json["task"].split(":", 1)
         task_id = task_start_item.json["id"]
-        task_name = f'{task_body[0].replace("<", "").strip()}(#{task_id})'
+        task_type = task_body[0].replace("<", "").strip()
         task_desc = task_body[1].replace(">", "").strip()
         task_body_json = json.loads(task_desc.replace("'", '"'))
         duration = calculate_duration(task_start_item.timestamp, task_finish_item.timestamp)
@@ -204,38 +201,31 @@ def fill_rows(task_brackets, stripped_content):
         task_full_desc = json.dumps(task_body_json, sort_keys=True, indent=4).replace("\n", "<br>")
         gantt_rows.append(
             {
-                "Task": task_name,
+                "Task": f"{task_type}(#{task_id})",
                 "Start": task_start_item.timestamp,
                 "Finish": task_finish_item.timestamp,
                 "Description": task_full_desc,
             }
         )
         table_rows.append(
-            {
-                "id": task_id,
-                "name": task_name,
-                "duration": duration,
-                "description": task_full_desc,
-            }
+            {"id": task_id, "type": task_type, "duration": duration, "description": task_full_desc}
         )
-        csv_rows.append(
-            [task_name, "", duration]
-        )
+        csv_rows.append([task_id, task_type, duration])
 
         # Only add subtasks for leafs of the tree
-        main_task_debug_string = f"{str(task_bracket)} {task_name}: {task_desc}"
+        main_task_debug_string = f"{str(task_bracket)} {task_type}(#{task_id}): {task_desc}"
         if not has_more_specific_task_bracket(task_bracket, task_brackets):
             subtasks = list(filter(lambda t: t.json["id"] == task_id, stripped_content))
             print(f"{main_task_debug_string} - subtasks = {len(subtasks)}")
             print("----------------------------------------------------------------")
-            append_subtask(task_name, table_rows, csv_rows, subtasks)
+            append_subtask(task_type, table_rows, subtasks)
         else:
             print(main_task_debug_string)
             print("----------------------------------------------------------------")
-    
-    filled_rows['gantt_rows'] = gantt_rows
-    filled_rows['csv_rows'] = csv_rows
-    filled_rows['table_rows'] = table_rows
+
+    filled_rows["gantt_rows"] = gantt_rows
+    filled_rows["csv_rows"] = csv_rows
+    filled_rows["table_rows"] = table_rows
     return filled_rows
 
 
