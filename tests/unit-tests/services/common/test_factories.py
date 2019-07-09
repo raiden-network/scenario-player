@@ -4,7 +4,9 @@ from unittest import mock
 
 import pytest
 
+from scenario_player.services.common import factories as factories_module
 from scenario_player.services.common.factories import construct_flask_app
+from scenario_player.services.common.blueprints import admin_blueprint, metrics_blueprint
 
 
 @pytest.fixture
@@ -72,23 +74,43 @@ class TestConstructFlaskApp:
         for key, value in config.items():
             assert app.config.get(key) == value
 
-    @mock.patch('scenario_player.services.common.factories.flask.Flask.register_blueprint')
-    def test_registers_each_blueprint_passed_to_it(self, mock_register):
-        blueprints = [object() for i in range(6)]
-        construct_flask_app(*blueprints)
-        assert mock_register.called
+    @pytest.mark.parametrize("enable_plugins", [False, True])
+    @mock.patch.object(factories_module, "PLUGIN_BLUEPRINTS", [[object() for i in range(6)]])
+    @mock.patch('scenario_player.services.common.factories.attach_blueprints')
+    def test_always_registers_admin_and_metrics_blueprint(self, mock_attach_bp, enable_plugins):
+        """The function always adds the :var:`admin_blueprint` and :var:`metrics_blueprint` to the app.
 
-        for obj in blueprints:
-            mock_register.assert_any_call(obj)
+        Specifically, passing `enable_plugins=False` must not have any effect.
+        """
+        app = construct_flask_app(enable_plugins=enable_plugins)
+
+        mock_attach_bp.assert_any_call(app, metrics_blueprint, admin_blueprint)
+
+    @mock.patch.object(factories_module, "PLUGIN_BLUEPRINTS", [[object() for i in range(6)]])
+    @mock.patch('scenario_player.services.common.factories.attach_blueprints')
+    def test_registers_all_blueprints_present_in_plugin_blueprints_constant(self, mock_attach_bp):
+        """:mod"`pluggy` is used to register blueprint addons. Make sure these are installed if any are present int the
+        :var:`PLUGIN_BLUEPRINTS` constant."""
+        app = construct_flask_app()
+
+        mock_attach_bp.assert_any_call(app, *factories_module.PLUGIN_BLUEPRINTS)
+
+    @mock.patch.object(factories_module, "PLUGIN_BLUEPRINTS", [[object() for i in range(6)]])
+    @mock.patch('scenario_player.services.common.factories.attach_blueprints')
+    def test_skips_blueprints_present_in_plugin_blueprints_constant_if_enable_plugins_is_False(self, mock_attach_bp):
+        """Plugin Blueprints are not attached to the app if `enable_plugins=False` is passed."""
+        app = construct_flask_app(enable_plugins=False)
+
+        mock_attach_bp.assert_called_once_with(app, metrics_blueprint, admin_blueprint)
 
     def test_loads_config_from_file_if_no_test_config_specified(self, TEST_CONFIG_FILE):
-
+        """The configuration is loaded from a default file if no `test_config` is passed."""
         app = construct_flask_app(config_file=TEST_CONFIG_FILE)
         assert app.config.get('TESTING') is False
         assert app.config.get('ICE_CREAM_FLAVOR') == 'CHOCOLATE'
 
     def test_loads_config_from_test_config_instead_of_file_if_test_config_specified(self, TEST_CONFIG_DICT, TEST_CONFIG_FILE):
-
+        """If a `test_config` dict is passed, we load it, instead of loading from a file."""
         app = construct_flask_app(test_config=TEST_CONFIG_DICT, config_file=TEST_CONFIG_FILE)
         for key, value in TEST_CONFIG_DICT.items():
             assert app.config.get(key) == value

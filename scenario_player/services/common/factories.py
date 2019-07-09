@@ -33,6 +33,9 @@ def construct_flask_app(
 
         `/shutdown`
         Shuts the server down gracefully.
+
+    Additionally, any blueprints supplied by plugins are also automatically injected,
+    unless `enable_plugins` is `False`.
     """
     # create and configure the app
     app = flask.Flask(__name__, instance_relative_config=True)
