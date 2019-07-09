@@ -1,5 +1,5 @@
 from unittest import mock
-
+from flask import Response
 import pytest
 
 
@@ -16,7 +16,7 @@ def client():
     return client
 
 
-@mock.patch('scenario_player.services.common.blueprints.admin.shutdown_server')
+@mock.patch('scenario_player.services.common.blueprints.admin.shutdown_server', return_value=Response(status=200))
 def test_shutdown_endpoint_returns_200_when_used_with_werkzeug_server(mock_shutdown, client):
     response = client.post('/shutdown')
 
