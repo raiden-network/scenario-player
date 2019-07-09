@@ -150,11 +150,11 @@ def draw_gantt(output_directory, filled_rows, summary):
         text_file.write(output_content)
 
 
-def write_csv(output_directory, csv_rows):
+def write_csv(output_directory, filled_rows):
     with open(f"{output_directory}/{DEFAULT_CSV_FILENAME}", "w", newline="") as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(["MainTask", "SubTask", "Duration", "Hops"])
-        for r in csv_rows:
+        csv_writer.writerow(["MainTask", "SubTask", "Duration"])
+        for r in filled_rows['csv_rows']:
             csv_writer.writerow(r)
 
 
@@ -210,22 +210,16 @@ def fill_rows(task_brackets, stripped_content):
                 "Description": task_full_desc,
             }
         )
-        hops = ""
-        if task_name.startswith("Transfer"):
-            transfer_from = task_body_json["from"]
-            transfer_to = task_body_json["to"]
-            hops = str(abs(transfer_from - transfer_to))
         table_rows.append(
             {
                 "id": task_id,
                 "name": task_name,
                 "duration": duration,
                 "description": task_full_desc,
-                "hops": hops,
             }
         )
         csv_rows.append(
-            [task_name, "", duration, hops]
+            [task_name, "", duration]
         )
 
         # Only add subtasks for leafs of the tree

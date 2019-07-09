@@ -86,7 +86,6 @@
                             <th align="left" style="width:40px">ID</th>
                             <th align="left" style="width:200px">Name</th>
                             <th align="left" style="width:140px">Duration</th>
-                            <th align="left" style="width:100px">Hops</th>
                             <th align="left" style="width:1150px">Description</th>
                         </tr>
                         {% for item in task_table %}
@@ -94,7 +93,6 @@
                             <td valign="top"><b>{{item.id}}</b></td>
                             <td valign="top">{{item.name}}</td>
                             <td valign="top">{{item.duration}}</td>
-                            <td valign="top">{{item.hops}}</td>
                             <td valign="top">
                                 <button class="collapsible">Show</button>
                                 <pre class="content" style="width:1150px;overflow:auto">{{item.description}}</pre>

@@ -42,16 +42,16 @@ Two different scenarios are currently available as examples and each have three 
 Simple-Scenario
 """""""""""""""
 
-- Gantt: `<example/simple-scenario/raiden-scenario-player-analysis.html>`_
-- CSV: `<example/simple-scenario/raiden-scenario-player-analysis.csv>`_
-- JSON-Summary: `<example/simple-scenario/raiden-scenario-player-analysis.json>`_
+- Gantt: `<example/simple-scenario/gantt-overview.html>`_
+- CSV: `<example/simple-scenario/durations.csv>`_
+- JSON-Summary: `<example/simple-scenario/summary.json>`_
 
 Mediated-Transfers-Scenario
 """""""""""""""""""""""""""
 
-- Gantt: `<example/mediated-transfers-scenario/raiden-scenario-player-analysis.html>`_
-- CSV: `<example/mediated-transfers-scenario/raiden-scenario-player-analysis.csv>`_
-- JSON-Summary: `<example/mediated-transfers-scenario/raiden-scenario-player-analysis.json>`_
+- Gantt: `<example/mediated-transfers-scenario/gantt-overview.html>`_
+- CSV: `<example/mediated-transfers-scenario/durations.csv>`_
+- JSON-Summary: `<example/mediated-transfers-scenario/summary.json>`_
 
 
 Limitations/Caveats
