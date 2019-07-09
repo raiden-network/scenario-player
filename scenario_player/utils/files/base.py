@@ -5,6 +5,9 @@ import warnings
 from os import PathLike
 from typing import Generator, Iterable, Optional, Union
 
+from scenario_player.exceptions.files import ReferenceDropped
+
+
 PathList = Iterable[Union[pathlib.Path, PathLike]]
 
 
@@ -108,16 +111,14 @@ class ManagedFile(PathLike):
         for hard_copy in self.copies:
             try:
                 copy_resolved = hard_copy.joinpath(self.path.name).resolve(strict=True)
-            except FileNotFoundError:
-                continue
-            copy_absolute = hard_copy.joinpath(self.path.name)
-            if copy_absolute.exists() and copy_absolute == copy_resolved:
-                yield hard_copy
-            else:
+                copy_absolute = hard_copy.joinpath(self.path.name).absolute()
+                if copy_absolute.exists() and copy_absolute == copy_resolved:
+                    yield hard_copy
+                else:
+                    raise ValueError(f"{hard_copy} no longer exists or was converted to a symlink!")
+            except (FileNotFoundError, ValueError):
                 warnings.warn(
-                    f"Reference {copy_absolute} changed on disk - "
-                    f"dropping it from '{self}.symlinks'.",
-                    ResourceWarning
+                    ReferenceDropped(hard_copy.joinpath(self.path.name), f"{self}.copies")
                 )
 
     def yield_unchanged_symlinks(self) -> Generator[pathlib.Path, None, None]:
@@ -131,16 +132,17 @@ class ManagedFile(PathLike):
         If the symlink is unchanged and valid, we yield it.
         """
         for symlink in self.symlinks:
-            symlink_resolved = symlink.joinpath(self.path.name).resolve()
-            symlink_absolute = symlink.absolute().joinpath(self.path.name)
+            try:
+                symlink_resolved = symlink.joinpath(self.path.name).resolve()
+                symlink_absolute = symlink.absolute().joinpath(self.path.name)
 
-            if symlink_absolute.exists() and symlink_resolved == self.path:
-                yield symlink
-            else:
+                if symlink_absolute.exists() and symlink_resolved == self.path:
+                    yield symlink
+                else:
+                    raise ValueError(f"{symlink_absolute} no longer exists or was converted to a symlink!")
+            except (FileNotFoundError, ValueError):
                 warnings.warn(
-                    f"Reference {symlink_absolute} changed on disk - "
-                    f"dropping it from '{self}.symlinks'.",
-                    ResourceWarning,
+                    ReferenceDropped(symlink.joinpath(self.path.name), f"{self}.symlinks")
                 )
 
     def update_file_references(self):
