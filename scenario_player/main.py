@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
 import sys
 import tarfile
@@ -36,7 +35,6 @@ from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, enable_gui_formatting
 from scenario_player.utils import (
     ChainConfigType,
-    ConcatenableNone,
     DummyStream,
     post_task_state_to_rc,
     send_notification_mail,
