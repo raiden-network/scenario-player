@@ -51,13 +51,17 @@ classifiers = [
 keywords = "raiden, raiden-network"
 
 [tools.flit.metadata.requires-extra]
-# Extended dependencies required for development and testing. Flit installs these automatically.
+# Extended dependencies required for development and testing. Flit installs
+# these automatically.
 test = ["pytest", "tox"]
 dev = [
-  "black",
-  "flake8",
-  "isort",
-  "mypy",
+    "black==19.3b0",
+    "flake8-bugbear==18.8.0",
+    "flake8-tuple==0.2.13",
+    "flake8==3.7.5",
+    "isort==4.3.16,",
+    "pytest==4.5.0",
+    "tox",
 ]
 
 [tool.flit.metadata.urls]
@@ -73,7 +77,7 @@ scenario_player = "scenario_player.__main__:main"
 
 
 #######################
-# TOOL CONFIGURATIONS #
+# ISORT CONFIGURATION #
 #######################
 
 [tool.isort]
@@ -81,12 +85,17 @@ line_length = 99
 known_future_library = "future"
 known_first_party = "scenario_player"
 default_section = "THIRDPARTY"
-combine_as_imports = 1
+combine_as_imports = true
 # black compatibility
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
+
+
+#######################
+# BLACK CONFIGURATION #
+#######################
 
 [tool.black]
 line-length = 99

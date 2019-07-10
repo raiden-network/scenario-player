@@ -18,3 +18,12 @@ flake8:
 style: isort black
 
 lint: flake8 black-check isort-check
+
+unit-tests:
+	pytest
+
+integration-tests:
+	@echo Ran integration tests.
+
+test-harness: unit-tests integration-tests
+
