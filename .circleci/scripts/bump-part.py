@@ -37,7 +37,6 @@ if CURRENT_BRANCH in ("dev", "release"):
         bump_release_type = "rc"
 
 elif CURRENT_BRANCH == "master":
-    if COMM
     # Get all commits of the release branch that was merged. If no release
     # branch exists, we assume this was a hotfix merge.
     resp = requests.get(
