@@ -14,6 +14,7 @@ from itertools import groupby
 import numpy as np
 import plotly.figure_factory as ff
 import plotly.offline as py
+import plotly.graph_objs as go
 from jinja2 import Environment, FileSystemLoader
 
 DEFAULT_GANTT_FILENAME = "gantt-overview.html"
@@ -154,7 +155,8 @@ def generate_statistics(filled_rows):
     for key, group in groupby(filled_rows["csv_rows"], key=lambda r: r[1]):
         result = {}
         duration_transfers = list(map(lambda r: r[2].total_seconds(), list(group)))
-        data = np.array(list(duration_transfers))
+        data = np.array(duration_transfers)
+        result["raw_durations"] = duration_transfers
         result["name"] = key
         result["min"] = data.min()
         result["max"] = data.max()
@@ -169,6 +171,23 @@ def generate_statistics(filled_rows):
 
 
 def write_statistics(output_directory, summary):
+    for result in summary:
+        data_array = np.array((result['raw_durations']))
+        histogram = go.Histogram(
+            x=data_array,
+            opacity=0.75
+        )
+        layout = go.Layout(barmode='overlay', width=500, height=300, margin=go.layout.Margin(
+            l=50,
+            r=50,
+            b=50,
+            t=0,
+            pad=4
+        ))
+        fig = go.Figure(data=[histogram], layout=layout)
+        div = py.offline.plot(fig, output_type="div", config={'displayModeBar': False})
+        result["div"] = div
+
     j2_env = Environment(
         loader=FileSystemLoader(os.path.dirname(os.path.abspath(__file__))), trim_blocks=True
     )

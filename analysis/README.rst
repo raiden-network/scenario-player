@@ -37,21 +37,21 @@ Two different scenarios are currently available as examples and each have three 
 
 - A gantt plot is rendered in an HTML file - it contains a legend and a summary
 - A CSV file is created which contains the duration of the tasks
-- A HTML file with a statistic summary on the basis of each task type is getting calculated
+- A HTML file with a statistic summary and histogram on the basis of each task type is getting calculated
 
 Simple-Scenario
 """""""""""""""
 
 - Gantt: `<example/simple-scenario/gantt-overview.html>`_
 - CSV: `<example/simple-scenario/durations.csv>`_
-- JSON-Summary: `<example/simple-scenario/statistics.html>`_
+- Statistics: `<example/simple-scenario/statistics.html>`_
 
 Mediated-Transfers-Scenario
 """""""""""""""""""""""""""
 
 - Gantt: `<example/mediated-transfers-scenario/gantt-overview.html>`_
 - CSV: `<example/mediated-transfers-scenario/durations.csv>`_
-- JSON-Summary: `<example/mediated-transfers-scenario/statistics.html>`_
+- Statistics: `<example/mediated-transfers-scenario/statistics.html>`_
 
 
 Limitations/Caveats

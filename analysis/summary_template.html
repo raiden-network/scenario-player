@@ -8,24 +8,41 @@
     <div style="font-family: Arial, Helvetica, sans-serif; padding: 30px 0px 0px 50px">
         <h3>Summary</h3>
         <table>
-            <tr>
-                <th align="left">Type</th>
-                <th align="left">Count</th>
-                <th align="left">Min</th>
-                <th align="left">Max</th>
-                <th align="left">Mean</th>
-                <th align="left">Median</th>
-                <th align="left">StDev</th>
-            </tr>
             {% for item in summary %}
             <tr>
-                <td>{{ item.name }}</td>
-                <td>{{ item.count }}</td>
-                <td>{{ item.min }}</td>
-                <td>{{ item.max }}</td>
-                <td>{{ item.mean }}</td>
-                <td>{{ item.median }}</td>
-                <td>{{ item.stdev }}</td>
+                <td valign="top">
+                    <table>
+                        <tr>
+                            <td>Type</td>
+                            <td>{{ item.name }}</td>
+                        </tr>
+                        <tr>
+                            <td>Count</td>
+                            <td>{{ item.count }}</td>
+                        </tr>
+                        <tr>
+                            <td>Min</td>
+                            <td>{{ item.min }}</td>
+                        </tr>
+                        <tr>
+                            <td>Max</td>
+                            <td>{{ item.max }}</td>
+                        </tr>
+                        <tr>
+                            <td>Mean</td>
+                            <td>{{ item.mean }}</td>
+                        </tr>
+                        <tr>
+                            <td>Median</td>
+                            <td>{{ item.median }}</td>
+                        </tr>
+                        <tr>
+                            <td>StDev</td>
+                            <td>{{ item.stdev }}</td>
+                        </tr>
+                    </table>
+                </td>
+                <td valign="top">{{ item.div }}</td>
             </tr>
             {% endfor %}
         </table>
