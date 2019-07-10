@@ -13,8 +13,8 @@ from itertools import groupby
 
 import numpy as np
 import plotly.figure_factory as ff
-import plotly.offline as py
 import plotly.graph_objs as go
+import plotly.offline as py
 from jinja2 import Environment, FileSystemLoader
 
 DEFAULT_GANTT_FILENAME = "gantt-overview.html"
@@ -134,8 +134,7 @@ def draw_gantt(output_directory, filled_rows, summary):
         loader=FileSystemLoader(os.path.dirname(os.path.abspath(__file__))), trim_blocks=True
     )
     output_content = j2_env.get_template("chart_template.html").render(
-        gantt_div=div,
-        task_table=filled_rows["table_rows"]
+        gantt_div=div, task_table=filled_rows["table_rows"]
     )
 
     with open(f"{output_directory}/{DEFAULT_GANTT_FILENAME}", "w") as text_file:
@@ -172,28 +171,22 @@ def generate_statistics(filled_rows):
 
 def write_statistics(output_directory, summary):
     for result in summary:
-        data_array = np.array((result['raw_durations']))
-        histogram = go.Histogram(
-            x=data_array,
-            opacity=0.75
+        data_array = np.array((result["raw_durations"]))
+        histogram = go.Histogram(x=data_array, opacity=0.75)
+        layout = go.Layout(
+            barmode="overlay",
+            width=500,
+            height=300,
+            margin=go.layout.Margin(l=50, r=50, b=50, t=0, pad=4),
         )
-        layout = go.Layout(barmode='overlay', width=500, height=300, margin=go.layout.Margin(
-            l=50,
-            r=50,
-            b=50,
-            t=0,
-            pad=4
-        ))
         fig = go.Figure(data=[histogram], layout=layout)
-        div = py.offline.plot(fig, output_type="div", config={'displayModeBar': False})
+        div = py.offline.plot(fig, output_type="div", config={"displayModeBar": False})
         result["div"] = div
 
     j2_env = Environment(
         loader=FileSystemLoader(os.path.dirname(os.path.abspath(__file__))), trim_blocks=True
     )
-    output_content = j2_env.get_template("summary_template.html").render(
-        summary=summary
-    )
+    output_content = j2_env.get_template("summary_template.html").render(summary=summary)
 
     with open(f"{output_directory}/{DEFAULT_STATISTICS_FILENAME}", "w") as text_file:
         text_file.write(output_content)
