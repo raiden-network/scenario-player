@@ -18,7 +18,7 @@ from jinja2 import Environment, FileSystemLoader
 
 DEFAULT_GANTT_FILENAME = "gantt-overview.html"
 DEFAULT_CSV_FILENAME = "durations.csv"
-DEFAULT_SUMMARY_FILENAME = "summary.json"
+DEFAULT_STATISTICS_FILENAME = "statistics.html"
 
 
 def has_more_specific_task_bracket(task_bracket, task_indices):
@@ -134,14 +134,7 @@ def draw_gantt(output_directory, filled_rows, summary):
     )
     output_content = j2_env.get_template("chart_template.html").render(
         gantt_div=div,
-        # summary_header=f'Tasks matched "{summary["name"]}" (in {summary["unit"]})',
-        # count=summary["count"],
-        # min=summary["min"],
-        # max=summary["max"],
-        # mean=summary["mean"],
-        # median=summary["median"],
-        # stdev=summary["stdev"],
-        task_table=filled_rows["table_rows"],
+        task_table=filled_rows["table_rows"]
     )
 
     with open(f"{output_directory}/{DEFAULT_GANTT_FILENAME}", "w") as text_file:
@@ -156,14 +149,13 @@ def write_csv(output_directory, filled_rows):
             csv_writer.writerow(r)
 
 
-def generate_summary(filled_rows):
+def generate_statistics(filled_rows):
     group_by_result = []
     for key, group in groupby(filled_rows["csv_rows"], key=lambda r: r[1]):
         result = {}
         duration_transfers = list(map(lambda r: r[2].total_seconds(), list(group)))
         data = np.array(list(duration_transfers))
         result["name"] = key
-        result["unit"] = "Seconds"
         result["min"] = data.min()
         result["max"] = data.max()
         result["mean"] = data.mean()
@@ -176,9 +168,16 @@ def generate_summary(filled_rows):
     return group_by_result
 
 
-def write_summary(output_directory, summary):
-    with open(f"{output_directory}/{DEFAULT_SUMMARY_FILENAME}", "w", newline="") as summary_file:
-        json.dump(summary, summary_file, sort_keys=True, indent=4)
+def write_statistics(output_directory, summary):
+    j2_env = Environment(
+        loader=FileSystemLoader(os.path.dirname(os.path.abspath(__file__))), trim_blocks=True
+    )
+    output_content = j2_env.get_template("summary_template.html").render(
+        summary=summary
+    )
+
+    with open(f"{output_directory}/{DEFAULT_STATISTICS_FILENAME}", "w") as text_file:
+        text_file.write(output_content)
 
 
 def fill_rows(task_brackets, stripped_content):
@@ -257,14 +256,14 @@ def main():
     task_brackets = create_task_brackets(stripped_content)
 
     filled_rows = fill_rows(task_brackets, stripped_content)
-    summary = generate_summary(filled_rows)
+    summary = generate_statistics(filled_rows)
 
     if not os.path.exists(args.output_directory):
         os.makedirs(args.output_directory)
 
     draw_gantt(args.output_directory, filled_rows, summary)
     write_csv(args.output_directory, filled_rows)
-    write_summary(args.output_directory, summary)
+    write_statistics(args.output_directory, summary)
 
 
 if __name__ == "__main__":

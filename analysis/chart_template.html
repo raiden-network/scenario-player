@@ -29,44 +29,10 @@
 
 <body>
     {{ gantt_div }}
-    <table style="font-family: Arial, Helvetica, sans-serif; padding: 0px 0px 10px 50px">
+    <table style="font-family: Arial, Helvetica, sans-serif; padding: 0px 0px 0px 50px">
         <tr>
-            <td valign="top" width="512px">
-                <div>
-                    <h3>Summary</h3>
-                    <h4>{{ summary_header }}</h4>
-                    <table>
-                        <tr>
-                            <td>Count</td>
-                            <td id="count">{{ count }}</td>
-                        </tr>
-                        <tr>
-                            <td>Min</td>
-                            <td id="min">{{ min }}</td>
-                        </tr>
-                        <tr>
-                            <td>Max</td>
-                            <td id="max">{{ max }}</td>
-                        </tr>
-                        <tr>
-                            <td>Mean</td>
-                            <td id="mean">{{ mean }}</td>
-                        </tr>
-                        <tr>
-                            <td>Median</td>
-                            <td id="median">{{ median }}</td>
-                        </tr>
-                        <tr>
-                            <td>StDev</td>
-                            <td id="stdev">{{ stdev }}</td>
-                        </tr>
-                    </table>
-                </div>
-            </td>
             <td valign="top" align="left">
-                <div>
-                    <h3>Notes</h3>
-                </div>
+                <h3>Notes</h3>
                 <div>
                     <ul>
                         <li>Tasks are grouped by their ID and may have subtasks (e.g. the actual API calls)</li>
@@ -79,7 +45,7 @@
         </tr>
         <tr>
             <td colspan="2">
-                <div style="padding: 30px 0px 0px 0px">
+                <div>
                     <h3>Tasks</h3>
                     <table style="font-family: Arial, Helvetica, sans-serif" width="1680">
                         <tr>
