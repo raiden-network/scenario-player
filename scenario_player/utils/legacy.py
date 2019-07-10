@@ -19,17 +19,17 @@ from eth_keyfile import decode_keyfile_json
 from eth_utils import encode_hex, to_checksum_address
 from mirakuru import AlreadyRunning, TimeoutExpired
 from mirakuru.base import ENV_UUID, IGNORED_ERROR_CODES
-from raiden.accounts import Account
-from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
-from raiden.network.rpc.smartcontract_proxy import ContractProxy
-from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
-from raiden.utils.typing import TransactionHash
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import get_contracts_deployment_info
 from requests.adapters import HTTPAdapter
 from web3 import HTTPProvider, Web3
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
+from raiden.accounts import Account
+from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
+from raiden.network.rpc.smartcontract_proxy import ContractProxy
+from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
+from raiden.utils.typing import TransactionHash
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
 
 RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)

@@ -17,16 +17,14 @@ import gevent
 import requests
 import structlog
 from eth_utils import to_checksum_address
-from raiden.accounts import Account
-from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
-from raiden.utils.cli import EnumChoiceType
 from urwid import ExitMainLoop
 from web3.utils.transactions import TRANSACTION_DEFAULTS
 
+from raiden.accounts import Account
+from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
+from raiden.utils.cli import EnumChoiceType
 from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
-
-# SPaaS Imports
 from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.runner import ScenarioRunner
 from scenario_player.services.common.app import ServiceProcess

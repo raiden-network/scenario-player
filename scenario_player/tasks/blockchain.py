@@ -4,8 +4,6 @@ from typing import Any, Dict, List
 
 import structlog
 from eth_utils import decode_hex, encode_hex, event_abi_to_log_topic, to_checksum_address
-from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
-from raiden.utils.typing import ABI, Address, BlockNumber
 from raiden_contracts.constants import (
     CONTRACT_MONITORING_SERVICE,
     CONTRACT_TOKEN_NETWORK,
@@ -16,6 +14,8 @@ from web3 import Web3
 from web3.utils.abi import filter_by_type
 from web3.utils.events import get_event_data
 
+from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
+from raiden.utils.typing import ABI, Address, BlockNumber
 from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.tasks.base import Task
