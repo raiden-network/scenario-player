@@ -194,8 +194,8 @@ class ScenarioRunner:
             ).json()
         )
         if self.token_address not in registered_tokens:
-            code, msg = self.register_token(self.token_address, first_node)
             for i in range(5):
+                code, msg = self.register_token(self.token_address, first_node)
                 if 199 < code < 300:
                     break
                 gevent.sleep(1)
