@@ -3,7 +3,7 @@ from marshmallow.fields import Float, List
 from scenario_player.services.common.schemas import BytesField, SPSchema
 
 
-class TransactionSendSchema(SPSchema):
+class TransactionSendRequest(SPSchema):
     """Validator for POST /transaction requests"""
 
     # Serialization fields.
