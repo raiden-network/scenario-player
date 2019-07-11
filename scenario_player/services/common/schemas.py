@@ -37,7 +37,7 @@ class BytesField(Field):
 
     @staticmethod
     def _validate_encoding(value: str) -> bool:
-        """Validate the field value is a UTF-8 decodable string object.
+        """Validate the field value is a UTF-8 decoded :class:`str` object.
 
         :raises ValidationError:
             if we cannot encode the string using UTF-8, or if `value` does not
@@ -45,21 +45,23 @@ class BytesField(Field):
         """
         try:
             value.encode("UTF-8")
-        except (AttributeError, UnicodeEncodeError):
-            raise ValidationError("Bytesfield must be a UTF-8 encoded string!")
+        except UnicodeEncodeError:
+            raise ValidationError("Bytesfield must UTF-8 decoded string!")
+        except AttributeError:
+            raise ValidationError("Bytesfield must be a string!")
         return True
 
     @staticmethod
     def _validate_length(value: str) -> bool:
         """Validate the field value is a non-empty string object.
 
-        :raises ValidationError: if the length is `0`.
+        :raises ValidationError: if the value is falsy.
         """
         if not value:
             raise ValidationError("Bytesfield must not be empty!")
         return True
 
-    def _deserialize(self, value: str, attr, data, **kwargs):
+    def _deserialize(self, value: str, attr, data, **kwargs) -> bytes:
         """Load the :class:`str` object for usage with the JSONRPCClient.
 
         This encodes the :class:`str` using UTF-8.
@@ -78,7 +80,7 @@ class BytesField(Field):
         self._validate_length(value)
         return value.encode("utf-8")
 
-    def _serialize(self, value: bytes, attr, obj):
+    def _serialize(self, value: bytes, attr, obj) -> str:
         """Prepare :class:`bytes` object for JSON-encoding.
 
         This decodes the :class:`bytes` object using UTF-8.
