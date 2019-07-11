@@ -1,3 +1,5 @@
+import warnings
+
 import flask
 from flask_marshmallow.schema import Schema
 from marshmallow.exceptions import ValidationError
@@ -57,11 +59,21 @@ class BytesField(Field):
             raise ValidationError("Bytesfield must not be empty!")
         return True
 
-    def _deserialize(self, value: str, attr, data):
+    def _deserialize(self, value: str, attr, data, **kwargs):
         """Load the :class:`str` object for usage with the JSONRPCClient.
 
         This encodes the :class:`str` using UTF-8.
+
+        If `kwargs` is not empty, we will emit a warning, since we do not currently
+        support additional kwargs passed to this method.
+
+        TODO: Implement support for additional `kwargs`
         """
+        if kwargs:
+            warnings.warn(
+                f"Unsupported keywords for field {self.__class__.__qualname__} detected. "
+                f"The following options will be ignored: {[option for option in kwargs]}"
+            )
         self._validate_encoding(value)
         self._validate_length(value)
         return value.encode("utf-8")
