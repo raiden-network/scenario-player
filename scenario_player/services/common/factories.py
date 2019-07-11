@@ -2,15 +2,8 @@ from typing import List, Mapping
 
 import flask
 
-from scenario_player.hooks import PLUGIN_BLUEPRINTS
+from scenario_player.hooks import SP_PM
 from scenario_player.services.common.blueprints import admin_blueprint, metrics_blueprint
-
-
-def attach_blueprints(app: flask.Flask, *blueprints: List[flask.Blueprint]):
-    """Attach the given `blueprints` to the given `app` and return it."""
-    for blueprint in blueprints:
-        app.register_blueprint(blueprint)
-    return app
 
 
 def construct_flask_app(
@@ -48,10 +41,11 @@ def construct_flask_app(
         # load the test config if passed in
         app.config.from_mapping(test_config)
 
-    attach_blueprints(app, metrics_blueprint, admin_blueprint)
+    for blueprint in (admin_blueprint, metrics_blueprint):
+        app.register_blueprint(blueprint)
 
     if enable_plugins:
-        for blueprints in PLUGIN_BLUEPRINTS:
-            attach_blueprints(app, *blueprints)
+        # Register blueprints supplied by plugins.
+        SP_PM.hook.register_blueprints(app=app)
 
     return app
