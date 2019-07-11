@@ -8,9 +8,10 @@ from scenario_player.services.transactions.blueprints import (
 
 
 @HOOK_IMPL
-def register_blueprints():
+def register_blueprints(app) -> None:
     """Register a list of blueprints with :mode:`raiden-scenario-player`."""
-    return [transactions_blueprint, tokens_blueprint]
+    for bp in (tokens_blueprint, transactions_blueprint):
+        app.register_blueprint(bp)
 
 
 def construct_transaction_service(test_config=None, **JSONRPCClien_kwargs):
