@@ -30,41 +30,19 @@ class SPSchema(Schema):
 class BytesField(Field):
     """A field for (de)serializing :class:`bytes` from and to :class:`str` dict values."""
 
+    default_error_messages = {
+        "not_a_str": "Must be string!",
+        "not_bytes": "Must be decodable to bytes!",
+        "empty": "Must not be empty!",
+    }
+
     def __init__(self, *args, **kwargs):
         super(BytesField, self).__init__(*args, **kwargs)
-        self.validators.append(self._validate_encoding)
-        self.validators.append(self._validate_length)
-
-    @staticmethod
-    def _validate_encoding(value: str) -> bool:
-        """Validate the field value is a UTF-8 decoded :class:`str` object.
-
-        :raises ValidationError:
-            if we cannot encode the string using UTF-8, or if `value` does not
-            have a :meth:`str.encode` method.
-        """
-        try:
-            value.encode("UTF-8")
-        except UnicodeEncodeError:
-            raise ValidationError("Bytesfield must UTF-8 decoded string!")
-        except AttributeError:
-            raise ValidationError("Bytesfield must be a string!")
-        return True
-
-    @staticmethod
-    def _validate_length(value: str) -> bool:
-        """Validate the field value is a non-empty string object.
-
-        :raises ValidationError: if the value is falsy.
-        """
-        if not value:
-            raise ValidationError("Bytesfield must not be empty!")
-        return True
 
     def _deserialize(self, value: str, attr, data, **kwargs) -> bytes:
         """Load the :class:`str` object for usage with the JSONRPCClient.
 
-        This encodes the :class:`str` using UTF-8.
+        This encodes the :class:`str` using UTF-8 and returns a :class:`bytes` object.
 
         If `kwargs` is not empty, we will emit a warning, since we do not currently
         support additional kwargs passed to this method.
@@ -76,9 +54,14 @@ class BytesField(Field):
                 f"Unsupported keywords for field {self.__class__.__qualname__} detected. "
                 f"The following options will be ignored: {[option for option in kwargs]}"
             )
-        self._validate_encoding(value)
-        self._validate_length(value)
-        return value.encode("utf-8")
+
+        if not value:
+            self.fail("empty")
+
+        try:
+            return value.encode("UTF-8")
+        except AttributeError:
+            self.fail("not_a_str")
 
     def _serialize(self, value: bytes, attr, obj) -> str:
         """Prepare :class:`bytes` object for JSON-encoding.
