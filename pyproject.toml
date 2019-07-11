@@ -22,7 +22,9 @@ requires = [
     'eth-utils',
     'flasgger',
     'flask',
+    'flask_marshmallow',
     'gevent',
+    'prometheus_client',
     'pyyaml',
     'requests',
     'redis',
@@ -83,7 +85,7 @@ scenario_player = "scenario_player.__main__:main"
 [tool.isort]
 line_length = 99
 known_future_library = "future"
-known_first_party = "scenario_player"
+known_first_party = ["scenario_player", "raiden"]
 default_section = "THIRDPARTY"
 combine_as_imports = true
 # black compatibility

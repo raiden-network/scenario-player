@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 import os
 import pathlib
@@ -9,9 +7,9 @@ import time
 import uuid
 from collections import defaultdict, deque
 from datetime import datetime
-from itertools import chain, islice
+from itertools import islice
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, Optional, Set, Tuple, Union
 
 import click
 import mirakuru
@@ -32,10 +30,7 @@ from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
 from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
 from raiden.utils.typing import TransactionHash
-from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
-from scenario_player.tasks.base import Task, TaskState
-from scenario_player.tasks.execution import ParallelTask, SerialTask
 
 RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)
 VALUE_TX_GAS_COST = 21_000
@@ -161,16 +156,6 @@ class HTTPExecutor(mirakuru.HTTPExecutor):
         self._clear_process()
         return self
 
-    def _set_timeout(self, timeout=None):
-        """
-        Forward ported from mirakuru==1.0.0:mirakuru.base::SimpleExecutor._set_timeout() since
-        the ``timeout`` parameter has been removed in versions >= 1.1.0.
-        """
-        timeout = timeout or self._timeout
-
-        if timeout:
-            self._endtime = time.time() + timeout
-
 
 def wait_for_txs(
     client_or_web3: Union[Web3, JSONRPCClient], txhashes: Set[TransactionHash], timeout: int = 360
@@ -244,9 +229,9 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
 
     log.debug("Deploying token", name=name, symbol=symbol, decimals=decimals)
 
-    token_ctr, receipt = runner.client.deploy_single_contract(
+    token_ctr, receipt = runner.client.deploy_solidity_contract(
         "CustomToken",
-        runner.contract_manager.contracts["CustomToken"],
+        runner.contract_manager.contracts,
         constructor_parameters=(0, decimals, name, symbol),
     )
     contract_deployment_block = receipt["blockNumber"]
@@ -356,7 +341,7 @@ def reclaim_eth(
     log.info("Starting eth reclaim", data_path=data_path)
 
     addresses = dict()
-    for node_dir in chain(data_path.glob("**/node_??_???"), data_path.glob("**/node_???")):
+    for node_dir in data_path.glob("**/node_???"):
         scenario_name: Path = node_dir.parent.name
         last_run = next(
             iter(
@@ -410,41 +395,3 @@ def reclaim_eth(
         wait_for_txs(web3s[chain_name], chain_txs, 1000)
     for chain_name, amount in reclaim_amount.items():
         log.info("Reclaimed", chain=chain_name, amount=amount.__format__(",d"))
-
-
-def post_task_state_to_rc(
-    scenario: scenario_runner.ScenarioRunner, task: Task, state: TaskState
-) -> None:
-    color = "#c0c0c0"
-    if state is TaskState.RUNNING:
-        color = "#ffbb20"
-    elif state is TaskState.FINISHED:
-        color = "#20ff20"
-    elif state is TaskState.ERRORED:
-        color = "#ff2020"
-
-    fields = [
-        {"title": "Scenario", "value": scenario.scenario.name, "short": True},
-        {"title": "State", "value": state.name.title(), "short": True},
-        {"title": "Level", "value": task.level, "short": True},
-    ]
-    if state is TaskState.FINISHED:
-        fields.append({"title": "Duration", "value": task._duration, "short": True})
-    if not isinstance(task, (SerialTask, ParallelTask)):
-        fields.append({"title": "Details", "value": task._str_details, "short": False})
-    task_name = task._name
-    if task_name and isinstance(task_name, str):
-        task_name = task_name.title().replace("_", " ")
-    else:
-        task_name = task.__class__.__name__
-    send_rc_message(f"Task {task_name}", color, fields)
-
-
-def send_rc_message(text: str, color: str, fields: List[Dict[str, str]]) -> None:
-    rc_webhook_url = os.environ.get("RC_WEBHOOK_URL")
-    if not rc_webhook_url:
-        raise RuntimeError("Environment variable 'RC_WEBHOOK_URL' is missing")
-
-    requests.post(
-        rc_webhook_url, json={"attachments": [{"title": text, "color": color, "fields": fields}]}
-    )
