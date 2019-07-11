@@ -11,13 +11,11 @@ The following endpoints are supplied by this blueprint:
         form data.
 
 """
-from flask import Blueprint, abort, current_app, request, Response
+from flask import Blueprint, Response, abort, current_app, request
 
 from raiden.network.rpc.client import JSONRPCClient
-
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.transactions.schemas.transactions import TransactionSendRequest
-
 
 transactions_blueprint = Blueprint("transactions_view", __name__)
 
@@ -35,8 +33,9 @@ def transactions_route():
 def new_transaction():
     """Create a new transaction.
 
-    The given parameters will be passed to the service's :class:`raiden.network.rpc.client.JSONRPCClient`
-    instance, which will then execute the transaction.
+    The given parameters will be passed to the service's
+    :class:`raiden.network.rpc.client.JSONRPCClient` instance, which will then
+    execute the transaction.
 
     The resulting transaction hash will be returned to the requester.
 
@@ -61,7 +60,7 @@ def new_transaction():
 
     # Get the services JSONRPCClient from the flask app's app_context.
     try:
-        rpc_client = current_app.config['rpc-client']
+        rpc_client = current_app.config["rpc-client"]
         if not isinstance(rpc_client, JSONRPCClient):
             raise RuntimeError
     except (RuntimeError, KeyError):
@@ -69,4 +68,3 @@ def new_transaction():
     result = rpc_client.send_transaction(**data)
 
     return Response(transaction_send_schema.dumps({"tx_hash": result}), status=200)
-
