@@ -75,7 +75,6 @@ GitHub = "https://github.com/raiden-network/scenario-player"
 "Raiden Developer Portal" = "https://dev.raiden.network"
 
 [tool.flit.entrypoints."scenario_player"]
-transactions-service = "scenario_player.services.transactions.blueprints"
 common-service = "scenario_player.services.common.blueprints"
 
 [tool.flit.scripts]
