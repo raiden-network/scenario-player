@@ -1,8 +1,16 @@
 import flask
 from flask_marshmallow.schema import Schema
-from marshmallow import MarshalResult, UnmarshalResult
 from marshmallow.fields import String
 from werkzeug.datastructures import ImmutableMultiDict
+from collections import namedtuple
+
+# FIXME: This is a compatibility hack for new versions of marshmallow and
+#  our currently pinned 2.x verison. It automatically returns the data
+#  attribute by default, if load returns an UnmarshalResult object.
+try:
+    from marshmallow import MarshalResult, UnmarshalResult
+except ImportError:
+    MarshalResult = UnmarshalResult = None
 
 
 class SPSchema(Schema):
@@ -31,7 +39,7 @@ class SPSchema(Schema):
         #  attribute by default, if load returns an UnmarshalResult object.
         result = super(SPSchema, self).load(data, **kwargs)
 
-        if not isinstance(result, UnmarshalResult):
+        if not UnmarshalResult or not isinstance(result, UnmarshalResult):
             # marshmallow-3.x no longer returns namedtuples, so we can safely
             # return the loaded object.
             return result
@@ -47,7 +55,7 @@ class SPSchema(Schema):
         #  attribute by default, if load returns an UnmarshalResult object.
         result = super(SPSchema, self).dumps(data, **kwargs)
 
-        if not isinstance(result, MarshalResult):
+        if not MarshalResult or not isinstance(result, MarshalResult):
             # marshmallow-3.x no longer returns namedtuples, so we can safely
             # return the dumped object.
             return result
