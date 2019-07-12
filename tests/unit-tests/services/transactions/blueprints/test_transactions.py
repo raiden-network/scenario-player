@@ -1,14 +1,17 @@
 from unittest.mock import patch
 import pytest
+from raiden.network.rpc import client
+from scenario_player.services.utils.factories import construct_flask_app
 
-from scenario_player.services.transactions.app import construct_transaction_service
+import logging
 
 
 @pytest.fixture
 def transaction_service_app():
-    with patch('scenario_player.services.transactions.app.JSONRPCClient', autospec=True):
-        app = construct_transaction_service(web3='web3_instance', privkey=b"my_private_key")
+    with patch.object(client, "JSONRPCClient", autospec=True):
+        app = construct_flask_app()
         app.config['TESTING'] = True
+        app.config['rpc-client'] = client.JSONRPCClient(web3='web3_instance', privkey=b"my_private_key")
         yield app
 
 
@@ -24,7 +27,7 @@ def test_transaction_blueprint_is_loaded(transaction_service_client):
     assert "transactions_view" in transaction_service_client.application.blueprints
 
 
-@pytest.mark.dependency(depends="transaction_blueprint_loaded")
+@pytest.mark.dependency(depends=["transaction_blueprint_loaded"])
 class TestNewTransactionEndpoint:
 
     @pytest.mark.parametrize(
