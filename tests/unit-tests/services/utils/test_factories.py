@@ -2,8 +2,6 @@ from unittest import mock
 
 import pytest
 
-from scenario_player.services.common.blueprints import admin_blueprint, metrics_blueprint
-from scenario_player.services.utils import factories as factories_module
 from scenario_player.services.utils.factories import construct_flask_app
 
 
@@ -46,15 +44,6 @@ class MockConfig:
         self.from_pyfile_called = True
         self.from_pyfile_call_count += 1
         self.from_pyfile_called_with = [args, kwargs]
-
-
-class MockApp:
-
-    def __init__(self, *args, **kwargs):
-        self.config = MockConfig()
-
-    def register_blueprint(self, *args, **kwargs):
-        pass
 
 
 class TestConstructFlaskApp:
