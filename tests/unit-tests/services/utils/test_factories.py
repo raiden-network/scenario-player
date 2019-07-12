@@ -1,12 +1,10 @@
-import json
-
 from unittest import mock
 
 import pytest
 
-from scenario_player.services.common import factories as factories_module
-from scenario_player.services.common.factories import construct_flask_app
 from scenario_player.services.common.blueprints import admin_blueprint, metrics_blueprint
+from scenario_player.services.utils import factories as factories_module
+from scenario_player.services.utils.factories import construct_flask_app
 
 
 @pytest.fixture
@@ -74,35 +72,12 @@ class TestConstructFlaskApp:
         for key, value in config.items():
             assert app.config.get(key) == value
 
-    @pytest.mark.parametrize("enable_plugins", [False, True])
-    @mock.patch.object(factories_module, "PLUGIN_BLUEPRINTS", [[object() for i in range(6)]])
-    @mock.patch('scenario_player.services.common.factories.attach_blueprints')
-    def test_always_registers_admin_and_metrics_blueprint(self, mock_attach_bp, enable_plugins):
-        """The function always adds the :var:`admin_blueprint` and :var:`metrics_blueprint` to the app.
-
-        Specifically, passing `enable_plugins=False` must not have any effect.
-        """
-        app = construct_flask_app(enable_plugins=enable_plugins)
-
-        mock_attach_bp.assert_any_call(app, metrics_blueprint, admin_blueprint)
-
-    @mock.patch.object(factories_module, "PLUGIN_BLUEPRINTS", [[object() for i in range(6)]])
-    @mock.patch('scenario_player.services.common.factories.attach_blueprints')
-    def test_registers_all_blueprints_present_in_plugin_blueprints_constant(self, mock_attach_bp):
-        """:mod"`pluggy` is used to register blueprint addons. Make sure these are installed if any are present int the
-        :var:`PLUGIN_BLUEPRINTS` constant."""
-        app = construct_flask_app()
-        assert mock_attach_bp.called
-        assert mock_attach_bp.call_count == 2
-        mock_attach_bp.assert_any_call(app, *factories_module.PLUGIN_BLUEPRINTS[0])
-
-    @mock.patch.object(factories_module, "PLUGIN_BLUEPRINTS", [[object() for i in range(6)]])
-    @mock.patch('scenario_player.services.common.factories.attach_blueprints')
-    def test_skips_blueprints_present_in_plugin_blueprints_constant_if_enable_plugins_is_False(self, mock_attach_bp):
-        """Plugin Blueprints are not attached to the app if `enable_plugins=False` is passed."""
-        app = construct_flask_app(enable_plugins=False)
-
-        mock_attach_bp.assert_called_once_with(app, metrics_blueprint, admin_blueprint)
+    @pytest.mark.parametrize("plugins_enabled", [True, False])
+    @mock.patch('scenario_player.services.utils.factories.SP_PM.hook.register_blueprints')
+    def test_constructor_makes_call_to_blueprint_registration_hook(self, mock_register_blueprints, plugins_enabled):
+        """There is exactly one call for each available Blueprint."""
+        construct_flask_app(enable_plugins=plugins_enabled)
+        assert mock_register_blueprints.called is plugins_enabled
 
     def test_loads_config_from_file_if_no_test_config_specified(self, TEST_CONFIG_FILE):
         """The configuration is loaded from a default file if no `test_config` is passed."""

@@ -74,6 +74,10 @@ GitHub = "https://github.com/raiden-network/scenario-player"
 "Raiden Homepage" = "https://raiden.network"
 "Raiden Developer Portal" = "https://dev.raiden.network"
 
+[tool.flit.entrypoints."scenario_player"]
+transactions-service = "scenario_player.services.transactions.blueprints"
+common-service = "scenario_player.services.common.blueprints"
+
 [tool.flit.scripts]
 # CLI commands installed along with out package.
 scenario_player = "scenario_player.__main__:main"

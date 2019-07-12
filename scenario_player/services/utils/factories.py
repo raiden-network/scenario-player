@@ -1,17 +1,16 @@
-from typing import List, Mapping
+from typing import Mapping
 
 import flask
 
 from scenario_player.hooks import SP_PM
-from scenario_player.services.common.blueprints import admin_blueprint, metrics_blueprint
 
 
 def construct_flask_app(
-    db_name: str = "default",
-    test_config: Mapping = None,
-    secret: str = "dev",
-    config_file: str = "config.py",
-    enable_plugins: bool = True,
+        db_name: str = "default",
+        test_config: Mapping = None,
+        secret: str = "dev",
+        config_file: str = "config.py",
+        enable_plugins: bool = True,
 ) -> flask.Flask:
     """Construct a flask app with the given blueprints registered.
 
@@ -40,9 +39,6 @@ def construct_flask_app(
     else:
         # load the test config if passed in
         app.config.from_mapping(test_config)
-
-    for blueprint in (admin_blueprint, metrics_blueprint):
-        app.register_blueprint(blueprint)
 
     if enable_plugins:
         # Register blueprints supplied by plugins.
