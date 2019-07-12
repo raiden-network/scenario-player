@@ -10,6 +10,7 @@ try:
     from marshmallow import MarshalResult, UnmarshalResult
 except ImportError:
     MarshalResult = UnmarshalResult = None
+from marshmallow import UnmarshalResult, MarshalResult
 
 
 class SPSchema(Schema):
