@@ -1,8 +1,7 @@
 import flask
-
 from flask_marshmallow.schema import Schema
+from marshmallow import MarshalResult, UnmarshalResult
 from marshmallow.fields import String
-from marshmallow import UnmarshalResult, MarshalResult
 from werkzeug.datastructures import ImmutableMultiDict
 
 
