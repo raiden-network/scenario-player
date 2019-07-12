@@ -24,7 +24,7 @@ class SPSchema(Schema):
         errors = self.validate(data_obj)
         if errors:
             flask.abort(400, str(errors))
-        return self.load(data_obj).data
+        return self.load(data_obj)
 
     def load(self, data, data_only=True, **kwargs):
         # FIXME: This is a compatibility hack for new versions of marshmallow and
