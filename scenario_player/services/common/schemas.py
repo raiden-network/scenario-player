@@ -3,6 +3,7 @@ import warnings
 import flask
 from flask_marshmallow.schema import Schema
 from marshmallow.fields import Field
+from marshmallow import UnmarshalResult
 
 
 class SPSchema(Schema):
@@ -24,6 +25,21 @@ class SPSchema(Schema):
         if errors:
             flask.abort(400, str(errors))
         return self.load(data_obj).data
+
+    def load(self, data, data_only=True, **kwargs):
+        # FIXME: This is a compatibility hack for new versions of marshmallow and
+        #  our currently pinned 2.x verison. It automatically returns the data
+        #  attribute by default, if load returns an UnmarshalResult object.
+
+        result = super(SPSchema, self).load(data, **kwargs)
+        if not isinstance(result, UnmarshalResult):
+            # marshmallow-3.x no longer return namedtuples, so we can safely
+            # return the loaded object.
+            return result
+        elif data_only:
+            # Return the data attribute only.
+            return result.data
+        return result
 
 
 class BytesField(Field):
