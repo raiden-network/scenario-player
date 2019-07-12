@@ -1,9 +1,15 @@
-import warnings
-
 import flask
 from flask_marshmallow.schema import Schema
-from marshmallow.exceptions import ValidationError
-from marshmallow.fields import Field
+from marshmallow.fields import String
+from werkzeug.datastructures import ImmutableMultiDict
+
+# FIXME: This is a compatibility hack for new versions of marshmallow and
+#  our currently pinned 2.x verison. It automatically returns the data
+#  attribute by default, if load returns an UnmarshalResult object.
+try:
+    from marshmallow import MarshalResult, UnmarshalResult
+except ImportError:
+    MarshalResult = UnmarshalResult = None
 
 
 class SPSchema(Schema):
@@ -24,61 +30,72 @@ class SPSchema(Schema):
         errors = self.validate(data_obj)
         if errors:
             flask.abort(400, str(errors))
-        return self.load(data_obj).data
+        return self.load(data_obj)
+
+    def load(self, data: ImmutableMultiDict, data_only=True, **kwargs):
+        # FIXME: This is a compatibility hack for new versions of marshmallow and
+        #  our currently pinned 2.x verison. It automatically returns the data
+        #  attribute by default, if load returns an UnmarshalResult object.
+        result = super(SPSchema, self).load(data, **kwargs)
+
+        if not UnmarshalResult or not isinstance(result, UnmarshalResult):
+            # marshmallow-3.x no longer returns namedtuples, so we can safely
+            # return the loaded object.
+            return result
+        elif data_only:
+            # Return the data attribute only.
+            # `.data` is a regular :class:`dict` instance.
+            return result.data
+        return result
+
+    def dumps(self, data, data_only=True, **kwargs):
+        # FIXME: This is a compatibility hack for new versions of marshmallow and
+        #  our currently pinned 2.x verison. It automatically returns the data
+        #  attribute by default, if load returns an UnmarshalResult object.
+        result = super(SPSchema, self).dumps(data, **kwargs)
+
+        if not MarshalResult or not isinstance(result, MarshalResult):
+            # marshmallow-3.x no longer returns namedtuples, so we can safely
+            # return the dumped object.
+            return result
+        elif data_only:
+            return result.data
+        return result
 
 
-class BytesField(Field):
+class BytesField(String):
     """A field for (de)serializing :class:`bytes` from and to :class:`str` dict values."""
+
+    default_error_messages = {
+        "not_a_str": "Must be string!",
+        "not_bytes": "Must be decodable to bytes!",
+        "empty": "Must not be empty!",
+    }
 
     def __init__(self, *args, **kwargs):
         super(BytesField, self).__init__(*args, **kwargs)
-        self.validators.append(self._validate_encoding)
-        self.validators.append(self._validate_length)
 
-    @staticmethod
-    def _validate_encoding(value: str) -> bool:
-        """Validate the field value is a UTF-8 decodable string object.
-
-        :raises ValidationError:
-            if we cannot encode the string using UTF-8, or if `value` does not
-            have a :meth:`str.encode` method.
-        """
-        try:
-            value.encode("UTF-8")
-        except (AttributeError, UnicodeEncodeError):
-            raise ValidationError("Bytesfield must be a UTF-8 encoded string!")
-        return True
-
-    @staticmethod
-    def _validate_length(value: str) -> bool:
-        """Validate the field value is a non-empty string object.
-
-        :raises ValidationError: if the length is `0`.
-        """
-        if not value:
-            raise ValidationError("Bytesfield must not be empty!")
-        return True
-
-    def _deserialize(self, value: str, attr, data, **kwargs):
+    def _deserialize(self, value: str, attr, data, **kwargs) -> bytes:
         """Load the :class:`str` object for usage with the JSONRPCClient.
 
-        This encodes the :class:`str` using UTF-8.
+        This encodes the :class:`str` using UTF-8 and returns a :class:`bytes` object.
 
         If `kwargs` is not empty, we will emit a warning, since we do not currently
         support additional kwargs passed to this method.
 
         TODO: Implement support for additional `kwargs`
         """
-        if kwargs:
-            warnings.warn(
-                f"Unsupported keywords for field {self.__class__.__qualname__} detected. "
-                f"The following options will be ignored: {[option for option in kwargs]}"
-            )
-        self._validate_encoding(value)
-        self._validate_length(value)
-        return value.encode("utf-8")
+        if not value:
+            self.fail("empty")
 
-    def _serialize(self, value: bytes, attr, obj):
+        deserialized_string = super(BytesField, self)._deserialize(value, attr, data, **kwargs)
+
+        try:
+            return deserialized_string.encode("UTF-8")
+        except AttributeError:
+            self.fail("not_a_str")
+
+    def _serialize(self, value: bytes, attr, obj) -> str:
         """Prepare :class:`bytes` object for JSON-encoding.
 
         This decodes the :class:`bytes` object using UTF-8.

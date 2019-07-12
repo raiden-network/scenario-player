@@ -46,24 +46,22 @@ def test_bytesfield_serializes_to_utf_8_encoded_string(test_schema):
 @pytest.mark.parametrize(
     "input_dict, failure_expected",
     argvalues=[
-        ({'bytes_field': b"my_string".decode("UTF-8")}, False),
-        ({'bytes_field': "/feff0026"}, True),
+        ({'bytes_field': "my_string"}, False),
         ({'bytes_field': b"my_string"}, True),
         ({'bytes_field': b""}, True),
-        ({'bytes_field': b"".decode("UTF-8")}, True),
+        ({'bytes_field': ""}, True),
     ],
     ids=[
-        "UTF-8 decoded bytes",
-        "UTF-16 decoded bytes",
-        "Non-decoded Bytes",
-        "Non-decoded empty Bytes",
-        "UTF-8 decoded, empty Bytes",
+        "Valid UTF8 string passes",
+        "Invalid Non-empty Bytes fails",
+        "Invalid Empty Bytes fails",
+        "Invalid Empty String fails",
     ]
 )
 def test_spschema_validate_and_serialize_raises_bad_request_when_expected(input_dict, failure_expected, test_schema):
     try:
-        with pytest.raises(BadRequest):
-            test_schema.validate_and_deserialize(input_dict)
-    except AssertionError:
-        if not failure_expected:
-            raise
+        test_schema.validate_and_deserialize(input_dict)
+    except BadRequest:
+        if failure_expected:
+            return
+        raise AssertionError(f"RAISED {BadRequest} unexpectedly!")
