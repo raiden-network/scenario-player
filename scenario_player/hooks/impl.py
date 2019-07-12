@@ -8,8 +8,8 @@ It's the service author's responsibility to list the modules with hook implement
 in the services __init__.py file, in a variable called :var:`__hooks__`. Otherwise
 the hook implementations will not be detected.
 """
-import logging
 import importlib
+import logging
 import pkgutil
 
 from scenario_player import services as services_subpackage
@@ -22,7 +22,9 @@ def load_hook_modules_to_namespace():
         if sub_module_name.startswith(("_", "utils")):
             continue
 
-        possible_blueprints_module_path = f"{services_subpackage.__name__}.{sub_module_name}.blueprints"
+        possible_blueprints_module_path = (
+            f"{services_subpackage.__name__}.{sub_module_name}.blueprints"
+        )
         service_pkg_path = services_subpackage.__name__ + "." + sub_module_name
 
         try:

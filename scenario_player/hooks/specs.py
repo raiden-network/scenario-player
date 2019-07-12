@@ -1,5 +1,3 @@
-from typing import List, Union
-
 import flask
 import pluggy
 
