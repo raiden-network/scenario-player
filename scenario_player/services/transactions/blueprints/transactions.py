@@ -26,6 +26,7 @@ transaction_send_schema = TransactionSendRequest()
 @transactions_blueprint.route("/transactions", methods=["POST"])
 def transactions_route():
     handlers = {"POST": new_transaction}
+    print("Dispatching request..")
     with REDMetricsTracker(request.method, "/transactions"):
         return handlers[request.method]()
 
@@ -56,7 +57,7 @@ def new_transaction():
             }
 
     """
-    data = transaction_send_schema.load(request.form)
+    data = transaction_send_schema.validate_and_deserialize(request.form)
 
     # Get the services JSONRPCClient from the flask app's app_context.
     try:
@@ -67,4 +68,4 @@ def new_transaction():
         abort(500, "No JSONRPCClient instance available on service!")
     result = rpc_client.send_transaction(**data)
 
-    return Response(transaction_send_schema.dumps({"tx_hash": result}), status=200)
+    return Response(transaction_send_schema.dumps({"tx_hash": result}).encode("UTF-8"), status=200)
