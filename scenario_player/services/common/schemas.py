@@ -3,7 +3,6 @@ from flask_marshmallow.schema import Schema
 from marshmallow.fields import String
 from werkzeug.datastructures import ImmutableMultiDict
 
-
 # FIXME: This is a compatibility hack for new versions of marshmallow and
 #  our currently pinned 2.x verison. It automatically returns the data
 #  attribute by default, if load returns an UnmarshalResult object.
