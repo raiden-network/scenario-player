@@ -1,9 +1,9 @@
-import warnings
-
 import flask
+
 from flask_marshmallow.schema import Schema
-from marshmallow.fields import Field
+from marshmallow.fields import String
 from marshmallow import UnmarshalResult, MarshalResult
+from werkzeug.datastructures import ImmutableMultiDict
 
 
 class SPSchema(Schema):
@@ -26,7 +26,7 @@ class SPSchema(Schema):
             flask.abort(400, str(errors))
         return self.load(data_obj)
 
-    def load(self, data, data_only=True, **kwargs):
+    def load(self, data: ImmutableMultiDict, data_only=True, **kwargs):
         # FIXME: This is a compatibility hack for new versions of marshmallow and
         #  our currently pinned 2.x verison. It automatically returns the data
         #  attribute by default, if load returns an UnmarshalResult object.
@@ -38,6 +38,7 @@ class SPSchema(Schema):
             return result
         elif data_only:
             # Return the data attribute only.
+            # `.data` is a regular :class:`dict` instance.
             return result.data
         return result
 
@@ -52,12 +53,11 @@ class SPSchema(Schema):
             # return the dumped object.
             return result
         elif data_only:
-            # Return the data attribute only.
             return result.data
         return result
 
 
-class BytesField(Field):
+class BytesField(String):
     """A field for (de)serializing :class:`bytes` from and to :class:`str` dict values."""
 
     default_error_messages = {
@@ -79,17 +79,13 @@ class BytesField(Field):
 
         TODO: Implement support for additional `kwargs`
         """
-        if kwargs:
-            warnings.warn(
-                f"Unsupported keywords for field {self.__class__.__qualname__} detected. "
-                f"The following options will be ignored: {[option for option in kwargs]}"
-            )
-
         if not value:
             self.fail("empty")
 
+        deserialized_string = super(BytesField, self)._deserialize(value, attr, data, **kwargs)
+
         try:
-            return value.encode("UTF-8")
+            return deserialized_string.encode("UTF-8")
         except AttributeError:
             self.fail("not_a_str")
 
