@@ -28,7 +28,7 @@ from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.runner import ScenarioRunner
 from scenario_player.services.common.app import ServiceProcess
-from scenario_player.services.common.factories import construct_flask_app
+from scenario_player.services.utils.factories import construct_flask_app
 from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, enable_gui_formatting
 from scenario_player.utils import (

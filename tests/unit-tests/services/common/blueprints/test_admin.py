@@ -4,7 +4,7 @@ import pytest
 
 
 from scenario_player.services.common.blueprints.admin import admin_blueprint, shutdown_server
-from scenario_player.services.common.factories import construct_flask_app
+from scenario_player.services.utils.factories import construct_flask_app
 
 
 @pytest.fixture

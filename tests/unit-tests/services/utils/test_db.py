@@ -3,7 +3,7 @@ import json
 from unittest import mock
 
 import pytest
-from scenario_player.services.common.factories import construct_flask_app
+from scenario_player.services.utils.factories import construct_flask_app
 from scenario_player.services.utils.db import JSONRedis
 from scenario_player.exceptions.db import CorruptedDBEntry
 

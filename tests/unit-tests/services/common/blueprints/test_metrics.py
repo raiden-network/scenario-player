@@ -4,7 +4,7 @@ import pytest
 
 
 from scenario_player.services.common.blueprints.metrics import metrics_blueprint
-from scenario_player.services.common.factories import construct_flask_app
+from scenario_player.services.utils.factories import construct_flask_app
 
 
 @pytest.fixture
