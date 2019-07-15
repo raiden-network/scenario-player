@@ -30,5 +30,5 @@ class TestTransactionSendRequestValidator:
         tx_hash = b'my_tx_hash'
         given = {'tx_hash': tx_hash}
         expected_output = {'tx_hash': tx_hash.decode('utf-8')}
-        actual = serializer.dump(given).data
+        actual = serializer.dump(given)
         assert actual == expected_output

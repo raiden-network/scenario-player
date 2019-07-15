@@ -38,7 +38,6 @@ class TestNewTransactionEndpoint:
             ({"value": 123.0, "to": 'someaddress'}, '400'),
             ({"value": 123.0, "to": 'someaddress', "startgas": 2.0}, '200'),
             ({"value": 'wholesome', "to": 'someaddress', "startgas": 2.0}, '400'),
-            ({"value": 123.0, "to": 55.0, "startgas": 2.0}, '400'),
             ({"value": 123.0, "to": 'someaddress', "startgas": 'hello'}, '400'),
         ],
         ids=[
@@ -47,7 +46,6 @@ class TestNewTransactionEndpoint:
             "Missing 'startgas'",
             "None missing - correct types",
             "None missing - 'value' type incorrect",
-            "None missing - 'to' type incorrect",
             "None missing - 'startgas' type incorrect",
         ]
     )
