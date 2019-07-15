@@ -1,25 +1,49 @@
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 
-from raiden.network.rpc import client
 from scenario_player.services.utils.factories import construct_flask_app
 
 
 @pytest.fixture
 def transaction_service_app():
-    with patch.object(client, "JSONRPCClient", autospec=True):
-        app = construct_flask_app()
-        app.config['TESTING'] = True
-        app.config['rpc-client'] = client.JSONRPCClient(web3='web3_instance', privkey=b"my_private_key")
-        app.config['rpc-client'].send_transaction.return_value = b"result"
-
-        yield app
+    app = construct_flask_app()
+    app.config['TESTING'] = True
+    app.config['rpc-client'] = {}
+    return app
 
 
 @pytest.fixture
 def transaction_service_client(transaction_service_app):
     return transaction_service_app.test_client()
+
+
+@pytest.fixture
+def default_request_parameters():
+    """Default required request parameters for a POST request to /transactions.
+
+    FIXME: Update the parameters once #96 is implemented.
+     See here for more details:
+        https://github.com/raiden-network/scenario-player/issues/96
+
+    """
+    parameters = {
+        "chain_url": "http://test.net",
+        "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2",
+        "gas_price_strategy": "fast",
+        "to": 'someaddress',
+        "value": 123.0,
+        "startgas": 2.0,
+    }
+    return parameters
+
+
+@pytest.fixture
+def deserialized_request_parameters(default_request_parameters):
+    deserialized = dict(default_request_parameters)
+    deserialized["to"] = deserialized["to"].encode("UTF-8")
+    deserialized["privkey"] = deserialized["privkey"].encode("UTF-8")
+    return deserialized
 
 
 @pytest.mark.dependency(name="transaction_blueprint_loaded")
@@ -28,37 +52,61 @@ def test_transaction_blueprint_is_loaded(transaction_service_client):
 
 
 @pytest.mark.dependency(depends=["transaction_blueprint_loaded"])
+@patch("scenario_player.services.transactions.blueprints.transactions.get_rpc_client", return_value=MagicMock(**{"send_transaction.return_value": b"my_tx_hash"}))
 class TestNewTransactionEndpoint:
+    """Test Schema validation/serialization, business logic for POST requests to /transactions."""
 
     @pytest.mark.parametrize(
         'parameters, expected_status',
         argvalues=[
-            ({"to": 'someaddress', "startgas": 2.0}, '400'),
-            ({"value": 123.0, "startgas": 2.0}, '400'),
-            ({"value": 123.0, "to": 'someaddress'}, '400'),
-            ({"value": 123.0, "to": 'someaddress', "startgas": 2.0}, '200'),
-            ({"value": 'wholesome', "to": 'someaddress', "startgas": 2.0}, '400'),
-            ({"value": 123.0, "to": 'someaddress', "startgas": 'hello'}, '400'),
+            ({"value": 123.0, "to": 'someaddress', "startgas": 2.0, "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2", "gas_price_strategy": "fast"}, '400'),
+            ({"value": 123.0, "to": 'someaddress', "startgas": 2.0, "gas_price_strategy": "fast", "chain_url": "http://test.net"}, '400'),
+            ({"to": 'someaddress', "startgas": 2.0, "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2", "chain_url": "http://test.net", "gas_price_strategy": "fast"}, '400'),
+            ({"value": 123.0, "startgas": 2.0, "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2", "chain_url": "http://test.net", "gas_price_strategy": "fast"}, '400'),
+            ({"value": 123.0, "to": 'someaddress', "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2", "chain_url": "http://test.net", "gas_price_strategy": "fast"}, '400'),
+            ({"value": 'wholesome', "to": 'someaddress', "startgas": 2.0, "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2", "chain_url": "http://test.net", "gas_price_strategy": "fast"}, '400'),
+            ({"value": 123.0, "to": 'someaddress', "startgas": 'hello', "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2", "chain_url": "http://test.net", "gas_price_strategy": "fast"}, '400'),
+            ({"value": 123.0, "to": 'someaddress', "startgas": 'hello', "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2", "chain_url": 1, "gas_price_strategy": "fast"}, '400'),
+            ({"value": 123.0, "to": 'someaddress', "startgas": 'hello', "privkey": 1, "chain_url": "http://test.net", "gas_price_strategy": "fast"}, '400'),
+            ({"value": 123.0, "to": 'someaddress', "startgas": 'hello', "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2", "chain_url": "http://test.net", "gas_price_strategy": 1}, '400'),
+            ({"value": 123.0, "to": 'someaddress', "startgas": 2.0, "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2", "chain_url": "http://test.net", "gas_price_strategy": "fast"}, '200'),
+            ({"value": 123.0, "to": 'someaddress', "startgas": 2.0, "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2", "chain_url": "http://test.net"}, '200'),
         ],
         ids=[
+            "Missing 'chain_url'",
+            "Missing 'privkey'",
             "Missing 'value'",
             "Missing 'to'",
             "Missing 'startgas'",
-            "None missing - correct types",
             "None missing - 'value' type incorrect",
             "None missing - 'startgas' type incorrect",
+            "None missing - 'chain_url' type incorrect",
+            "None missing - 'privkey' type incorrect",
+            "None missing - 'gas_price_strategy' type incorrect",
+            "None missing - correct types",
+            "Missing 'gas_price_strategy'",
         ]
     )
     def test_endpoint_requires_parameter_and_expects_types(
-            self, parameters, expected_status, transaction_service_client
+            self, _, parameters, expected_status, transaction_service_client
     ):
         """The transactions service's `POST /transactions` endpoint requires a set of parameters with specific types.
 
         These are as follows:
 
+            - `chain_url` - The url for configuring a Web3 instance, if this is the first
+                transaction sent via the given `run_id`.
+            - `privkey` - the private key required to send the transaction via a
+                :class:`raiden.network.rpc.client.JSONRPCClient` instance.
+            - `gas_price_strategy` - the strategy to set when instantiaing the
+                :class:`raiden.network.rpc.client.JSONRPCClient` instance.
             - `to` - a transaction hash, sent as a  `utf-8` encoded :class:`str`.
             - `startgas` - the starting gas to use, as either :class:`int` or :class:`float`.
             - `amount` - the amount to send with the transaction, as either :class:`int` or :class:`float`.
+
+        FIXME: Update the parameters once #96 is implemented.
+         See here for more details:
+            https://github.com/raiden-network/scenario-player/issues/96
 
         If either one or more is missing, or has an incorrect type, we expect to
         see a `400 Bad Request` response from the service.
@@ -69,7 +117,7 @@ class TestNewTransactionEndpoint:
 
     @patch('scenario_player.services.transactions.blueprints.transactions.transaction_send_schema')
     def test_new_transaction_calls_validate_and_deserialize_of_its_schema(
-            self, mock_schema, transaction_service_client
+            self, mock_schema, _, transaction_service_client, default_request_parameters, deserialized_request_parameters
     ):
         """The :meth:`scenario_player.services.transactions.blueprints.TransactionSendRequest.validate_and_deserialize`
         must be called when processing a request.
@@ -78,88 +126,60 @@ class TestNewTransactionEndpoint:
         be compared to other instances created with identical parameters. Hence, we must
         iterate over the keys of our expected dict and compare manually.
         """
-        parameters ={"value": 123.0, "to": 'someaddress', "startgas": 2.0}
-        deserialized_parameters = {"value": 123.0, "to": b'someaddress', "startgas": 2.0}
         mock_schema.configure_mock(
             **{
-                "validate_and_deserialize.return_value": deserialized_parameters,
+                "validate_and_deserialize.return_value": deserialized_request_parameters,
                 "dumps.return_value": "ok",
             }
         )
-        transaction_service_client.post('/transactions', data=parameters)
+        transaction_service_client.post('/transactions', data=default_request_parameters)
 
         mock_schema.validate_and_deserialize.assert_called_once()
         args, kwargs = mock_schema.validate_and_deserialize.call_args
         params_as_multi_dict, *_ = args
-        for key, value in parameters.items():
+        for key, value in params_as_multi_dict.items():
             assert key in params_as_multi_dict
-            assert parameters[key] == value
+            assert params_as_multi_dict[key] == value
 
     @patch('scenario_player.services.transactions.blueprints.transactions.transaction_send_schema')
-    def test_new_transaction_calls_dumps_of_its_schema(self, mock_schema, transaction_service_client):
+    def test_new_transaction_calls_dumps_of_its_schema(
+            self,
+            mock_schema, _,
+            transaction_service_client,
+            deserialized_request_parameters,
+            default_request_parameters
+    ):
         """The :meth:`scenario_player.services.transactions.blueprints.TransactionSendRequest.dump`
         must be called when processing a request and its result returned by the function.
         """
-        parameters = {"value": 123.0, "to": 'someaddress', "startgas": 2.0}
         mock_schema.configure_mock(
             **{
-                "validate_and_deserialize.return_value": parameters,
+                "validate_and_deserialize.return_value": deserialized_request_parameters,
                 "dumps.return_value": "ok",
             }
         )
         expected_tx_hash = b'my_tx_hash'
-        transaction_service_client.application.config['rpc-client'].send_transaction.return_value = expected_tx_hash
-        parameters = {"value": 123.0, "to": 'someaddress', "startgas": 2.0}
 
-        r = transaction_service_client.post('/transactions', data=parameters)
+        r = transaction_service_client.post('/transactions', data=default_request_parameters)
         assert "200" in r.status
         mock_schema.dumps.assert_called_once_with({"tx_hash": expected_tx_hash})
 
     @patch('scenario_player.services.transactions.blueprints.transactions.TransactionSendRequest')
-    def test_new_transaction_calls_the_services_jsonrpc_client_with_the_requests_params(
-            self, mock_schema, transaction_service_client
-    ):
-        """The method :meth:`JSONRPCClient.send_transaction` must be called with the parameters of the request
-        and its result passed to :meth:`scenario_player.services.transactions.blueprints.TransactionSendRequest.dump`.
-        """
-        parameters = {"value": 123.0, "to": 'someaddress', "startgas": 2.0}
-        deserialized_parameters = {"value": 123.0, "to": b'someaddress', "startgas": 2.0}
+    def test_new_transaction_calls_get_rpc_client_function(self, mock_schema, mock_get_rpc_client, transaction_service_client, default_request_parameters, deserialized_request_parameters):
+        """When sending a POST request, ensure that the endpoint calls the :func:`get_rpc_client` function."""
         mock_schema.configure_mock(
             **{
-                "validate_and_deserialize.return_value": deserialized_parameters,
+                "validate_and_deserialize.return_value": deserialized_request_parameters,
                 "dumps.return_value": "ok",
             }
         )
 
-        transaction_service_client.post('/transactions', data=parameters)
-        transaction_service_client.application.config['rpc-client'].send_transaction.assert_called_once_with(**deserialized_parameters)
+        transaction_service_client.post('/transactions', data=default_request_parameters)
+        mock_get_rpc_client.assert_called_once_with(
+            deserialized_request_parameters["chain_url"],
+            deserialized_request_parameters["privkey"],
+            deserialized_request_parameters["gas_price_strategy"],
+        )
 
-    def test_new_transaction_aborts_with_500_if_no_rpc_client_key_exists_in_app_config(
-            self, transaction_service_client
-    ):
-        """A `500 Internal Server Error` is expected, if :func:`new_transaction` cannot find a
-        :class:`JSONRPCClient` instance.
 
-        Specifically, if no `'rpc-client'` key exists in the :attr:`flask.Flask.config` dictionary
-        """
-        parameters = {"value": 123.0, "to": 'someaddress', "startgas": 2.0}
-        transaction_service_client.application.config.pop('rpc-client')
 
-        resp = transaction_service_client.post('/transactions', data=parameters)
-        assert '500' in resp.status
-        assert b"No JSONRPCClient instance available on service!" in resp.data
-
-    def test_new_transaction_aborts_with_500_if_rpc_client_key_value_is_not_a_valid_instance_of_rpc_client(
-            self, transaction_service_client
-    ):
-        """A `500 Internal Server Error` is expected, if :func:`new_transaction` cannot find a
-        :class:`JSONRPCClient` instance.
-
-        Specifically, if :var:`flask.Flask.config['rpc-client']` is not an instance of :class:`JSONRPCClient`.
-        """
-        parameters = {"value": 123.0, "to": 'someaddress', "startgas": 2.0}
-        transaction_service_client.application.config['rpc-client'] = "This is not a JSONRPCClient instance."
-
-        resp = transaction_service_client.post('/transactions', data=parameters)
-        assert '500' in resp.status
-        assert b"No JSONRPCClient instance available on service!" in resp.data
