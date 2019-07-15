@@ -3,7 +3,6 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 
-
 @pytest.mark.dependency(name="transaction_blueprint_loaded")
 def test_transaction_blueprint_is_loaded(transaction_service_client):
     assert "transactions_view" in transaction_service_client.application.blueprints

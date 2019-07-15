@@ -1,3 +1,5 @@
+import pytest
+
 from scenario_player.services.utils.factories import construct_flask_app
 
 
