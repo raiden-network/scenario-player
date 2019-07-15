@@ -1,5 +1,4 @@
 import flask
-
 from flask_marshmallow.schema import Schema
 from marshmallow.fields import String
 

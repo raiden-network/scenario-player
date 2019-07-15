@@ -3,8 +3,7 @@ import logging
 import pluggy
 
 from scenario_player.constants import HOST_NAMESPACE
-from scenario_player.hooks import specs
-from scenario_player.hooks import impl
+from scenario_player.hooks import impl, specs
 
 log = logging.getLogger(__name__)
 
