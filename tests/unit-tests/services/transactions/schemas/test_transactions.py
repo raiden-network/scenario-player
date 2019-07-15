@@ -5,34 +5,6 @@ from werkzeug.exceptions import BadRequest
 from scenario_player.services.transactions.blueprints.transactions import TransactionSendRequest
 
 
-@pytest.fixture
-def default_request_parameters():
-    """Default required request parameters for a POST request to /transactions.
-
-    FIXME: Update the parameters once #96 is implemented.
-     See here for more details:
-        https://github.com/raiden-network/scenario-player/issues/96
-
-    """
-    parameters = {
-        "chain_url": "http://test.net",
-        "privkey": "1234abcd",
-        "gas_price_strategy": "fast",
-        "to": 'someaddress',
-        "value": 123.0,
-        "startgas": 2.0,
-    }
-    return parameters
-
-
-@pytest.fixture
-def deserialized_request_parameters(default_request_parameters):
-    deserialized = dict(default_request_parameters)
-    deserialized["to"] = deserialized["to"].encode("UTF-8")
-    deserialized["privkey"] = deserialized["privkey"].encode("UTF-8")
-    return deserialized
-
-
 class TestTransactionSendRequestValidator:
 
     def test_validator_accepts_correct_input(self, default_request_parameters, deserialized_request_parameters):

@@ -2,48 +2,6 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from scenario_player.services.utils.factories import construct_flask_app
-
-
-@pytest.fixture
-def transaction_service_app():
-    app = construct_flask_app()
-    app.config['TESTING'] = True
-    app.config['rpc-client'] = {}
-    return app
-
-
-@pytest.fixture
-def transaction_service_client(transaction_service_app):
-    return transaction_service_app.test_client()
-
-
-@pytest.fixture
-def default_request_parameters():
-    """Default required request parameters for a POST request to /transactions.
-
-    FIXME: Update the parameters once #96 is implemented.
-     See here for more details:
-        https://github.com/raiden-network/scenario-player/issues/96
-
-    """
-    parameters = {
-        "chain_url": "http://test.net",
-        "privkey": "1z2x3c4v5b6n7m8,9.0pkjhgfdswert2",
-        "gas_price_strategy": "fast",
-        "to": 'someaddress',
-        "value": 123.0,
-        "startgas": 2.0,
-    }
-    return parameters
-
-
-@pytest.fixture
-def deserialized_request_parameters(default_request_parameters):
-    deserialized = dict(default_request_parameters)
-    deserialized["to"] = deserialized["to"].encode("UTF-8")
-    deserialized["privkey"] = deserialized["privkey"].encode("UTF-8")
-    return deserialized
 
 
 @pytest.mark.dependency(name="transaction_blueprint_loaded")
@@ -117,7 +75,7 @@ class TestNewTransactionEndpoint:
 
     @patch('scenario_player.services.transactions.blueprints.transactions.transaction_send_schema')
     def test_new_transaction_calls_validate_and_deserialize_of_its_schema(
-            self, mock_schema, _, transaction_service_client, default_request_parameters, deserialized_request_parameters
+            self, mock_schema, _, transaction_service_client, default_send_tx_request_parameters, deserialized_send_tx_request_parameters
     ):
         """The :meth:`scenario_player.services.transactions.blueprints.TransactionSendRequest.validate_and_deserialize`
         must be called when processing a request.
@@ -128,11 +86,11 @@ class TestNewTransactionEndpoint:
         """
         mock_schema.configure_mock(
             **{
-                "validate_and_deserialize.return_value": deserialized_request_parameters,
+                "validate_and_deserialize.return_value": deserialized_send_tx_request_parameters,
                 "dumps.return_value": "ok",
             }
         )
-        transaction_service_client.post('/transactions', data=default_request_parameters)
+        transaction_service_client.post('/transactions', data=default_send_tx_request_parameters)
 
         mock_schema.validate_and_deserialize.assert_called_once()
         args, kwargs = mock_schema.validate_and_deserialize.call_args
@@ -146,39 +104,39 @@ class TestNewTransactionEndpoint:
             self,
             mock_schema, _,
             transaction_service_client,
-            deserialized_request_parameters,
-            default_request_parameters
+            deserialized_send_tx_request_parameters,
+            default_send_tx_request_parameters
     ):
         """The :meth:`scenario_player.services.transactions.blueprints.TransactionSendRequest.dump`
         must be called when processing a request and its result returned by the function.
         """
         mock_schema.configure_mock(
             **{
-                "validate_and_deserialize.return_value": deserialized_request_parameters,
+                "validate_and_deserialize.return_value": deserialized_send_tx_request_parameters,
                 "dumps.return_value": "ok",
             }
         )
         expected_tx_hash = b'my_tx_hash'
 
-        r = transaction_service_client.post('/transactions', data=default_request_parameters)
+        r = transaction_service_client.post('/transactions', data=default_send_tx_request_parameters)
         assert "200" in r.status
         mock_schema.dumps.assert_called_once_with({"tx_hash": expected_tx_hash})
 
     @patch('scenario_player.services.transactions.blueprints.transactions.TransactionSendRequest')
-    def test_new_transaction_calls_get_rpc_client_function(self, mock_schema, mock_get_rpc_client, transaction_service_client, default_request_parameters, deserialized_request_parameters):
+    def test_new_transaction_calls_get_rpc_client_function(self, mock_schema, mock_get_rpc_client, transaction_service_client, default_send_tx_request_parameters, deserialized_send_tx_request_parameters):
         """When sending a POST request, ensure that the endpoint calls the :func:`get_rpc_client` function."""
         mock_schema.configure_mock(
             **{
-                "validate_and_deserialize.return_value": deserialized_request_parameters,
+                "validate_and_deserialize.return_value": deserialized_send_tx_request_parameters,
                 "dumps.return_value": "ok",
             }
         )
 
-        transaction_service_client.post('/transactions', data=default_request_parameters)
+        transaction_service_client.post('/transactions', data=default_send_tx_request_parameters)
         mock_get_rpc_client.assert_called_once_with(
-            deserialized_request_parameters["chain_url"],
-            deserialized_request_parameters["privkey"],
-            deserialized_request_parameters["gas_price_strategy"],
+            deserialized_send_tx_request_parameters["chain_url"],
+            deserialized_send_tx_request_parameters["privkey"],
+            deserialized_send_tx_request_parameters["gas_price_strategy"],
         )
 
 
