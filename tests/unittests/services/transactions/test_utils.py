@@ -1,5 +1,6 @@
 from unittest import mock
-
+import hashlib
+import hmac
 import pytest
 
 from scenario_player.services.transactions.utils import generate_hash_key, get_rpc_client
@@ -7,7 +8,10 @@ from scenario_player.services.transactions.utils import generate_hash_key, get_r
 
 @pytest.mark.dependency(name="generate_hash_key_for_transactions_service")
 def test_generate_hash_key_uses_shalib256_digested_hmac_hexdigests():
-    pass
+    url = "http://test.net"
+    privkey = b"my_private_key"
+    expected = hmac.new(privkey, url.encode("UTF-8"), hashlib.sha256).hexdigest()
+    assert generate_hash_key(url, privkey) == expected
 
 
 @pytest.mark.dependency(depends=["generate_hash_key_for_transactions_service"])
