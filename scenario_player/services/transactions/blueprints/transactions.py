@@ -11,11 +11,11 @@ The following endpoints are supplied by this blueprint:
         form data.
 
 """
-from flask import Blueprint, Response, abort, current_app, request
+from flask import Blueprint, Response, request
 
-from raiden.network.rpc.client import JSONRPCClient
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.transactions.schemas.transactions import TransactionSendRequest
+from scenario_player.services.transactions.utils import get_rpc_client
 
 transactions_blueprint = Blueprint("transactions_view", __name__)
 
@@ -45,6 +45,9 @@ def new_transaction():
         POST /transactions
 
             {
+                "chain_url": <str>,
+                "privkey": <str>,
+                "gas_price_strategy": <str>,
                 "to_address": <str>,
                 "start_gas": <number>,
                 "value": <number>,
@@ -53,6 +56,7 @@ def new_transaction():
         200 OK
 
             {
+                "chain_url": <str>,
                 "tx_hash": <str>,
             }
 
@@ -60,12 +64,10 @@ def new_transaction():
     data = transaction_send_schema.validate_and_deserialize(request.form)
 
     # Get the services JSONRPCClient from the flask app's app_context.
-    try:
-        rpc_client = current_app.config["rpc-client"]
-        if not isinstance(rpc_client, JSONRPCClient):
-            raise RuntimeError
-    except (RuntimeError, KeyError):
-        abort(500, "No JSONRPCClient instance available on service!")
+    chain_url, privkey = data["chain_url"], data["privkey"]
+    gas_price_strategy = data["gas_price_strategy"]
+
+    rpc_client = get_rpc_client(chain_url, privkey, gas_price_strategy)
     result = rpc_client.send_transaction(**data)
 
     return Response(transaction_send_schema.dumps({"tx_hash": result}).encode("UTF-8"), status=200)
