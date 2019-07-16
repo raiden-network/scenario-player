@@ -90,14 +90,8 @@ commands:
           name: Install additional packages for CI tools
           command: |
             pip install bumpversion
-            pip install tox
             pip install flit
-            pip install requests
             pip install tomlkit
-            pip install flake8
-            pip install isort
-            pip install black
-            pip install pytest
 
   prep_venv:
     description: Restore cache and virtualenv, and install dependencies.
