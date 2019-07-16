@@ -8,4 +8,4 @@ HOOK_SPEC = pluggy.hooks.HookspecMarker(HOST_NAMESPACE)
 
 @HOOK_SPEC
 def register_blueprints(app: flask.Flask) -> None:
-    """Register a list of blueprints with the :mode:`raiden-scenario-player` applcation."""
+    """Register a list of blueprints with the :mod:`raiden-scenario-player` applcation."""
