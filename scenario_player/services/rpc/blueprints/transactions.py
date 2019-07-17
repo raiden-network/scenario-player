@@ -11,11 +11,10 @@ The following endpoints are supplied by this blueprint:
         form data.
 
 """
-from flask import Blueprint, Response, request, current_app
+from flask import Blueprint, Response, current_app, request
 
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.rpc.schemas.transactions import TransactionSendRequest
-
 
 transactions_blueprint = Blueprint("transactions_view", __name__)
 

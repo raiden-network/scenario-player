@@ -13,10 +13,13 @@ The following endpoints are supplied by this blueprint:
         object and pops it from the application's RPCRegistry.
 
 """
-from flask import Blueprint, request, current_app, Response, jsonify
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from scenario_player.services.common.metrics import REDMetricsTracker
-from scenario_player.services.rpc.schemas.instances import NewInstanceRequest, DeleteInstanceRequest
+from scenario_player.services.rpc.schemas.instances import (
+    DeleteInstanceRequest,
+    NewInstanceRequest,
+)
 
 instances_blueprint = Blueprint("instances_blueprint", __name__)
 new_instance_schema = NewInstanceRequest()

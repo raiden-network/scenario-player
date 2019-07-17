@@ -5,6 +5,7 @@ from scenario_player.services.common.schemas import BytesField, SPSchema
 
 class NewInstanceRequest(SPSchema):
     """Validator for POST /rpc/client requests."""
+
     # Deserialization fields.
     chain_url = Url(required=True, load_only=True)
     privkey = BytesField(required=True, load_only=True)
@@ -16,4 +17,5 @@ class NewInstanceRequest(SPSchema):
 
 class DeleteInstanceRequest(SPSchema):
     """Validator for DELETE /rpc/client/<rpc_client_id> requests."""
+
     rpc_client_id = String(required=True)

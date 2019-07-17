@@ -2,6 +2,7 @@ import hashlib
 import hmac
 from collections.abc import Mapping
 from typing import Tuple, Union
+
 from flask import abort
 from web3 import Web3
 
@@ -24,11 +25,13 @@ class RPCRegistry(Mapping):
     def __init__(self):
         self.dict = {}
 
-    def __getitem__(self, item: Union[str, Tuple[str, str], Tuple[str, str, str]]) -> Tuple[JSONRPCClient, str]:
+    def __getitem__(
+        self, item: Union[str, Tuple[str, str], Tuple[str, str, str]]
+    ) -> Tuple[JSONRPCClient, str]:
         try:
             return self.dict[item], item
         except KeyError:
-            if isinstance(item, tuple) and len(item) in range(2,4):
+            if isinstance(item, tuple) and len(item) in range(2, 4):
                 url, privkey, *strategy = item
                 # Strategy may be an empty list if the tuple was only 2 items long.
                 strategy = strategy or "fast"
@@ -36,7 +39,9 @@ class RPCRegistry(Mapping):
                 key = generate_hash_key(url, privkey)
                 if key not in self.dict:
                     try:
-                        self.dict[key] = JSONRPCClient(Web3(url), privkey=privkey, gas_price_strategy=strategy)
+                        self.dict[key] = JSONRPCClient(
+                            Web3(url), privkey=privkey, gas_price_strategy=strategy
+                        )
                     except ValueError as e:
                         abort(400, description=str(e))
                 return self.dict[key], key
