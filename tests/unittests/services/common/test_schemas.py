@@ -22,7 +22,7 @@ def test_schema():
 
 
 def test_bytesfield_deserializes_to_utf_8_decoded_bytes(test_schema):
-    """:meth:`Bytestfield._serialize` is expected to return a :class:`bytes` object,
+    """:meth:`Bytestfield._deserialize` is expected to return a :class:`bytes` object,
     using UTF8 encoding.
     """
     bytes_field = BytesField()

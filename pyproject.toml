@@ -64,6 +64,7 @@ dev = [
     "flake8==3.7.5",
     "isort==4.3.16",
     "pytest==4.5.0",
+    "pytest-dependency==0.4.0",
     "tox",
 ]
 
@@ -75,6 +76,7 @@ GitHub = "https://github.com/raiden-network/scenario-player"
 "Raiden Developer Portal" = "https://dev.raiden.network"
 
 [tool.flit.entrypoints."scenario_player"]
+transactions-service = "scenario_player.services.transactions.blueprints"
 common-service = "scenario_player.services.common.blueprints"
 
 [tool.flit.scripts]
@@ -89,7 +91,7 @@ scenario_player = "scenario_player.__main__:main"
 [tool.isort]
 line_length = 99
 known_future_library = "future"
-known_first_party = ["scenario_player", "raiden"]
+known_first_party = "scenario_player, raiden"
 default_section = "THIRDPARTY"
 combine_as_imports = true
 # black compatibility
