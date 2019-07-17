@@ -1,4 +1,4 @@
-from marshmallow.fields import Float, List, String, Url
+from marshmallow.fields import Float, List
 
 from scenario_player.services.common.schemas import BytesField, SPSchema
 

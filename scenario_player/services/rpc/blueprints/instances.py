@@ -1,4 +1,4 @@
-"""Request a new JSONRPCClient for a given private key and test net.from marshmallow.fields import Float, List, String, Url
+"""Request a new JSONRPCClient for a given private key and test net.
 
 The blueprint offers endpoints to request an instance, as well as deleting one.
 
