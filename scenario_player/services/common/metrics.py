@@ -23,6 +23,7 @@ filtering using PromQL.
 
 """
 import timeit
+from flask import request
 
 from prometheus_client import Counter, Histogram
 
@@ -42,8 +43,8 @@ HTTP_REQUESTS_LATENCY = Histogram(
 class REDMetricsTracker:
     """Prometheus RED metrics tracker class."""
 
-    def __init__(self, method: str, path: str):
-        self.method, self.path = method, path
+    def __init__(self, method: str=None, path: str=None):
+        self.method, self.path = method or request.method, path or request.path
         self.timer = None
 
     def __enter__(self):
