@@ -2,8 +2,12 @@ from unittest import mock
 import hashlib
 import hmac
 import pytest
+import werkzeug
 
-from scenario_player.services.transactions.utils import generate_hash_key, get_rpc_client
+from raiden.network.rpc.client import JSONRPCClient
+
+from scenario_player.services.transactions.utils import generate_hash_key
+from scenario_player.services.transactions.utils import RPCRegistry
 
 
 @pytest.mark.dependency(name="generate_hash_key_for_transactions_service")
@@ -14,49 +18,50 @@ def test_generate_hash_key_uses_shalib256_digested_hmac_hexdigests():
     assert generate_hash_key(url, privkey) == expected
 
 
-@pytest.mark.dependency(depends=["generate_hash_key_for_transactions_service"])
-@mock.patch("scenario_player.services.transactions.utils.JSONRPCClient")
-class TestGetRPCClientFunc:
+class TestRPCRegistry:
+    def test_class_behaves_like_immutable_dict(self, transaction_service_client):
+        registry = RPCRegistry()
+        with pytest.raises(TypeError):
+            registry["hello"] = "goodbye"
 
-    @mock.patch("scenario_player.services.transactions.utils.Web3")
-    def test_func_assigns_new_instance_if_client_key_does_not_exist(self, mock_web3, mock_rpc_client, transaction_service_app):
-        url = "https://test.net"
-        privkey = b"privkey"
-        gas_price_strategy = "fast"
+        with pytest.raises(TypeError):
+            del registry["something"]
 
-        client_key = generate_hash_key(url, privkey)
+    def test_class_implements_pop_method(self, transaction_service_client):
+        assert RPCRegistry().pop("Something") is None
 
-        mock_rpc_client.return_value = mock_rpc_client
+    @pytest.mark.parametrize(
+        "invalid_key",
+        argvalues=[(1,), (1, 2, 3, 4), "non-existing-id", 42.5, 20],
+        ids=[
+            "Item is tuple, but too short",
+            "Item is tuple, but too long",
+            "Item is str, but non-existing instance id",
+            "Item is float",
+            "Item is int",
+        ],
+    )
+    def test_getitem_raises_keyerror(self, invalid_key):
+        with pytest.raises(werkzeug.exceptions.NotFound):
+            RPCRegistry()[invalid_key]
 
-        with transaction_service_app.app_context():
-            assert transaction_service_app.config["rpc-client"] == {}
+    @pytest.mark.parametrize(
+        "valid_tuple",
+        argvalues=[("https://test.net", b"12345678909876543211234567890098"), ("https://test.net", b"12345678909876543211234567890098", "slow")],
+        ids=["2-item tuple", "3-item-tuple"],
+    )
+    @mock.patch("scenario_player.services.transactions.utils.JSONRPCClient")
+    def test_getitem_with_valid_tuple_creates_stores_and_returns_rpc_instance(self, mock_rpc_client, valid_tuple):
+        expected_obj = object()
+        mock_rpc_client.return_value = expected_obj
 
-            get_rpc_client(url, privkey, gas_price_strategy)
-            args, kwargs = mock_rpc_client.call_args
-            assert mock_web3(url) in args
-            for k, v in {"privkey": privkey, "gas_price_strategy": gas_price_strategy}.items():
-                assert k in kwargs
-                assert kwargs[k] == v
+        registry = RPCRegistry()
+        chain_url, privkey, *strategy = valid_tuple
+        expected_id = generate_hash_key(chain_url, privkey)
+        # Assert the registry does not have the instance.
+        with pytest.raises(werkzeug.exceptions.NotFound):
+            registry[expected_id]
 
-            assert transaction_service_app.config["rpc-client"][client_key] == mock_rpc_client
-
-    def test_func_returns_existing_instance_if_client_key_exists(self, mock_rpc_client, transaction_service_app):
-        url = "https://test.net"
-        privkey = b"privkey"
-        gas_price_strategy = "fast"
-
-        client_key = generate_hash_key(url, privkey)
-
-        mock_rpc_client.return_value = mock_rpc_client
-
-        expected = object()
-
-        with transaction_service_app.app_context():
-            assert transaction_service_app.config["rpc-client"] == {}
-            transaction_service_app.config["rpc-client"][client_key] = expected
-
-            # Assert it's the expected object returned.
-            assert get_rpc_client(url, privkey, gas_price_strategy) == expected
-
-            # Assert the returned object is also still present in the config.
-            assert transaction_service_app.config["rpc-client"][client_key] == expected
+        instance, actual_id = registry[valid_tuple]
+        mock_rpc_client.assert_called_once()
+        assert actual_id == expected_id
