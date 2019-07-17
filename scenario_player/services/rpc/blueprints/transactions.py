@@ -11,11 +11,11 @@ The following endpoints are supplied by this blueprint:
         form data.
 
 """
-from flask import Blueprint, Response, request
+from flask import Blueprint, Response, request, current_app
 
 from scenario_player.services.common.metrics import REDMetricsTracker
-from scenario_player.services.transactions.schemas.transactions import TransactionSendRequest
-from scenario_player.services.transactions.utils import get_rpc_client
+from scenario_player.services.rpc.schemas.transactions import TransactionSendRequest
+
 
 transactions_blueprint = Blueprint("transactions_view", __name__)
 
@@ -23,15 +23,14 @@ transactions_blueprint = Blueprint("transactions_view", __name__)
 transaction_send_schema = TransactionSendRequest()
 
 
-@transactions_blueprint.route("/transactions", methods=["POST"])
-def transactions_route():
+@transactions_blueprint.route("/rpc/client/<rpc_client_id>/transactions", methods=["POST"])
+def transactions_route(rpc_client_id):
     handlers = {"POST": new_transaction}
-    print("Dispatching request..")
-    with REDMetricsTracker(request.method, "/transactions"):
-        return handlers[request.method]()
+    with REDMetricsTracker():
+        return handlers[request.method](rpc_client_id)
 
 
-def new_transaction():
+def new_transaction(rpc_client_id):
     """Create a new transaction.
 
     The given parameters will be passed to the service's
@@ -42,21 +41,17 @@ def new_transaction():
 
     Example::
 
-        POST /transactions
+        POST /rpc/client/<rpc_client_id>/transactions
 
             {
-                "chain_url": <str>,
-                "privkey": <str>,
-                "gas_price_strategy": <str>,
-                "to_address": <str>,
-                "start_gas": <number>,
+                "to": <str>,
+                "startgas": <number>,
                 "value": <number>,
             }
 
         200 OK
 
             {
-                "chain_url": <str>,
                 "tx_hash": <str>,
             }
 
@@ -64,10 +59,8 @@ def new_transaction():
     data = transaction_send_schema.validate_and_deserialize(request.form)
 
     # Get the services JSONRPCClient from the flask app's app_context.
-    chain_url, privkey = data["chain_url"], data["privkey"]
-    gas_price_strategy = data["gas_price_strategy"]
+    rpc_client, _ = current_app.config["rpc-client"][rpc_client_id]
 
-    rpc_client = get_rpc_client(chain_url, privkey, gas_price_strategy)
     result = rpc_client.send_transaction(**data)
 
     return Response(transaction_send_schema.dumps({"tx_hash": result}).encode("UTF-8"), status=200)

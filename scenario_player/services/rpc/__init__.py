@@ -1,4 +1,4 @@
-"""Microservice managing transactions for the Scenario Player.
+"""Microservice managing RPC client instances for the Scenario Player.
 
 As scenarios are run in parallel, there must exist a single instance
 managing transactions, as otherwise the underliying JSONRPC client

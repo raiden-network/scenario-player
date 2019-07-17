@@ -69,7 +69,7 @@ class TestNewTransactionEndpoint:
 
         assert expected_status in resp.status
 
-    @patch('scenario_player.services.transactions.blueprints.transactions.transaction_send_schema')
+    @patch('scenario_player.services.rpc.blueprints.transactions.transaction_send_schema')
     def test_new_transaction_calls_validate_and_deserialize_of_its_schema(
             self,
             mock_schema,
@@ -78,7 +78,7 @@ class TestNewTransactionEndpoint:
             deserialized_send_tx_request_parameters,
             rpc_client_id,
     ):
-        """The :meth:`scenario_player.services.transactions.blueprints.TransactionSendRequest.validate_and_deserialize`
+        """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.validate_and_deserialize`
         must be called when processing a request.
 
         Since the parameters are passed as a :class:`werkzeug.datastructures.ImmutableMultiDict`, which cannot
@@ -103,7 +103,7 @@ class TestNewTransactionEndpoint:
             assert key in default_send_tx_request_parameters
             assert str(default_send_tx_request_parameters[key]) == value
 
-    @patch('scenario_player.services.transactions.blueprints.transactions.transaction_send_schema')
+    @patch('scenario_player.services.rpc.blueprints.transactions.transaction_send_schema')
     def test_new_transaction_calls_dumps_of_its_schema(
             self,
             mock_schema,
@@ -112,7 +112,7 @@ class TestNewTransactionEndpoint:
             default_send_tx_request_parameters,
             rpc_client_id,
     ):
-        """The :meth:`scenario_player.services.transactions.blueprints.TransactionSendRequest.dump`
+        """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.dump`
         must be called when processing a request and its result returned by the function.
         """
         mock_schema.configure_mock(
@@ -130,7 +130,7 @@ class TestNewTransactionEndpoint:
         assert "200" in r.status
         mock_schema.dumps.assert_called_once_with({"tx_hash": expected_tx_hash})
 
-    @patch('scenario_player.services.transactions.blueprints.transactions.TransactionSendRequest')
+    @patch('scenario_player.services.rpc.blueprints.transactions.TransactionSendRequest')
     def test_new_transaction_calls_correct_rpc_client_function(
             self,
             mock_schema,

@@ -6,8 +6,8 @@ import werkzeug
 
 from raiden.network.rpc.client import JSONRPCClient
 
-from scenario_player.services.transactions.utils import generate_hash_key
-from scenario_player.services.transactions.utils import RPCRegistry
+from scenario_player.services.rpc.utils import generate_hash_key
+from scenario_player.services.rpc.utils import RPCRegistry
 
 
 @pytest.mark.dependency(name="generate_hash_key_for_transactions_service")
@@ -50,10 +50,8 @@ class TestRPCRegistry:
         argvalues=[("https://test.net", b"12345678909876543211234567890098"), ("https://test.net", b"12345678909876543211234567890098", "slow")],
         ids=["2-item tuple", "3-item-tuple"],
     )
-    @mock.patch("scenario_player.services.transactions.utils.JSONRPCClient")
+    @mock.patch("scenario_player.services.rpc.utils.JSONRPCClient", autospec=True)
     def test_getitem_with_valid_tuple_creates_stores_and_returns_rpc_instance(self, mock_rpc_client, valid_tuple):
-        expected_obj = object()
-        mock_rpc_client.return_value = expected_obj
 
         registry = RPCRegistry()
         chain_url, privkey, *strategy = valid_tuple
@@ -65,3 +63,5 @@ class TestRPCRegistry:
         instance, actual_id = registry[valid_tuple]
         mock_rpc_client.assert_called_once()
         assert actual_id == expected_id
+        assert isinstance(instance, JSONRPCClient)
+        assert registry[actual_id] == (instance, actual_id)

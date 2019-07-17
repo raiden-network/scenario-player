@@ -2,7 +2,7 @@ import pytest
 
 from werkzeug.exceptions import BadRequest
 
-from scenario_player.services.transactions.blueprints.transactions import TransactionSendRequest
+from scenario_player.services.rpc.blueprints.transactions import TransactionSendRequest
 
 
 class TestTransactionSendRequestValidator:

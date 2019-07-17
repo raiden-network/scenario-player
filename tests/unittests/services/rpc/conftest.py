@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 
 from scenario_player.services.utils.factories import construct_flask_app
-from scenario_player.services.transactions.utils import generate_hash_key, RPCRegistry
+from scenario_player.services.rpc.utils import generate_hash_key, RPCRegistry
 
 
 @pytest.fixture

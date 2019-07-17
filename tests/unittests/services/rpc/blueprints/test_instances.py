@@ -36,7 +36,7 @@ class TestCreateRPCInstanceEndpoint:
         resp = transaction_service_client.post("/rpc/client", data=parameters)
         assert expected_status in resp.status
 
-    @patch('scenario_player.services.transactions.blueprints.instances.new_instance_schema')
+    @patch('scenario_player.services.rpc.blueprints.instances.new_instance_schema')
     def test_create_rpc_instance_calls_validate_and_deserialize_of_its_schema(
             self,
             mock_schema,
@@ -44,7 +44,7 @@ class TestCreateRPCInstanceEndpoint:
             default_create_rpc_instance_request_parameters,
             deserialized_create_rpc_instance_request_parameters,
     ):
-        """The :meth:`scenario_player.services.transactions.blueprints.TransactionSendRequest.validate_and_deserialize`
+        """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.validate_and_deserialize`
         must be called when processing a request.
 
         Since the parameters are passed as a :class:`werkzeug.datastructures.ImmutableMultiDict`, which cannot
@@ -69,7 +69,7 @@ class TestCreateRPCInstanceEndpoint:
             assert key in default_create_rpc_instance_request_parameters
             assert str(default_create_rpc_instance_request_parameters[key]) == value
 
-    @patch('scenario_player.services.transactions.blueprints.instances.new_instance_schema')
+    @patch('scenario_player.services.rpc.blueprints.instances.new_instance_schema')
     def test_create_rpc_instance_calls_dumps_of_its_schema(
             self,
             mock_schema,
@@ -78,7 +78,7 @@ class TestCreateRPCInstanceEndpoint:
             default_create_rpc_instance_request_parameters,
             rpc_client_id,
     ):
-        """The :meth:`scenario_player.services.transactions.blueprints.TransactionSendRequest.dump`
+        """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.dump`
         must be called when processing a request and its result returned by the function.
         """
         mock_schema.configure_mock(
