@@ -13,16 +13,49 @@ class TestNewTransactionEndpoint:
     """Test Schema validation/serialization, business logic for POST requests to /rpc/client/<client_id>/transactions."""
 
     @pytest.mark.parametrize(
-        'parameters, expected_status',
+        "parameters, expected_status",
         argvalues=[
-            ({"value": 123.0, "to": 'someaddress', "startgas": 2.0}, '404'),
-            ({"to": 'someaddress', "startgas": 2.0, "rpc_client_id": "rpc-client-instance-id"}, '400'),
-            ({"value": 123.0, "startgas": 2.0, "rpc_client_id": "rpc-client-instance-id"}, '400'),
-            ({"value": 123.0, "to": 'someaddress', "rpc_client_id": "rpc-client-instance-id"}, '400'),
-            ({"value": 'wholesome', "to": 'someaddress', "startgas": 2.0, "rpc_client_id": "rpc-client-instance-id"}, '400'),
-            ({"value": 123.0, "to": 'someaddress', "startgas": 'hello', "rpc_client_id": "rpc-client-instance-id"}, '400'),
-            ({"value": 123.0, "to": 'someaddress', "startgas": 'hello', "rpc_client_id": 100}, '400'),
-            ({"value": 123.0, "to": 'someaddress', "startgas": 2.0, "rpc_client_id": "rpc-client-instance-id"}, '200'),
+            ({"value": 123.0, "to": "someaddress", "startgas": 2.0}, "404"),
+            (
+                {"to": "someaddress", "startgas": 2.0, "rpc_client_id": "rpc-client-instance-id"},
+                "400",
+            ),
+            ({"value": 123.0, "startgas": 2.0, "rpc_client_id": "rpc-client-instance-id"}, "400"),
+            (
+                {"value": 123.0, "to": "someaddress", "rpc_client_id": "rpc-client-instance-id"},
+                "400",
+            ),
+            (
+                {
+                    "value": "wholesome",
+                    "to": "someaddress",
+                    "startgas": 2.0,
+                    "rpc_client_id": "rpc-client-instance-id",
+                },
+                "400",
+            ),
+            (
+                {
+                    "value": 123.0,
+                    "to": "someaddress",
+                    "startgas": "hello",
+                    "rpc_client_id": "rpc-client-instance-id",
+                },
+                "400",
+            ),
+            (
+                {"value": 123.0, "to": "someaddress", "startgas": "hello", "rpc_client_id": 100},
+                "400",
+            ),
+            (
+                {
+                    "value": 123.0,
+                    "to": "someaddress",
+                    "startgas": 2.0,
+                    "rpc_client_id": "rpc-client-instance-id",
+                },
+                "200",
+            ),
         ],
         ids=[
             "Unknown 'rpc_client_id'",
@@ -33,10 +66,10 @@ class TestNewTransactionEndpoint:
             "None missing - 'startgas' type incorrect",
             "None missing - 'rpc_client_id' type incorrect",
             "None missing - correct types",
-        ]
+        ],
     )
     def test_endpoint_requires_parameter_and_expects_types(
-            self, parameters, expected_status, transaction_service_client, rpc_client_id,
+        self, parameters, expected_status, transaction_service_client, rpc_client_id
     ):
         """The transactions service's `POST /rpc/transactions` endpoint requires a set of parameters with specific types.
 
@@ -63,20 +96,19 @@ class TestNewTransactionEndpoint:
         if has_client_id is False:
             rpc_client_id = None
         resp = transaction_service_client.post(
-            f'/rpc/client/{rpc_client_id}/transactions',
-            data=parameters,
+            f"/rpc/client/{rpc_client_id}/transactions", data=parameters
         )
 
         assert expected_status in resp.status
 
-    @patch('scenario_player.services.rpc.blueprints.transactions.transaction_send_schema')
+    @patch("scenario_player.services.rpc.blueprints.transactions.transaction_send_schema")
     def test_new_transaction_calls_validate_and_deserialize_of_its_schema(
-            self,
-            mock_schema,
-            transaction_service_client,
-            default_send_tx_request_parameters,
-            deserialized_send_tx_request_parameters,
-            rpc_client_id,
+        self,
+        mock_schema,
+        transaction_service_client,
+        default_send_tx_request_parameters,
+        deserialized_send_tx_request_parameters,
+        rpc_client_id,
     ):
         """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.validate_and_deserialize`
         must be called when processing a request.
@@ -92,8 +124,7 @@ class TestNewTransactionEndpoint:
             }
         )
         transaction_service_client.post(
-            f"/rpc/client/{rpc_client_id}/transactions",
-            data=default_send_tx_request_parameters,
+            f"/rpc/client/{rpc_client_id}/transactions", data=default_send_tx_request_parameters
         )
 
         mock_schema.validate_and_deserialize.assert_called_once()
@@ -103,14 +134,14 @@ class TestNewTransactionEndpoint:
             assert key in default_send_tx_request_parameters
             assert str(default_send_tx_request_parameters[key]) == value
 
-    @patch('scenario_player.services.rpc.blueprints.transactions.transaction_send_schema')
+    @patch("scenario_player.services.rpc.blueprints.transactions.transaction_send_schema")
     def test_new_transaction_calls_dumps_of_its_schema(
-            self,
-            mock_schema,
-            transaction_service_client,
-            deserialized_send_tx_request_parameters,
-            default_send_tx_request_parameters,
-            rpc_client_id,
+        self,
+        mock_schema,
+        transaction_service_client,
+        deserialized_send_tx_request_parameters,
+        default_send_tx_request_parameters,
+        rpc_client_id,
     ):
         """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.dump`
         must be called when processing a request and its result returned by the function.
@@ -121,26 +152,27 @@ class TestNewTransactionEndpoint:
                 "dumps.return_value": "ok",
             }
         )
-        expected_tx_hash = b'my_tx_hash'
+        expected_tx_hash = b"my_tx_hash"
 
         r = transaction_service_client.post(
-            f"/rpc/client/{rpc_client_id}/transactions",
-            data=default_send_tx_request_parameters,
+            f"/rpc/client/{rpc_client_id}/transactions", data=default_send_tx_request_parameters
         )
         assert "200" in r.status
         mock_schema.dumps.assert_called_once_with({"tx_hash": expected_tx_hash})
 
-    @patch('scenario_player.services.rpc.blueprints.transactions.TransactionSendRequest')
+    @patch("scenario_player.services.rpc.blueprints.transactions.TransactionSendRequest")
     def test_new_transaction_calls_correct_rpc_client_function(
-            self,
-            mock_schema,
-            transaction_service_client,
-            default_send_tx_request_parameters,
-            deserialized_send_tx_request_parameters,
-            rpc_client_id
+        self,
+        mock_schema,
+        transaction_service_client,
+        default_send_tx_request_parameters,
+        deserialized_send_tx_request_parameters,
+        rpc_client_id,
     ):
         """When sending a POST request, ensure that the endpoint calls the :func:`get_rpc_client` function."""
-        mock_rpc_client = transaction_service_client.application.config["rpc-client"].dict[rpc_client_id]
+        mock_rpc_client = transaction_service_client.application.config["rpc-client"].dict[
+            rpc_client_id
+        ]
         mock_schema.configure_mock(
             **{
                 "validate_and_deserialize.return_value": deserialized_send_tx_request_parameters,
@@ -149,8 +181,9 @@ class TestNewTransactionEndpoint:
         )
 
         transaction_service_client.post(
-            f"/rpc/client/{rpc_client_id}/transactions",
-            data=default_send_tx_request_parameters,
+            f"/rpc/client/{rpc_client_id}/transactions", data=default_send_tx_request_parameters
         )
 
-        mock_rpc_client.send_transaction.assert_called_once_with(**deserialized_send_tx_request_parameters)
+        mock_rpc_client.send_transaction.assert_called_once_with(
+            **deserialized_send_tx_request_parameters
+        )
