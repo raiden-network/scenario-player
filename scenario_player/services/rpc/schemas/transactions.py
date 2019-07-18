@@ -1,17 +1,10 @@
-from marshmallow.fields import Float, List, String, Url
+from marshmallow.fields import Float, List
 
 from scenario_player.services.common.schemas import BytesField, SPSchema
 
 
 class TransactionSendRequest(SPSchema):
-    """Validator for POST /transactions requests"""
-
-    # FIXME: Remove these as soon as the Node Management Service is implemented.
-    #  For more information, see the following issue:
-    #       https://github.com/raiden-network/scenario-player/issues/96
-    chain_url = Url(required=True)
-    privkey = BytesField(required=True, load_only=True)
-    gas_price_strategy = String(required=False, load_only=True, missing="fast")
+    """Validator for POST /rpc/<rpc_client_id>/transactions requests"""
 
     # Serialization fields.
     to = BytesField(required=True, load_only=True)

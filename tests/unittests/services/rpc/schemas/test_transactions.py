@@ -2,7 +2,7 @@ import pytest
 
 from werkzeug.exceptions import BadRequest
 
-from scenario_player.services.transactions.blueprints.transactions import TransactionSendRequest
+from scenario_player.services.rpc.blueprints.transactions import TransactionSendRequest
 
 
 class TestTransactionSendRequestValidator:
@@ -19,7 +19,7 @@ class TestTransactionSendRequestValidator:
 
     def test_validator_raises_validation_error_on_invalid_arg_type(self, default_send_tx_request_parameters):
         validator = TransactionSendRequest()
-        default_send_tx_request_parameters["url"] = 55
+        default_send_tx_request_parameters["value"] = "larry"
         with pytest.raises(BadRequest):
             validator.validate_and_deserialize(default_send_tx_request_parameters)
 
