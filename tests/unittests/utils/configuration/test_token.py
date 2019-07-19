@@ -102,7 +102,7 @@ class TestTokenConfig:
         minimal_yaml_dict["token"]["balance_fund"] = 99
 
         config = TokenConfig(minimal_yaml_dict, token_info_path)
-        assert config.min_balace == 66
+        assert config.min_balance == 66
         assert config.max_funding == 99
 
     def test_balancing_attrs_return_defaults_if_keys_are_absent(
@@ -111,5 +111,5 @@ class TestTokenConfig:
         """The attributes 'min_balance' and `max_funding` return defaults if their keys are absent."""
 
         config = TokenConfig(minimal_yaml_dict, token_info_path)
-        assert config.min_balace == DEFAULT_TOKEN_BALANCE_MIN
+        assert config.min_balance == DEFAULT_TOKEN_BALANCE_MIN
         assert config.max_funding == DEFAULT_TOKEN_BALANCE_FUND
