@@ -27,7 +27,7 @@ class TestNodesConfig:
 
         assert expected_defaults["nodes"][key] == actual
 
-    @pytest.mark.parametrize("key", ["count", "list"])
+    @pytest.mark.parametrize("key", ["count"])
     def test_class_returns_required_keys(self, key, minimal_yaml_dict):
         """Required keys are accessible via identically named class attributes."""
         config = NodesConfig(minimal_yaml_dict)
@@ -39,7 +39,7 @@ class TestNodesConfig:
 
         assert minimal_yaml_dict["nodes"][key] == actual
 
-    @pytest.mark.parametrize("key", ["list", "count"])
+    @pytest.mark.parametrize("key", ["count"])
     def test_missing_required_key_raises_node_configuration_error(self, key, minimal_yaml_dict):
         """OMissing required keys in the config dict raises a NodeConfigurationError."""
         minimal_yaml_dict["nodes"].pop(key)

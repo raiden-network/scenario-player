@@ -40,11 +40,6 @@ class NodesConfig(ConfigMapping):
         return self.get("node_options", {})
 
     @property
-    def list(self) -> List[str]:
-        """Return the list of nodes configured in the scenario's yaml."""
-        return self["list"]
-
-    @property
     def commands(self) -> dict:
         """Return the commands configured for the nodes."""
         return self.get("commands", {})
@@ -61,5 +56,4 @@ class NodesConfig(ConfigMapping):
 
         """
         self.assert_option(self.dict, "Must specify 'nodes' setting section!")
-        self.assert_option("list" in self.dict, 'Must specify nodes under "list" setting!')
         self.assert_option("count" in self.dict, 'Must specify a "count" setting!')

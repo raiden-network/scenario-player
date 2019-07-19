@@ -17,7 +17,6 @@ def expected_defaults():
         },
         "token": {"address": None, "block": 0, "reuse": False, "symbol": str(), "decimals": 0},
         "nodes": {
-            "list": [],
             "count": 1,
             "commands": {},
             "default_options": {},
@@ -34,5 +33,5 @@ def minimal_yaml_dict():
         "scenario": {"serial": {"runner": None, "config": "salami"}},
         "settings": {},
         "token": {},
-        "nodes": {"list": [], "count": 1},
+        "nodes": {"count": 1},
     }
