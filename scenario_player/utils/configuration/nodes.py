@@ -1,5 +1,3 @@
-from typing import List, Optional, Union
-
 import structlog
 
 from scenario_player.exceptions.config import NodeConfigurationError
