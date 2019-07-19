@@ -14,7 +14,7 @@ class TestConfigMapping:
         """:meth:`ConfigMapping.assert_option` raises an exception if expession is False."""
 
     with pytest.raises(ConfigurationError):
-        ConfigMapping.assert_option(True is False)
+        ConfigMapping.assert_option(False)
 
     def test_assert_option_completes_silently_if_expression_is_true(self):
         """:meth:`ConfigMapping.assert_option` raises no exception if expession is True."""
@@ -26,9 +26,9 @@ class TestConfigMapping:
         with given message."""
         expected_message = "Custom message"
         with pytest.raises(ConfigurationError, match=expected_message):
-            ConfigMapping.assert_option(True is False, expected_message)
+            ConfigMapping.assert_option(False, expected_message)
 
     def test_assert_option_raises_custom_exception_if_exception_is_passed(self):
         """:meth:`ConfigMapping.assert_option` allows raising custom exception."""
         with pytest.raises(SyntaxError):
-            ConfigMapping.assert_option(True is False, SyntaxError)
+            ConfigMapping.assert_option(False, SyntaxError)
