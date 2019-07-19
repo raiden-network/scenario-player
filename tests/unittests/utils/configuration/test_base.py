@@ -19,7 +19,7 @@ class TestConfigMapping:
     def test_assert_option_completes_silently_if_expression_is_true(self):
         """:meth:`ConfigMapping.assert_option` raises no exception if expession is True."""
 
-    ConfigMapping.assert_option(True is True)
+    ConfigMapping.assert_option(True)
 
     def test_assert_option_raises_configuration_error_with_given_message(self):
         """:meth:`ConfigMapping.assert_option` allows raise :exc:`ConfigurationError`
