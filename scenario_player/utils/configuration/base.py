@@ -31,7 +31,7 @@ class ConfigMapping(Mapping):
             assert expression
         except AssertionError as e:
             if err is None or isinstance(err, str):
-                raise cls.CONFIGURATION_ERROR(err)
+                raise cls.CONFIGURATION_ERROR(err) from e
             else:
                 exception = err
             raise exception from e
