@@ -32,3 +32,7 @@ class TokenSaveError(TokenFileError):
 
 class TokenFileMissing(TokenFileError):
     """We tried re-using a token, but no token.info file exists for it."""
+
+
+class ServiceConfigurationError(ConfigurationError):
+    """There was a problem validating the services configuration setting."""
