@@ -37,7 +37,7 @@ class TestNodesConfig:
 
     @pytest.mark.parametrize("key", ["list", "count"])
     def test_missing_required_key_raises_node_configuration_error(self, key, minimal_yaml_dict):
-        minimal_yaml_dict.pop(key)
+        minimal_yaml_dict["nodes"].pop(key)
         with pytest.raises(NodeConfigurationError):
             NodesConfig(minimal_yaml_dict)
 

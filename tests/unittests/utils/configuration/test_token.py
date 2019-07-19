@@ -2,14 +2,14 @@ from unittest.mock import patch
 
 import pytest
 
-from scenario_player.exceptions.config import NodeConfigurationError
+from scenario_player.exceptions.config import TokenConfigurationError
 from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.token import TokenConfig
 
 
 class TestTokenConfig:
-    def test_is_subclass_of_config_mapping(self, minimal_yaml_dict):
-        assert isinstance(TokenConfig(minimal_yaml_dict), ConfigMapping)
+    def test_is_subclass_of_config_mapping(self, minimal_yaml_dict, tmp_path):
+        assert isinstance(TokenConfig(minimal_yaml_dict, tmp_path), ConfigMapping)
 
     @pytest.mark.parametrize("key", ["address", "block", "decimals"])
     def test_class_returns_expected_default_for_key(
@@ -22,22 +22,18 @@ class TestTokenConfig:
         except AttributeError as e:
             raise AssertionError(e)
 
-        assert expected_defaults["nodes"][key] == actual
+        assert expected_defaults["token"][key] == actual
 
     def test_passing_mutual_exclusive_keys_raises_configuration_error(
         self, minimal_yaml_dict, tmp_path
     ):
         minimal_yaml_dict["token"]["reuse"] = True
         minimal_yaml_dict["token"]["address"] = "some_address"
-        with pytest.raises(NodeConfigurationError):
+        with pytest.raises(TokenConfigurationError):
             TokenConfig(minimal_yaml_dict, tmp_path)
 
-    def test_instantiating_with_an_empty_dict_raises_node_configuration_error(self, tmp_path):
-        with pytest.raises(NodeConfigurationError):
-            TokenConfig({}, tmp_path)
-
-    @pytest.mark.parametrize("exists", [(True, False)])
-    @pytest.mark.parametrize("reuse", [(True, False)])
+    @pytest.mark.parametrize("exists", [True, False])
+    @pytest.mark.parametrize("reuse", [True, False])
     def test_reuse_token_property_returns_correct_boolean(
         self, reuse, exists, minimal_yaml_dict, tmp_path
     ):

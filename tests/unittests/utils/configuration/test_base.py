@@ -10,7 +10,7 @@ class TestConfigMapping:
         assert isinstance(ConfigMapping({}), Mapping)
 
     def test_assert_option_raises_exception_if_expression_is_false(self):
-        with pytest.raises(AssertionError):
+        with pytest.raises(ConfigurationError):
             ConfigMapping.assert_option(True is False)
 
     def test_assert_option_completes_silently_if_expression_is_true(self):
@@ -21,6 +21,6 @@ class TestConfigMapping:
         with pytest.raises(ConfigurationError, match=expected_message):
             ConfigMapping.assert_option(True is False, expected_message)
 
-    def test_assert_option_raises_exception_if_exception_instance_is_passed(self):
+    def test_assert_option_raises_custom_exception_if_exception_is_passed(self):
         with pytest.raises(SyntaxError):
             ConfigMapping.assert_option(True is False, SyntaxError)

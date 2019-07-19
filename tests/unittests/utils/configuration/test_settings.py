@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 import pytest
 
-from scenario_player.exceptions.config import NodeConfigurationError
 from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.settings import SettingsConfig
 
@@ -23,10 +22,6 @@ class TestSettingsConfig:
             raise AssertionError(e)
 
         assert expected_defaults["settings"][key] == actual
-
-    def test_instantiating_with_an_empty_dict_raises_scenario_configuration_error(self):
-        with pytest.raises(NodeConfigurationError):
-            SettingsConfig({})
 
     def test_gas_price_strategy_returns_a_callable(self, minimal_yaml_dict):
         config = SettingsConfig(minimal_yaml_dict)
