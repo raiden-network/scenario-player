@@ -15,16 +15,11 @@ class ScenarioConfig(ConfigMapping):
     critical errors, such as missing or mutually exclusive keys.
     """
 
+    CONFIGURATION_ERROR = ScenarioConfigurationError
+
     def __init__(self, config: dict) -> None:
         super(ScenarioConfig, self).__init__(config.get("scenario", {}))
         self.validate()
-
-    @staticmethod
-    def assert_option(expression, err: Optional[Union[str, Exception]] = None):
-        """Assert the given expression and raise a ScenarioConfigurationError if it fails."""
-        if isinstance(err, str):
-            err = ScenarioConfigurationError(err)
-        return ConfigMapping.assert_option(expression, err)
 
     def validate(self):
         self.assert_option(self.dict, "Must specify 'scenario' setting section!")

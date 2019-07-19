@@ -17,6 +17,8 @@ class NodesConfig(ConfigMapping):
     :param scenario_version: Version of the scenario yaml file.
     """
 
+    CONFIGURATION_ERROR = NodeConfigurationError
+
     def __init__(self, loaded_yaml: dict):
         super(NodesConfig, self).__init__(loaded_yaml.get("nodes", {}))
         self.validate()
@@ -46,13 +48,6 @@ class NodesConfig(ConfigMapping):
     def commands(self) -> dict:
         """Return the commands configured for the nodes."""
         return self.get("commands", {})
-
-    @staticmethod
-    def assert_option(expression, err: Optional[Union[str, Exception]] = None):
-        """Assert the given expression and raise a NodeConfigurationError if it fails."""
-        if isinstance(err, str):
-            err = NodeConfigurationError(err)
-        return ConfigMapping.assert_option(expression, err)
 
     def validate(self):
         """Assert that the given configuration is valid.

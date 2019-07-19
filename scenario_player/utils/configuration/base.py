@@ -9,6 +9,9 @@ log = structlog.get_logger(__name__)
 
 
 class ConfigMapping(Mapping):
+
+    CONFIGURATION_ERROR = ConfigurationError
+
     def __init__(self, loaded_yaml: Mapping):
         self.dict = loaded_yaml
 
@@ -21,14 +24,14 @@ class ConfigMapping(Mapping):
     def __len__(self):
         return len(self.dict)
 
-    @staticmethod
-    def assert_option(expression, err: Optional[Union[str, Exception]] = None):
+    @classmethod
+    def assert_option(cls, expression, err: Optional[Union[str, Exception]] = None):
         """Wrap `assert` to raise a ConfigurationError instead of an AssertionError."""
         try:
             assert expression
         except AssertionError as e:
             if err is None or isinstance(err, str):
-                raise ConfigurationError(err)
+                raise cls.CONFIGURATION_ERROR(err)
             else:
                 exception = err
             raise exception from e

@@ -19,16 +19,11 @@ class SettingsConfig(ConfigMapping):
     critical errors, such as missing or mutually exclusive keys.
     """
 
+    CONFIGURATION_ERROR = ScenarioConfigurationError
+
     def __init__(self, loaded_yaml: dict) -> None:
         super(SettingsConfig, self).__init__(loaded_yaml.get("settings", {}))
         self.validate()
-
-    @staticmethod
-    def assert_option(expression, err: Optional[Union[str, Exception]] = None):
-        """Assert the given expression and raise a ScenarioConfigurationError if it fails."""
-        if isinstance(err, str):
-            err = ScenarioConfigurationError(err)
-        return ConfigMapping.assert_option(expression, err)
 
     @property
     def timeout(self) -> int:

@@ -12,19 +12,15 @@ log = structlog.get_logger(__name__)
 
 
 class TokenConfig(ConfigMapping):
+
+    CONFIGURATION_ERROR = TokenConfigurationError
+
     def __init__(self, loaded_yaml: dict, data_path: pathlib.Path):
         super(TokenConfig, self).__init__(loaded_yaml.get("token", {}))
         self._token_id = uuid.uuid4()
         self._name = None
         self._token_file = data_path.joinpath("token.info")
         self.validate()
-
-    @staticmethod
-    def assert_option(expression, err: Optional[Union[str, Exception]] = None):
-        """Assert the given expression and raise a NodeConfigurationError if it fails."""
-        if isinstance(err, str):
-            err = TokenConfigurationError(err)
-        return ConfigMapping.assert_option(expression, err)
 
     def validate(self):
         """Validate the configuration section.
