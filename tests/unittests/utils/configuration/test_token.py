@@ -14,7 +14,7 @@ class TestTokenConfig:
         """The class is a subclass of :class:`ConfigMapping`."""
         assert isinstance(TokenConfig(minimal_yaml_dict, token_info_path), ConfigMapping)
 
-    @pytest.mark.parametrize("key", ["address", "block", "decimals"])
+    @pytest.mark.parametrize("key", ["address", "decimals"])
     def test_class_returns_expected_default_for_key(
         self, key, expected_defaults, minimal_yaml_dict, token_info_path
     ):

@@ -72,10 +72,6 @@ class TokenConfig(ConfigMapping):
         return self.get("address")
 
     @property
-    def block(self):
-        return self.get("block", 0)
-
-    @property
     def reuse_token(self):
         return self.get("reuse", False) and self._token_file.exists()
 
