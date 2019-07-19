@@ -27,7 +27,7 @@ class TokenFileError(ConfigurationError):
 
 
 class TokenSaveError(TokenFileError):
-    """We could not safe the token file, probably because of missing permissions or missing values."""
+    """Could not safe the token file, likely because of missing permissions or missing values."""
 
 
 class TokenFileMissing(TokenFileError):
