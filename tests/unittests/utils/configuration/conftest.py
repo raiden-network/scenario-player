@@ -3,6 +3,7 @@ import pytest
 
 @pytest.fixture
 def expected_defaults():
+    """A dict containing all expected default values for keys of any ConfigMapping."""
     return {
         "version": 2,
         "name": "<Unnamed Scenario>",
@@ -28,6 +29,7 @@ def expected_defaults():
 
 @pytest.fixture
 def minimal_yaml_dict():
+    """A dictionary with the minimum required keys for instantiating any ConfigMapping."""
     return {
         "scenario": {"serial": {"runner": None, "config": "salami"}},
         "settings": {},
