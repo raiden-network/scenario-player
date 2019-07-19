@@ -9,12 +9,15 @@ from scenario_player.utils.configuration.token import TokenConfig
 
 class TestTokenConfig:
     def test_is_subclass_of_config_mapping(self, minimal_yaml_dict, tmp_path):
+        """The class is a subclass of :class:`ConfigMapping`."""
         assert isinstance(TokenConfig(minimal_yaml_dict, tmp_path), ConfigMapping)
 
     @pytest.mark.parametrize("key", ["address", "block", "decimals"])
     def test_class_returns_expected_default_for_key(
         self, key, expected_defaults, minimal_yaml_dict, tmp_path
     ):
+        """If supported  keys are absent, sensible defaults are returned for them when accessing
+        them as a class attribute."""
         config = TokenConfig(minimal_yaml_dict, tmp_path)
 
         try:
@@ -37,6 +40,8 @@ class TestTokenConfig:
     def test_reuse_token_property_returns_correct_boolean(
         self, reuse, exists, minimal_yaml_dict, tmp_path
     ):
+        """The :attr:`TokenConfig.reuse_token` returns a boolean depending on
+        the `reuse` key value and the existence of a `token.info` file in the data path."""
         if exists:
             tmp_path.joinpath("token.info").touch()
         minimal_yaml_dict["token"]["reuse"] = reuse
@@ -49,6 +54,8 @@ class TestTokenConfig:
     def test_save_token_property_returns_boolean_according_to_reuse_key(
         self, reuse, minimal_yaml_dict, tmp_path
     ):
+        """The :attr:`TokenConfig.save_token` attribute's value is identical
+        to the `reuse` key value."""
         minimal_yaml_dict["token"]["reuse"] = reuse
         config = TokenConfig(minimal_yaml_dict, tmp_path)
         assert config.save_token == reuse
@@ -56,11 +63,13 @@ class TestTokenConfig:
     def test_symbol_property_uses_token_id_to_generate_symbol_if_not_given_in_config(
         self, minimal_yaml_dict, tmp_path
     ):
+        """We generate a symbol if none is given, using the token id."""
         config = TokenConfig(minimal_yaml_dict, tmp_path)
         assert config.symbol == f"T{config._token_id!s:.3}"
 
     @patch("scenario_player.utils.configuration.token.uuid.uuid4", return_value="turtles")
     def test_token_id_is_generated_using_uuid4(self, mock_uuuid4, minimal_yaml_dict, tmp_path):
+        """The token_id is generated using :func:`uuid.uuid4()`."""
         config = TokenConfig(minimal_yaml_dict, tmp_path)
         mock_uuuid4.assert_called_once()
         assert config._token_id == "turtles"
