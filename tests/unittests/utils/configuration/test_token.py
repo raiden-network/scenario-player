@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
+from scenario_player.constants import DEFAULT_TOKEN_BALANCE_FUND, DEFAULT_TOKEN_BALANCE_MIN
 from scenario_player.exceptions.config import TokenConfigurationError
 from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.token import TokenConfig
@@ -86,3 +87,29 @@ class TestTokenConfig:
         assert json.loads(token_info_path.read_text())
         config = TokenConfig(minimal_yaml_dict, token_info_path)
         assert config.name == "my_token"
+
+    def test_balancing_keys_are_accessible_via_attributes(
+        self, minimal_yaml_dict, token_info_path
+    ):
+        """The keys 'balance_min' and `balance_fund` are accessible via attributes.
+
+        The accessor attributes are:
+
+            * min_balance -> balance_min key
+            * max_funding -> balance_fund key
+        """
+        minimal_yaml_dict["token"]["balance_min"] = 66
+        minimal_yaml_dict["token"]["balance_fund"] = 99
+
+        config = TokenConfig(minimal_yaml_dict, token_info_path)
+        assert config.min_balace == 66
+        assert config.max_funding == 99
+
+    def test_balancing_attrs_return_defaults_if_keys_are_absent(
+        self, minimal_yaml_dict, token_info_path
+    ):
+        """The attributes 'min_balance' and `max_funding` return defaults if their keys are absent."""
+
+        config = TokenConfig(minimal_yaml_dict, token_info_path)
+        assert config.min_balace == DEFAULT_TOKEN_BALANCE_MIN
+        assert config.max_funding == DEFAULT_TOKEN_BALANCE_FUND

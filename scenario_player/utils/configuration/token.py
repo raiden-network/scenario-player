@@ -5,6 +5,7 @@ import uuid
 
 import structlog
 
+from scenario_player.constants import DEFAULT_TOKEN_BALANCE_FUND, DEFAULT_TOKEN_BALANCE_MIN
 from scenario_player.exceptions.config import TokenConfigurationError
 from scenario_player.utils.configuration.base import ConfigMapping
 
@@ -89,3 +90,13 @@ class TokenConfig(ConfigMapping):
     @property
     def decimals(self):
         return self.get("decimals", 0)
+
+    @property
+    def min_balance(self):
+        """The required minimum balance required for the scenario run."""
+        return self.get("balance_min", DEFAULT_TOKEN_BALANCE_MIN)
+
+    @property
+    def max_funding(self):
+        """The maximum amount we fund an account with."""
+        return self.get("balance_fund", DEFAULT_TOKEN_BALANCE_FUND)
