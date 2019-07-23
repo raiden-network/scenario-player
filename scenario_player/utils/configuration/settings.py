@@ -11,6 +11,22 @@ log = structlog.get_logger(__name__)
 
 
 class PFSSettingsConfig(ConfigMapping):
+    """UDC Service Settings interface.
+
+    Example scenario yaml::
+
+        >my_scenario.yaml
+        version: 2
+        ...
+        settings:
+          ...
+          services:
+            ...
+            pfs:
+              url: http://pfs.raiden.network
+            ...
+    """
+
     def __init__(self, loaded_yaml: dict):
         super(PFSSettingsConfig, self).__init__(
             loaded_yaml.get("settings").get("services", {}).get("pfs", {})
@@ -23,6 +39,25 @@ class PFSSettingsConfig(ConfigMapping):
 
 
 class UDCSettingsConfig(ConfigMapping):
+    """UDC Service Settings interface.
+
+    Example scenario yaml::
+
+        >my_scenario.yaml
+        version: 2
+        ...
+        settings:
+          ...
+          services:
+            ...
+            udc:
+              enable: True
+              address: 0x1000001
+              token:
+                deposit: True
+            ...
+    """
+
     def __init__(self, loaded_yaml: dict):
         super(UDCSettingsConfig, self).__init__(
             loaded_yaml.get("settings").get("services", {}).get("udc", {})
@@ -43,6 +78,11 @@ class UDCSettingsConfig(ConfigMapping):
 
 
 class ServiceSettingsConfig(ConfigMapping):
+    """Service Configuration Setting interface.
+
+    Does nothing special but delegate attribute-based access
+    to raiden service settings.
+    """
 
     CONFIGURATION_ERROR = ServiceConfigurationError
 
@@ -56,12 +96,27 @@ class ServiceSettingsConfig(ConfigMapping):
 
 
 class SettingsConfig(ConfigMapping):
-    """Thin wrapper class around a scenario .yaml file.
+    """Settings Configuration Setting interface and validator.
 
     Handles default values as well as exception handling on missing settings.
 
     The configuration present at the given path will automatically be checked for
     critical errors, such as missing or mutually exclusive keys.
+
+    Example scenario yaml::
+
+        >my_scenario.yaml
+        version: 2
+        ...
+        settings:
+          timeout: 55
+          notify: False
+          chain: any
+          gas_price: fast
+          services:
+            <ServicesSettingsConfig>
+        ...
+
     """
 
     CONFIGURATION_ERROR = ScenarioConfigurationError

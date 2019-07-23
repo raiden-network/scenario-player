@@ -13,6 +13,27 @@ log = structlog.get_logger(__name__)
 
 
 class TokenConfig(ConfigMapping):
+    """Configuration for the token to be used in the scenario.
+
+    Example scenario yaml section::
+
+        >my_scenario.yaml
+        version: 2
+        ...
+        token:
+          token_name: MySuperToken
+          address: "x0100001"
+          symbol: SPRTKN
+          decimals: 2
+          balance_min: 400
+          balance_fund: 400
+        ...
+
+    ..note::
+
+        When setting the option `reuse` in the yaml file, it is an error
+        to also give an `address` option - these two options are mutually exclusive!
+    """
 
     CONFIGURATION_ERROR = TokenConfigurationError
 
