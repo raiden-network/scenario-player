@@ -229,9 +229,9 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
 
     log.debug("Deploying token", name=name, symbol=symbol, decimals=decimals)
 
-    token_ctr, receipt = runner.client.deploy_solidity_contract(
+    token_ctr, receipt = runner.client.deploy_single_contract(
         "CustomToken",
-        runner.contract_manager.contracts,
+        runner.contract_manager.contracts["CustomToken"],
         constructor_parameters=(0, decimals, name, symbol),
     )
     contract_deployment_block = receipt["blockNumber"]
