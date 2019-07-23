@@ -31,8 +31,7 @@ from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
 from raiden.utils.typing import TransactionHash
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
-from scenario_player.tasks.base import TaskState
-from scenario_player.tasks.execution import ParallelTask, SerialTask
+
 
 RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)
 VALUE_TX_GAS_COST = 21_000
@@ -400,6 +399,9 @@ def reclaim_eth(
 
 
 def post_task_state_to_rc(scenario, task, state) -> None:
+    from scenario_player.tasks.base import TaskState
+    from scenario_player.tasks.execution import ParallelTask, SerialTask
+
     color = "#c0c0c0"
     if state is TaskState.RUNNING:
         color = "#ffbb20"
