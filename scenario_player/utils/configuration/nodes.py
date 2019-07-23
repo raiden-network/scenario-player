@@ -7,12 +7,27 @@ log = structlog.get_logger(__name__)
 
 
 class NodesConfig(ConfigMapping):
-    """Thin wrapper around the 'nodes' setting section of a loaded scenario .yaml file.
+    """Raiden nodes config settings interface.
+
+    Thin wrapper around the 'nodes' setting section of a loaded scenario .yaml file.
 
     Validates the givne config for missing values and mutually exclusive options.
 
-    :param loaded_yaml: The dict loaded from the scenario yaml file.
-    :param scenario_version: Version of the scenario yaml file.
+
+    Example scenario yaml::
+
+        >my_scenario.yaml
+        version: 2
+        ...
+        nodes:
+          raiden_version:
+          default_options:
+            gas_price: fast
+          node_options:
+            0:
+              gas_price: slow
+          commands:
+
     """
 
     CONFIGURATION_ERROR = NodeConfigurationError
@@ -31,10 +46,12 @@ class NodesConfig(ConfigMapping):
 
     @property
     def default_options(self) -> dict:
+        """Default CLI flags to pass when starting any node."""
         return self.dict.get("default_options", {})
 
     @property
     def node_options(self) -> dict:
+        """Node-specific overrides for the CLI options of nodes."""
         return self.get("node_options", {})
 
     @property
@@ -49,9 +66,11 @@ class NodesConfig(ConfigMapping):
 
             * The scenario version is > 1
             * The configuration is not empty
-            * The "list" option is present in the config
             * The "count" option is present in the config
-
+            * If "node_options" is present, make sure its a dict of type `Dict[int, dict]`
         """
         self.assert_option(self.dict, "Must specify 'nodes' setting section!")
         self.assert_option("count" in self.dict, 'Must specify a "count" setting!')
+        if self.node_options:
+            self.assert_option(all(isinstance(k, int) for k in self.node_options.keys()))
+            self.assert_option(all(isinstance(v, dict) for v in self.node_options.values()))

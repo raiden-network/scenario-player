@@ -13,6 +13,17 @@ class ScenarioConfig(ConfigMapping):
 
     The configuration will automatically be checked for
     critical errors, such as missing or mutually exclusive keys.
+
+    Example scenario yaml::
+
+        >my_scenario.yaml
+        version: 2
+        ...
+        scenario:
+          serial: # Root task
+            # Root config
+            tasks:
+              - ...
     """
 
     CONFIGURATION_ERROR = ScenarioConfigurationError
