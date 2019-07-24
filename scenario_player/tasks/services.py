@@ -289,8 +289,9 @@ class AssertPFSIoUTask(RESTAPIActionTask):
         if self._config.get("iou_exists", True) is False:
             if response_dict:
                 raise ScenarioAssertionError(f"Expected no IOU but got {response_dict}.")
-
-        if "amount" in self._config and "amount" in response_dict:
+        elif not response_dict:
+            raise ScenarioAssertionError(f"Expected IOU, but no IOU exists.")
+        else:
             exp_iou_amount = int(self._config["amount"])
             actual_iou_amount = int(response_dict["amount"])
             if actual_iou_amount != exp_iou_amount:
