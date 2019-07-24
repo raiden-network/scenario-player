@@ -3,4 +3,4 @@
 End-to-end testing tool for the ``Raiden`` test suite.
 """
 
-__version__ = "0.1.0-dev11"
+__version__ = "0.1.0-dev12"
