@@ -266,6 +266,7 @@ workflows:
           <<: *PR_branches_only
 
       - lint-and-test:
+          context: Raiden-SP-Context
           requires:
             - prep-system
 
@@ -286,6 +287,7 @@ workflows:
 
       # Run linters and test harnesses against PR branches.
       - lint-and-test:
+          context: Raiden-SP-Context
           requires:
             - validate-commit-message
 
