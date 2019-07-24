@@ -198,7 +198,7 @@ class ScenarioRunner:
             ).json()
         )
         if self.token_address not in registered_tokens:
-            for i in range(5):
+            for _ in range(5):
                 code, msg = self.register_token(self.token_address, first_node)
                 if 199 < code < 300:
                     break
