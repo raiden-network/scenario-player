@@ -7,7 +7,7 @@ if not COMMIT_TYPE:
     # The commit message title does not comply with any of our regexes.
     exit(1)
 
-if COMMIT_TYPE == "RELEASE":
+if COMMIT_TYPE == "VERSION_BUMP":
     exit(0)
 
 if CURRENT_BRANCH == "release" and COMMIT_TYPE == "FEAT":

@@ -11,7 +11,7 @@ COMMIT_SHA = os.environ["CIRCLE_SHA1"]
 
 COMMIT_PATTERN = r"^\[(?P<TYPE>(FEAT|FIX|HOTFIX))-(?P<ISSUE>#\d+)\]\w?(?P<SUBJECT>)"
 RELEASE_COMMIT_PATTERN = r"^\[(?P<TYPE>RELEASE)\]\w?(?P<SUBJECT>)"
-BUMPVERSION_COMMIT_PATTERN = r"^Cut\sNew\s(?P<TYPE>Release).*$"
+BUMPVERSION_PREFIX = "Cut New Release:"
 CURRENT_BRANCH = os.environ.get("CIRCLE_BRANCH")
 
 PROJECT_GIT_DIR = PROJECT_ROOT + "/.git"
@@ -34,9 +34,8 @@ commit_match = re.match(COMMIT_PATTERN, COMMIT_MSG, flags=re.IGNORECASE)
 if commit_match:
     commit_match = commit_match.groupdict()
 else:
-    release_match = re.match(BUMPVERSION_CFG, COMMIT_MSG, flags=re.IGNORECASE)
-    if release_match:
-        commit_match = release_match.groupdict()
+    if COMMIT_MSG.startswith(BUMPVERSION_PREFIX):
+        commit_match = {"TYPE": "VERSION_BUMP"}
     else:
         commit_match = {}
 
