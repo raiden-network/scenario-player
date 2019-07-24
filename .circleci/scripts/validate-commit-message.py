@@ -6,7 +6,8 @@ from constants import COMMIT_TYPE, CURRENT_BRANCH
 if not COMMIT_TYPE:
     # The commit message title does not comply with any of our regexes.
     exit(1)
-if COMMIT_TYPE == "Release":
+
+if COMMIT_TYPE == "RELEASE":
     exit(0)
 
 if CURRENT_BRANCH == "release" and COMMIT_TYPE == "FEAT":
