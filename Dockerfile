@@ -14,13 +14,17 @@ RUN pip install -r /raiden/requirements/requirements-dev.txt
 # Install the raiden package
 RUN pip install ./raiden
 
-FROM python:$PY_VERSION
+FROM python:${PY_VERSION}
+
+ARG PY_VERSION
+
 # Copy raiden repository and site-packages from build cache
 COPY --from=cache /raiden /raiden
-COPY --from=cache /usr/local/lib/python$PY_VERSION/dist-packages /usr/local/lib/python$PY_VERSION/dist-packages
+COPY --from=cache /usr/local/lib/python${PY_VERSION}/dist-packages /usr/local/lib/python${PY_VERSION}/dist-packages
 
 #  Copy SP folder and install.
-ADD scenario-player /scenario-player
+CMD mkdir /scenario-player
+ADD . /scenario-player
 
 RUN pip install ./scenario-player
 
