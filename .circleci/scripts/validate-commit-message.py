@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
 
-from constants import (
-    COMMIT_TYPE,
-    CURRENT_BRANCH,
-)
+from constants import COMMIT_TYPE, CURRENT_BRANCH
 
 if not COMMIT_TYPE:
     # The commit message title does not comply with any of our regexes.
     exit(1)
+if COMMIT_TYPE == "Release":
+    exit(0)
 
 if CURRENT_BRANCH == "release" and COMMIT_TYPE == "FEAT":
     print("No feature (FEAT) commits allowed on `release` branches!")
