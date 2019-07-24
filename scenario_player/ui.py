@@ -285,3 +285,16 @@ class ScenarioUI:
             self._loop.screen.register_palette_entry("focus", "dark green", "default")
         else:
             self._loop.screen.register_palette_entry("focus", "dark red", "default")
+
+
+def enable_gui_formatting():
+    """Enable formatted text output for the console UI."""
+    log_buffer = UrwidLogWalker([])
+    for handler in logging.getLogger("").handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.terminator = ConcatenableNone()
+            handler.formatter = NonStringifyingProcessorFormatter(
+                UrwidLogRenderer(), foreign_pre_chain=LOGGING_PROCESSORS
+            )
+            handler.stream = log_buffer
+            break

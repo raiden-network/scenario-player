@@ -105,3 +105,7 @@ venv.bak/
 
 # IDEs
 .vscode
+.idea
+
+.pyre/
+.pyre_configuration

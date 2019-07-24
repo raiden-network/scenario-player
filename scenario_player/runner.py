@@ -9,15 +9,15 @@ import gevent
 import structlog
 from eth_typing import ChecksumAddress
 from eth_utils import to_checksum_address
+from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
+from requests import RequestException, Session
+from web3 import HTTPProvider, Web3
+
 from raiden.accounts import Account
 from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import JSONRPCClient
 from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from raiden.utils.typing import TransactionHash
-from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
-from requests import RequestException, Session
-from web3 import HTTPProvider, Web3
-
 from scenario_player.constants import (
     API_URL_ADDRESS,
     API_URL_TOKEN_NETWORK_ADDRESS,
@@ -44,6 +44,8 @@ log = structlog.get_logger(__name__)
 
 
 class ScenarioRunner:
+    # TODO: #73 Drop support for version 1 scenario files.
+
     def __init__(
         self,
         account: Account,
@@ -131,6 +133,8 @@ class ScenarioRunner:
 
         We check for a run number file, and use any number that is logged
         there after incrementing it.
+
+        REFAC: Replace this with a property.
         """
         run_number = 0
         run_number_file = self.data_path.joinpath("run_number.txt")
@@ -194,7 +198,7 @@ class ScenarioRunner:
             ).json()
         )
         if self.token_address not in registered_tokens:
-            for i in range(5):
+            for _ in range(5):
                 code, msg = self.register_token(self.token_address, first_node)
                 if 199 < code < 300:
                     break

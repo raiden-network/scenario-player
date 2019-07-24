@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
 import sys
 import tarfile
@@ -18,26 +17,22 @@ import gevent
 import requests
 import structlog
 from eth_utils import to_checksum_address
-from raiden.accounts import Account
-from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
-from raiden.utils.cli import EnumChoiceType
 from urwid import ExitMainLoop
 from web3.utils.transactions import TRANSACTION_DEFAULTS
 
+from raiden.accounts import Account
+from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
+from raiden.utils.cli import EnumChoiceType
 from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.runner import ScenarioRunner
+from scenario_player.services.common.app import ServiceProcess
+from scenario_player.services.utils.factories import construct_flask_app
 from scenario_player.tasks.base import collect_tasks
-from scenario_player.ui import (
-    LOGGING_PROCESSORS,
-    NonStringifyingProcessorFormatter,
-    ScenarioUI,
-    UrwidLogRenderer,
-    UrwidLogWalker,
-)
+from scenario_player.ui import ScenarioUI, enable_gui_formatting
 from scenario_player.utils import (
     ChainConfigType,
-    ConcatenableNone,
     DummyStream,
     post_task_state_to_rc,
     send_notification_mail,
@@ -159,18 +154,16 @@ def run(
 
     # If the output is a terminal, beautify our output.
     if enable_ui:
-        log_buffer = UrwidLogWalker([])
-        for handler in logging.getLogger("").handlers:
-            if isinstance(handler, logging.StreamHandler):
-                handler.terminator = ConcatenableNone()
-                handler.formatter = NonStringifyingProcessorFormatter(
-                    UrwidLogRenderer(), foreign_pre_chain=LOGGING_PROCESSORS
-                )
-                handler.stream = log_buffer
-                break
+        enable_gui_formatting()
 
     # Dynamically import valid Task classes from sceanrio_player.tasks package.
     collect_tasks(tasks)
+
+    # Start our Services
+    service = construct_flask_app()
+    service_process = ServiceProcess(service)
+
+    service_process.start()
 
     # Run the scenario using the configurations passed.
     runner = ScenarioRunner(
@@ -226,6 +219,9 @@ def run(
                 log.warning("Press q to exit")
                 while not ui_greenlet.dead:
                     gevent.sleep(1)
+            service_process.start()
+        except ServiceProcessException:
+            service_process.kill()
         finally:
             if runner.is_managed:
                 runner.node_controller.stop()

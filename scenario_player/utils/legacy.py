@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 import os
 import pathlib
@@ -9,7 +7,7 @@ import time
 import uuid
 from collections import defaultdict, deque
 from datetime import datetime
-from itertools import chain, islice
+from itertools import islice
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
@@ -21,21 +19,18 @@ from eth_keyfile import decode_keyfile_json
 from eth_utils import encode_hex, to_checksum_address
 from mirakuru import AlreadyRunning, TimeoutExpired
 from mirakuru.base import ENV_UUID, IGNORED_ERROR_CODES
-from raiden.accounts import Account
-from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
-from raiden.network.rpc.smartcontract_proxy import ContractProxy
-from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
-from raiden.utils.typing import TransactionHash
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import get_contracts_deployment_info
 from requests.adapters import HTTPAdapter
 from web3 import HTTPProvider, Web3
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
-from scenario_player import runner as scenario_runner
+from raiden.accounts import Account
+from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
+from raiden.network.rpc.smartcontract_proxy import ContractProxy
+from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
+from raiden.utils.typing import TransactionHash
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
-from scenario_player.tasks.base import Task, TaskState
-from scenario_player.tasks.execution import ParallelTask, SerialTask
 
 RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)
 VALUE_TX_GAS_COST = 21_000
@@ -356,7 +351,7 @@ def reclaim_eth(
     log.info("Starting eth reclaim", data_path=data_path)
 
     addresses = dict()
-    for node_dir in chain(data_path.glob("**/node_??_???"), data_path.glob("**/node_???")):
+    for node_dir in data_path.glob("**/node_???"):
         scenario_name: Path = node_dir.parent.name
         last_run = next(
             iter(
@@ -412,9 +407,10 @@ def reclaim_eth(
         log.info("Reclaimed", chain=chain_name, amount=amount.__format__(",d"))
 
 
-def post_task_state_to_rc(
-    scenario: scenario_runner.ScenarioRunner, task: Task, state: TaskState
-) -> None:
+def post_task_state_to_rc(scenario, task, state) -> None:
+    from scenario_player.tasks.base import TaskState
+    from scenario_player.tasks.execution import ParallelTask, SerialTask
+
     color = "#c0c0c0"
     if state is TaskState.RUNNING:
         color = "#ffbb20"

@@ -1,5 +1,8 @@
 import enum
 
+#: The namespace plugins should use as a prefix when creating a :class:`pluggy.HookimplMarker`.
+HOST_NAMESPACE = "scenario_player"
+
 DEFAULT_TOKEN_BALANCE_MIN = 2_000
 DEFAULT_TOKEN_BALANCE_FUND = 10_000
 OWN_ACCOUNT_BALANCE_MIN = 5 * 10 ** 17  # := 0.5 Eth

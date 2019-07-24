@@ -28,8 +28,8 @@ from eth_utils.typing import ChecksumAddress
 from gevent import Greenlet
 from gevent.pool import Group, Pool
 from mirakuru import ProcessExitedWithError
-from raiden.ui.cli import run as cli_run
 
+from raiden.ui.cli import run as cli_run
 from scenario_player.exceptions import ScenarioError
 from scenario_player.runner import ScenarioRunner
 from scenario_player.utils import HTTPExecutor
@@ -339,10 +339,10 @@ class NodeRunner:
 
     @property
     def _raiden_bin(self):
-        if self._raiden_version.lower() == 'local':
-            binary = shutil.which('raiden')
+        if self._raiden_version.lower() == "local":
+            binary = shutil.which("raiden")
             if not binary:
-                raise FileNotFoundError('Could not use local binary! No Binary found in env!')
+                raise FileNotFoundError("Could not use local binary! No Binary found in env!")
             return binary
         return self._runner.release_keeper.get_release(self._raiden_version)
 
