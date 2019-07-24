@@ -156,6 +156,16 @@ class HTTPExecutor(mirakuru.HTTPExecutor):
         self._clear_process()
         return self
 
+    def _set_timeout(self, timeout=None):
+        """
+        Forward ported from mirakuru==1.0.0:mirakuru.base::SimpleExecutor._set_timeout() since
+        the ``timeout`` parameter has been removed in versions >= 1.1.0.
+        """
+        timeout = timeout or self._timeout
+
+        if timeout:
+            self._endtime = time.time() + timeout
+
 
 def wait_for_txs(
     client_or_web3: Union[Web3, JSONRPCClient], txhashes: Set[TransactionHash], timeout: int = 360
