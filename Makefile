@@ -20,7 +20,7 @@ style: isort black
 lint: flake8 black-check isort-check
 
 unit-tests:
-	pytest
+	pytest --cov=scenario_player
 
 integration-tests:
 	@echo Ran integration tests.
