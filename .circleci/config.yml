@@ -147,7 +147,7 @@ commands:
           command: make test-harness
       - run:
           name: Upload coverage report
-          command: coverage
+          command: codecov
 
   # ===================== #
   # CI Tear-down commands #

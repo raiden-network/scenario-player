@@ -69,6 +69,7 @@ dev = [
     "pytest-dependency==0.4.0",
     "tox",
     "coverage",
+    "codecov",
 ]
 
 [tool.flit.metadata.urls]
