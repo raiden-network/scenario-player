@@ -22,14 +22,14 @@ transactions_blueprint = Blueprint("transactions_view", __name__)
 transaction_send_schema = TransactionSendRequest()
 
 
-@transactions_blueprint.route("/rpc/client/<rpc_client_id>/transactions", methods=["POST"])
-def transactions_route(rpc_client_id):
+@transactions_blueprint.route("/rpc/client/<client_id:rpc-client>/transactions", methods=["POST"])
+def transactions_route(rpc_client):
     handlers = {"POST": new_transaction}
     with REDMetricsTracker():
-        return handlers[request.method](rpc_client_id)
+        return handlers[request.method](rpc_client)
 
 
-def new_transaction(rpc_client_id):
+def new_transaction(rpc_client):
     """Create a new transaction.
 
     The given parameters will be passed to the service's
@@ -56,9 +56,6 @@ def new_transaction(rpc_client_id):
 
     """
     data = transaction_send_schema.validate_and_deserialize(request.form)
-
-    # Get the services JSONRPCClient from the flask app's app_context.
-    rpc_client, _ = current_app.config["rpc-client"][rpc_client_id]
 
     result = rpc_client.send_transaction(**data)
 
