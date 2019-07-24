@@ -34,7 +34,11 @@ commit_match = re.match(COMMIT_PATTERN, COMMIT_MSG, flags=re.IGNORECASE)
 if commit_match:
     commit_match = commit_match.groupdict()
 else:
-    commit_match = {}
+    release_match = re.match(BUMPVERSION_CFG, COMMIT_MSG, flags=re.IGNORECASE)
+    if release_match:
+        commit_match = release_match.groupdict()
+    else:
+        commit_match = {}
 
 
 COMMIT_ISSUE = commit_match.get("ISSUE", "")
