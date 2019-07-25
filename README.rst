@@ -1,5 +1,5 @@
 .. image:: https://codecov.io/gh/raiden-network/scenario-player/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/raiden-network/scenario-player
+    :target: https://codecov.io/gh/raiden-network/scenario-player
 
 .. image:: https://circleci.com/gh/raiden-network/scenario-player.svg?style=shield
     :target: https://circleci.com/gh/raiden-network/scenario-player
@@ -14,10 +14,8 @@
     :target: https://github.com/raiden-network/scenario-player/issues?q=is%3Aissue+is%3Aopen+label%3A%22Feature+request%22
 
 .. image:: https://img.shields.io/github/tag-date/raiden-network/scenario-player?label=STABLE
-    :alt: GitHub tag (latest by date)
 
 .. image:: https://img.shields.io/github/tag/raiden-network/scenario-player?label=LATEST
-    :alt: GitHub tag (latest SemVer)
 
 Raiden Scenario Player
 ######################
