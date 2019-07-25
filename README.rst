@@ -3,7 +3,7 @@
 
 Raiden Scenario Player
 ======================
-The Raiden Scneario Player is an integration testing tool written in Python 3. It allows testing of various test scenarios, and is
+The Raiden Scenario Player is an integration testing tool written in Python 3. It allows testing of various test scenarios, and is
 an integral component in the raiden test suite.
 
 Installation
@@ -14,7 +14,7 @@ Using  ``git`` & ``pip``::
     # Clone the scenario-player repository
     git clone http://github.com/raiden-network/scenario-player
 
-    # Install raiden's dev requirements.
+    # Install raiden's dev requirements.https://github.com/raiden-network/scenario-player/pull/122
     pip install -r https://raw.githubusercontent.com/raiden-network/raiden/develop/requirements/requirements-dev.txt
 
     # Install the scenario-player.
