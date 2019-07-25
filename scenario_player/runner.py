@@ -184,7 +184,7 @@ class ScenarioRunner:
             protocol=self.protocol, target_host=node, token_address=self.token_address
         )
 
-        started = time.time()
+        started = time.monotonic()
         elapsed = 0
         while elapsed < self.timeout:
             try:
@@ -201,7 +201,7 @@ class ScenarioRunner:
                 gevent.sleep(1)
 
                 # Update our elapsed time tracker.
-                elapsed = time.time() - started
+                elapsed = time.monotonic() - started
                 continue
 
             else:
@@ -214,7 +214,8 @@ class ScenarioRunner:
 
                 return data
 
-        # We could not assert that our token network was registered within an acceptable time frame.
+        # We could not assert that our token network was registered within an
+        # acceptable time frame.
         raise TokenNetworkDiscoveryTimeout
 
     def run_scenario(self):
@@ -256,7 +257,8 @@ class ScenarioRunner:
                 log.error("Couldn't register token with network", code=code, message=msg)
                 raise TokenRegistrationError(msg)
 
-        self.token_network_address = self.wait_for_token_network_discovery()
+        last_node = self.node_controller[-1].base_url
+        self.token_network_address = self.wait_for_token_network_discovery(last_node)
 
         log.info(
             "Received token network address", token_network_address=self.token_network_address

@@ -6,26 +6,22 @@ import requests
 from scenario_player.runner import ScenarioRunner, TokenNetworkDiscoveryTimeout
 
 
-@pytest.fixture
-def response_class():
-    class MockResponse:
-        def __init__(self, status=200, payload=None):
-            self.status_code = status
-            self.payload = payload or "0x12AE66CDc592e10B60f9097a7b0D3C59fce29876"
+class MockResponse:
+    def __init__(self, status=200, payload=None):
+        self.status_code = status
+        self.payload = payload or "0x12AE66CDc592e10B60f9097a7b0D3C59fce29876"
 
-        def raise_for_status(self):
-            if self.status_code > 399:
-                raise requests.HTTPError(response=self)
+    def raise_for_status(self):
+        if self.status_code > 399:
+            raise requests.HTTPError(response=self)
 
-        def json(self):
-            return self.payload
-
-    return MockResponse
+    def json(self):
+        return self.payload
 
 
 @pytest.fixture
-def response(response_class):
-    return response_class()
+def response():
+    return MockResponse()
 
 
 @pytest.fixture
@@ -67,12 +63,12 @@ class TestScenarioRunner:
         "code, should_raise_http_error", argvalues=[(404, False), (500, True), (400, True)]
     )
     def test_wait_for_token_network_discovery_only_handles_404_status_codes_on_http_errors(
-        self, mock_request, code, should_raise_http_error, response_class, runner
+        self, mock_request, code, should_raise_http_error, runner
     ):
-        response = response_class(code)
+        response = MockResponse(code)
 
         # In case no error is expected, we need this response to avoid triggering a timeout.
-        sentinel_response = response_class()
+        sentinel_response = MockResponse()
 
         mock_request.side_effect = (response, sentinel_response)
 
@@ -81,7 +77,7 @@ class TestScenarioRunner:
         except requests.HTTPError:
             if should_raise_http_error:
                 return
-            raise AssertionError("DID RAISE HTTPError!")
+            pytest.fail("DID RAISE HTTPError!")
 
     @pytest.mark.token_network_discovery
     @pytest.mark.parametrize(
@@ -104,4 +100,4 @@ class TestScenarioRunner:
             if not is_checksum:
                 # Should have raised the TypeError, all good.
                 return
-            raise AssertionError(f"DID RAISE {e!r}")
+            pytest.fail(f"DID RAISE {e!r}")
