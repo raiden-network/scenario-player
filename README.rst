@@ -7,6 +7,18 @@
 .. image:: https://img.shields.io/github/license/raiden-network/scenario-player
     :target: https>//github.com/raiden-network/scenario-player
 
+.. image:: https://img.shields.io/github/issues-raw/raiden-network/scenario-player/bug?color=red&label=Open%20Bugs
+    :target: https://github.com/raiden-network/scenario-player/issues?q=is%3Aissue+is%3Aopen+label%3Abug
+
+.. image:: https://img.shields.io/github/issues-raw/raiden-network/scenario-player/Feature request?color=orange&label=Open%20Feature%20Requests
+    :target: https://github.com/raiden-network/scenario-player/issues?q=is%3Aissue+is%3Aopen+label%3A%22Feature+request%22
+
+.. image:: https://img.shields.io/github/tag-date/raiden-network/scenario-player?label=STABLE
+    :alt: GitHub tag (latest by date)
+
+.. image:: https://img.shields.io/github/tag/raiden-network/scenario-player?label=LATEST
+    :alt: GitHub tag (latest SemVer)
+
 Raiden Scenario Player
 ======================
 The Raiden Scenario Player is an integration testing tool written in Python 3. It allows testing of various test scenarios, and is
