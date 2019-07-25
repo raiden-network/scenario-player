@@ -20,8 +20,8 @@ Using  ``git`` & ``pip``::
     # Install the scenario-player.
     pip install ./scenario-player
 
-Using `pip`
------------
+Using ``pip``
+-------------
 
 Using a ``pip`` installation::
 
@@ -41,24 +41,24 @@ Using a ``pip`` installation::
       run
 
 
-Using `docker`
---------------
+Using ``docker``
+----------------
 Pulling an image is as simple as::
 
     docker pull raidennetwork/scenario-player:<tag>
 
-Where `<tag>` may be a specific version, git branch or `latest` for the last commit
-on `dev`, or `stable` for the last release on `master`.
+Where ``<tag>`` may be a specific version, git branch or ``latest`` for the last commit
+on ``dev``, or ``stable`` for the last release on ``master``.
 
 
 Usage
 =====
 
-Invoking the `scenario-platyr` from the cli can be done in one of the following
+Invoking the `scenario-player` from the cli can be done in one of the following
 ways, depending on how you installed the tool.
 
-`pip` installation
-------------------
+``pip`` installation
+--------------------
 Invoke the command directly on the cli::
 
     $ ${SP} --chain=goerli:http:geth.goerli.ethnodes.brainbot.com:8545 \
@@ -73,7 +73,7 @@ Reclaiming spent test ether::
 `docker` image
 --------------
 
-If you're using docker, replace the `scenario-player` command with a `docker run` command, like so::
+If you're using docker, replace the ``scenario-player`` command with a ``docker run`` command, like so::
 
     docker run -i -t \
        -v ${DATA_DIR}:/data \
@@ -81,11 +81,11 @@ If you're using docker, replace the `scenario-player` command with a `docker run
        raidennetwork/scenario-player:${branch}
 
 As you can see, you'll have to mount some local directories to the container, otherwise
-the container will not run. `DATA_DIR` is the location of your blockchain data,
-and the `WALLET_DIR` should point to the location of your wallet file.
+the container will not run. ``DATA_DIR`` is the location of your blockchain data,
+and the ``WALLET_DIR`` should point to the location of your wallet file.
 
 Scenario Examples
 -------------------
 
-For example scenarios have a look at the `raiden` repository's scenarios. These
+For example scenarios have a look at the ``raiden`` repository's scenarios. These
 can be found `here <https://github.com/raiden-network/raiden/tree/develop/raiden/tests/scenarios>`_.
