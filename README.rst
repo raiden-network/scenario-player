@@ -4,6 +4,9 @@
 .. image:: https://circleci.com/gh/raiden-network/scenario-player.svg?style=shield
     :target: https://circleci.com/gh/raiden-network/scenario-player
 
+.. image:: https://img.shields.io/github/license/raiden-network/scenario-player
+    :target: https>//github.com/raiden-network/scenario-player
+
 Raiden Scenario Player
 ======================
 The Raiden Scenario Player is an integration testing tool written in Python 3. It allows testing of various test scenarios, and is
