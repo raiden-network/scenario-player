@@ -84,3 +84,7 @@ class FileOperationError(OSError):
     This is error is raised when we believe there may be a race condition causing
     our file to disappear.
     """
+
+
+class TokenNetworkDiscoveryTimeout(TokenRegistrationError):
+    """If we waited a set time for the token network to be discovered, but it wasn't."""
