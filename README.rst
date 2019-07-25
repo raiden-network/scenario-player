@@ -21,8 +21,8 @@
 
 Raiden Scenario Player
 ======================
-The Raiden Scenario Player is an integration testing tool written in Python 3. It allows testing of various test scenarios, and is
-an integral component in the raiden test suite.
+The Raiden Scenario Player is an integration testing tool written in Python 3. It allows testing of
+various scenarios, and is an integral component of the Raiden test suite.
 
 Installation
 ------------
@@ -32,7 +32,7 @@ Using  ``git`` & ``pip``::
     # Clone the scenario-player repository
     git clone http://github.com/raiden-network/scenario-player
 
-    # Install raiden's dev requirements.https://github.com/raiden-network/scenario-player/pull/122
+    # Install Raiden's dev requirements.https://github.com/raiden-network/scenario-player/pull/122
     pip install -r https://raw.githubusercontent.com/raiden-network/raiden/develop/requirements/requirements-dev.txt
 
     # Install the scenario-player.
@@ -105,5 +105,5 @@ and the ``WALLET_DIR`` should point to the location of your wallet file.
 Scenario Examples
 -------------------
 
-For example scenarios have a look at the ``raiden`` repository's scenarios. These
+For example scenarios have a look at the ``Raiden`` repository's scenarios. These
 can be found `here <https://github.com/raiden-network/raiden/tree/develop/raiden/tests/scenarios>`_.
