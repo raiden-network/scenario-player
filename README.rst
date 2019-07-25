@@ -1,7 +1,7 @@
 .. image:: https://codecov.io/gh/raiden-network/scenario-player/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/raiden-network/scenario-player
 
-.. image:: https://circleci.com/gh/raiden-network/scenario-player.svg?style=svg
+.. image:: https://circleci.com/gh/raiden-network/scenario-player.svg?style=shield
     :target: https://circleci.com/gh/raiden-network/scenario-player
 
 Raiden Scenario Player
