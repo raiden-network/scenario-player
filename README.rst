@@ -20,12 +20,13 @@
     :alt: GitHub tag (latest SemVer)
 
 Raiden Scenario Player
-======================
+######################
+
 The Raiden Scenario Player is an integration testing tool written in Python 3. It allows testing of
 various scenarios, and is an integral component of the Raiden test suite.
 
 Installation
-------------
+============
 
 Using  ``git`` & ``pip``::
 
@@ -79,7 +80,7 @@ ways, depending on how you installed the tool.
 --------------------
 Invoke the command directly on the cli::
 
-    $ ${SP} --chain=goerli:http:geth.goerli.ethnodes.brainbot.com:8545 \
+    $ scenario-player --chain=goerli:http:geth.goerli.ethnodes.brainbot.com:8545 \
         run --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW} \
         /path/to/scenario.yaml
 
@@ -103,7 +104,7 @@ the container will not run. ``DATA_DIR`` is the location of your blockchain data
 and the ``WALLET_DIR`` should point to the location of your wallet file.
 
 Scenario Examples
--------------------
+=================
 
 For example scenarios have a look at the ``Raiden`` repository's scenarios. These
 can be found `here <https://github.com/raiden-network/raiden/tree/develop/raiden/tests/scenarios>`_.
