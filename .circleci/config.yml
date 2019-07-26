@@ -238,7 +238,8 @@ jobs:
       - run:
           name: Publish to pypi using flit.
           command: |
-            pip install .
+            export FLIT_USERNAME=${PYPI_USER}
+            export FLIT_PASSWORD=${PYPI_PASSWORD}
             flit publish
 
   tear-down:
@@ -321,6 +322,7 @@ workflows:
 
       # Package a new release from the latest tag.
       - deploy-to-pypi:
+          context: "Raiden Context"
           requires:
             - prep-system
 
