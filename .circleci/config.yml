@@ -24,7 +24,7 @@ tags_only: &tags_only
     branches:
       ignore: /.*/
     tags:
-      only: /^\d+\.\d+.*/
+      only: /^v\d+\.\d+.*/
 
 # Short-cut to define a PR-branches only filter.
 PR_branches_only: &PR_branches_only
