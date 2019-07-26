@@ -20,7 +20,10 @@ Workflows
 
 ..admonition:: Merge vs Rebase
 
-    The git history is a protocol of our development. As such, it is untouchable.
+    The git history is a protocol of our development. As such, it is untouchable. Never rebase
+    a PR onto `dev` or `master`. What you do on your own branches is your own business, though.
+
+
 
 Features & Fixes
 ----------------
