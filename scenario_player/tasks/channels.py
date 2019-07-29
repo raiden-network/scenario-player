@@ -208,6 +208,7 @@ class AssertAllTask(ChannelActionTask):
                     f'Value mismatch for field "{field}". '
                     f"Not all values consumed, remaining: {channel_field_values}"
                 )
+        return response_dict
 
 
 class AssertSumTask(AssertAllTask):
@@ -237,3 +238,4 @@ class AssertSumTask(AssertAllTask):
                     f'Actual value: "{channel_value_sum}". '
                     f"Channels: {response_dict}"
                 )
+        return response_dict
