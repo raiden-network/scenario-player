@@ -154,6 +154,7 @@ class Token:
 
             '{"name": "<token name>", "address": "<contract address>", "block": <deployment block}'
 
+
         """
         token_data = {
             "address": self.checksum_address,
