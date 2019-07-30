@@ -37,7 +37,7 @@ def deserialized_send_tx_request_parameters(
 ):
     deserialized = dict(default_send_tx_request_parameters)
     deserialized["to"] = deserialized["to"].encode("UTF-8")
-    deserialized["client"] = transaction_service_app.config["rpc-client"][
+    deserialized["client"], _ = transaction_service_app.config["rpc-client"][
         default_send_tx_request_parameters["client_id"]
     ]
     return deserialized
