@@ -23,13 +23,13 @@ transaction_send_schema = TransactionSendRequest()
 
 
 @transactions_blueprint.route("/rpc/client/transactions", methods=["POST"])
-def transactions_route(client_id):
+def transactions_route():
     handlers = {"POST": new_transaction}
     with REDMetricsTracker():
-        return handlers[request.method](client_id)
+        return handlers[request.method]()
 
 
-def new_transaction(client_id):
+def new_transaction():
     """Create a new transaction.
 
     The given parameters will be passed to the service's
