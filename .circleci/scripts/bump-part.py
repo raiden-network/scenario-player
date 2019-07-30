@@ -33,13 +33,11 @@ def get_last_tag():
 
 part = ""
 bump_release_type = None
-if CURRENT_BRANCH in ("dev", "release"):
+if CURRENT_BRANCH == "dev":
     part = "iteration"
     # Make sure we set the correct release type.
-    if CURRENT_BRANCH == "dev" and "dev" not in __version__:
+    if "dev" not in __version__:
         bump_release_type = "dev"
-    elif CURRENT_BRANCH == "release" and "rc" not in __version__:
-        bump_release_type = "rc"
 
 elif CURRENT_BRANCH == "master":
     # Get all commits of the release branch that was merged. If no release
@@ -51,10 +49,10 @@ elif CURRENT_BRANCH == "master":
     print("Available branches: ", branches)
     part = "patch"
 
-    if "release" in branches and COMMIT_TYPE == "RELEASE":
-        print("Found a 'release' branch, checking for feature commits..")
+    if COMMIT_TYPE == "RELEASE":
+        print("Detected RELEASE, checking for feature commits..")
         process_output = subprocess.run(
-            f"git --git-dir={PROJECT_GIT_DIR} log {CURRENT_BRANCH}~1..origin/release --format=%s".split(
+            f"git --git-dir={PROJECT_GIT_DIR} log {CURRENT_BRANCH}~1..origin/dev --format=%s".split(
                 " "
             ),
             check=True,
@@ -66,7 +64,6 @@ elif CURRENT_BRANCH == "master":
                 print("Feature commit detected:\n{line}\nChanging bump type to 'minor'..")
                 part = "minor"
                 break
-
 
 print(f"Bumping part {part}..")
 

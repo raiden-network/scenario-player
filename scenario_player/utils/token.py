@@ -152,7 +152,7 @@ class Token:
 
         And is stored as a JSONEncoded string::
 
-            '{"name": "<token name>", "address":, "<contract address>", "block": <deployment block}'
+            '{"name": "<token name>", "address": "<contract address>", "block": <deployment block}'
 
         """
         token_data = {
