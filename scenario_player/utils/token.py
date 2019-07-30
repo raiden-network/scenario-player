@@ -226,7 +226,7 @@ class Token:
         log.debug("Deploying token", name=self.name, symbol=self.symbol, decimals=self.decimals)
 
         resp = self.interface.post(
-            "spaas://rpc/client/{client_id}/token",
+            "spaas://rpc/token",
             params={
                 "constructor_args": [0, self.decimals, self.name, self.symbol],
                 "token_name": self.name,
@@ -267,6 +267,6 @@ class Token:
                 "target_address": node_address,
             }
             log.debug("Minting tokens", contract=self, token=self.name, parameters=params)
-            resp = self.interface.post("spaas://rpc/client/{client_id}/token/mint", params=params)
+            resp = self.interface.post("spaas://rpc/token/mint", params=params)
             resp.raise_for_status()
             return resp.json()

@@ -359,7 +359,7 @@ class TestToken:
             instance_under_test.deploy_new()
 
     @patch(f"{token_import_path}.to_checksum_address", side_effect=lambda x: "checksummed_" + x)
-    @patch(f"{token_import_path}.ServiceInterface.request")
+    @patch(f"{token_import_path}.ServiceInterface.post")
     def test_deploy_new_assigns_contract_data_and_deployment_receipt_from_request(
         self, mock_request, _, instance_under_test
     ):
@@ -372,6 +372,16 @@ class TestToken:
             def json(self):
                 return json_resp
 
+        expected_params = {
+            "constructor_args": [
+                0,
+                instance_under_test.decimals,
+                instance_under_test.name,
+                instance_under_test.symbol,
+            ],
+            "token_name": instance_under_test.name,
+        }
+
         mock_request.return_value = MockResp()
 
         address, deployment_block = instance_under_test.deploy_new()
@@ -381,6 +391,8 @@ class TestToken:
 
         assert instance_under_test.deployment_receipt == json_resp["receipt"]
         assert instance_under_test.contract_data == json_resp["contract"]
+
+        mock_request.assert_called_once_with("spaas://rpc/token", params=expected_params)
 
     @pytest.mark.parametrize("reuse_token", argvalues=[True, False])
     @patch(f"{token_import_path}.ServiceInterface.request")
@@ -450,6 +462,4 @@ class TestToken:
         with pytest.raises(Sentinel):
             instance_under_test.mint("the_address", 100)
 
-        mock_request.assert_called_once_with(
-            "spaas://rpc/client/{client_id}/token/mint", params=expected_params
-        )
+        mock_request.assert_called_once_with("spaas://rpc/token/mint", params=expected_params)
