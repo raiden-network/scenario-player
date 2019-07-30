@@ -267,6 +267,6 @@ class Token:
                 "target_address": node_address,
             }
             log.debug("Minting tokens", contract=self, token=self.name, parameters=params)
-            resp = self.interface.post("spaas://rpc/client/{client_id}/token/mint", params=params)
+            resp = self.interface.post("spaas://rpc/token/mint", params=params)
             resp.raise_for_status()
             return resp.json()

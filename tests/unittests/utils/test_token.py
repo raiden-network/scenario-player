@@ -450,6 +450,4 @@ class TestToken:
         with pytest.raises(Sentinel):
             instance_under_test.mint("the_address", 100)
 
-        mock_request.assert_called_once_with(
-            "spaas://rpc/client/{client_id}/token/mint", params=expected_params
-        )
+        mock_request.assert_called_once_with("spaas://rpc/token/mint", params=expected_params)
