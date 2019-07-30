@@ -50,7 +50,7 @@ def test_rpcclientid_serializes_to_string(test_schema, transaction_service_app):
     "input_dict, exception",
     argvalues=[
         ({"client_id": "my_client"}, False),
-        ({"client_id": "my_client_2"}, NotFound),
+        ({"client_id": "my_client_2"}, BadRequest),
         ({}, BadRequest),
     ],
     ids=[
