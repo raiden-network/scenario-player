@@ -97,7 +97,7 @@ class TestNewTransactionEndpoint:
             # The client id is supposed to be valid - inject rpc client id fixture.
             parameters["client_id"] = rpc_client_id
 
-        resp = transaction_service_client.post(f"/rpc/client/transactions", data=parameters)
+        resp = transaction_service_client.post(f"/rpc/transactions", data=parameters)
 
         assert expected_status in resp.status
 
@@ -124,7 +124,7 @@ class TestNewTransactionEndpoint:
             }
         )
         transaction_service_client.post(
-            f"/rpc/client/transactions", data=default_send_tx_request_parameters
+            f"/rpc/transactions", data=default_send_tx_request_parameters
         )
 
         mock_schema.validate_and_deserialize.assert_called_once()
@@ -154,7 +154,7 @@ class TestNewTransactionEndpoint:
         expected_tx_hash = b"my_tx_hash"
 
         r = transaction_service_client.post(
-            f"/rpc/client/transactions", data=default_send_tx_request_parameters
+            f"/rpc/transactions", data=default_send_tx_request_parameters
         )
         assert "200" in r.status
         mock_schema.dumps.assert_called_once_with({"tx_hash": expected_tx_hash})
@@ -181,7 +181,7 @@ class TestNewTransactionEndpoint:
         )
 
         transaction_service_client.post(
-            f"/rpc/client/transactions", data=default_send_tx_request_parameters
+            f"/rpc/transactions", data=default_send_tx_request_parameters
         )
 
         mock_rpc_client.send_transaction.assert_called_once_with(**default_send_tx_func_parameters)

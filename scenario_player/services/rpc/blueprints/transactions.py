@@ -22,7 +22,7 @@ transactions_blueprint = Blueprint("transactions_view", __name__)
 transaction_send_schema = TransactionSendRequest()
 
 
-@transactions_blueprint.route("/rpc/client/transactions", methods=["POST"])
+@transactions_blueprint.route("/rpc/transactions", methods=["POST"])
 def transactions_route():
     handlers = {"POST": new_transaction}
     with REDMetricsTracker():
