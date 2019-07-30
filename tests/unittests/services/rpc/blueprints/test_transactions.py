@@ -93,11 +93,9 @@ class TestNewTransactionEndpoint:
         see a `400 Bad Request` response from the service.
         """
         has_client_id = parameters.pop("rpc_client_id", False)
-        if has_client_id is False:
-            rpc_client_id = None
-        resp = transaction_service_client.post(
-            f"/rpc/client/{rpc_client_id}/transactions", data=parameters
-        )
+        if has_client_id is True:
+            parameters["client_id"] = rpc_client_id
+        resp = transaction_service_client.post(f"/rpc/client/transactions", data=parameters)
 
         assert expected_status in resp.status
 
@@ -117,6 +115,7 @@ class TestNewTransactionEndpoint:
         be compared to other instances created with identical parameters. Hence, we must
         iterate over the keys of our expected dict and compare manually.
         """
+        default_send_tx_request_parameters["client_id"] = rpc_client_id
         mock_schema.configure_mock(
             **{
                 "validate_and_deserialize.return_value": deserialized_send_tx_request_parameters,
@@ -124,7 +123,7 @@ class TestNewTransactionEndpoint:
             }
         )
         transaction_service_client.post(
-            f"/rpc/client/{rpc_client_id}/transactions", data=default_send_tx_request_parameters
+            f"/rpc/client/transactions", data=default_send_tx_request_parameters
         )
 
         mock_schema.validate_and_deserialize.assert_called_once()
@@ -153,9 +152,10 @@ class TestNewTransactionEndpoint:
             }
         )
         expected_tx_hash = b"my_tx_hash"
+        default_send_tx_request_parameters["client_id"] = rpc_client_id
 
         r = transaction_service_client.post(
-            f"/rpc/client/{rpc_client_id}/transactions", data=default_send_tx_request_parameters
+            f"/rpc/client/transactions", data=default_send_tx_request_parameters
         )
         assert "200" in r.status
         mock_schema.dumps.assert_called_once_with({"tx_hash": expected_tx_hash})
@@ -179,9 +179,10 @@ class TestNewTransactionEndpoint:
                 "dumps.return_value": "ok",
             }
         )
+        default_send_tx_request_parameters["client_id"] = rpc_client_id
 
         transaction_service_client.post(
-            f"/rpc/client/{rpc_client_id}/transactions", data=default_send_tx_request_parameters
+            f"/rpc/client/transactions", data=default_send_tx_request_parameters
         )
 
         mock_rpc_client.send_transaction.assert_called_once_with(
