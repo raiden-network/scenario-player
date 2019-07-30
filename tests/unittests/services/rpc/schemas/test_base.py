@@ -35,9 +35,7 @@ def test_rpcclientid_deserializes_to_rpc_client_instance(test_schema, transactio
 
 
 def test_rpcclientid_serializes_to_string(test_schema, transaction_service_app):
-    """:meth:`RPCClientID._serialize` is expected to return a :class:`str` object
-    using UTF-8 encoding.
-    """
+    """:meth:`RPCClientID._serialize` is expected to return a :class:`str` object."""
 
     client_id = RPCClientID()
     instance = object()
