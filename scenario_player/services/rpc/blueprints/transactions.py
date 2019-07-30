@@ -57,7 +57,7 @@ def new_transaction():
 
     """
     data = transaction_send_schema.validate_and_deserialize(request.form)
-    rpc_client, client_id = data.pop("client"), data.pop("client_id")
+    rpc_client, _ = data.pop("client"), data.pop("client_id")
 
     result = rpc_client.send_transaction(**data)
 

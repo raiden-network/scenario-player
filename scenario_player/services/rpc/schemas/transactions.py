@@ -1,4 +1,4 @@
-from marshmallow.fields import Float, List
+from marshmallow.fields import Float
 
 from scenario_player.services.common.schemas import BytesField
 from scenario_player.services.rpc.schemas.base import RPCCreateResourceSchema
