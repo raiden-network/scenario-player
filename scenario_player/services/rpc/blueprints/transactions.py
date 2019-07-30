@@ -11,7 +11,7 @@ The following endpoints are supplied by this blueprint:
         form data.
 
 """
-from flask import Blueprint, Response, current_app, request
+from flask import Blueprint, Response, request
 
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.rpc.schemas.transactions import TransactionSendRequest
@@ -22,14 +22,14 @@ transactions_blueprint = Blueprint("transactions_view", __name__)
 transaction_send_schema = TransactionSendRequest()
 
 
-@transactions_blueprint.route("/rpc/client/<rpc_client_id>/transactions", methods=["POST"])
-def transactions_route(rpc_client_id):
+@transactions_blueprint.route("/rpc/transactions", methods=["POST"])
+def transactions_route():
     handlers = {"POST": new_transaction}
     with REDMetricsTracker():
-        return handlers[request.method](rpc_client_id)
+        return handlers[request.method]()
 
 
-def new_transaction(rpc_client_id):
+def new_transaction():
     """Create a new transaction.
 
     The given parameters will be passed to the service's
@@ -40,9 +40,10 @@ def new_transaction(rpc_client_id):
 
     Example::
 
-        POST /rpc/client/<rpc_client_id>/transactions
+        POST /rpc/client/transactions
 
             {
+                "client": <str>,
                 "to": <str>,
                 "startgas": <number>,
                 "value": <number>,
@@ -56,9 +57,7 @@ def new_transaction(rpc_client_id):
 
     """
     data = transaction_send_schema.validate_and_deserialize(request.form)
-
-    # Get the services JSONRPCClient from the flask app's app_context.
-    rpc_client, _ = current_app.config["rpc-client"][rpc_client_id]
+    rpc_client, _ = data.pop("client"), data.pop("client_id")
 
     result = rpc_client.send_transaction(**data)
 

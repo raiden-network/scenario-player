@@ -114,4 +114,4 @@ class TestCreateRPCInstanceEndpoint:
             f"/rpc/client", data=default_create_rpc_instance_request_parameters
         )
         assert "200" in r.status
-        mock_schema.dumps.assert_called_once_with({"rpc_client_id": rpc_client_id})
+        mock_schema.dumps.assert_called_once_with({"client_id": rpc_client_id})

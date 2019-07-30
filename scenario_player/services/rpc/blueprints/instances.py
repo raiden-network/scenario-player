@@ -8,9 +8,10 @@ The following endpoints are supplied by this blueprint:
         Return a new JSONRPCClient instance id. If an instance already exists for
         the given private key and test network, we return that instance instead.
 
-    * [DELETE] /rpc/client/<rpc_client_id>
-        Delete the JSONRPCClient instance with the given ID. This closes the
-        object and pops it from the application's RPCRegistry.
+    * [DELETE] /rpc/client?client_id=<str>
+        Delete the JSONRPCClient instance with the given ID. This pops the
+        instance from the application's RPCRegistry, handing it over to garbage
+        collection.
 
 """
 from flask import Blueprint, Response, current_app, jsonify, request
@@ -52,42 +53,42 @@ def create_client():
         200 OK
 
             {
-                "rpc_client_id": <str>,
+                "client_id": <str>,
             }
 
     """
     data = new_instance_schema.validate_and_deserialize(request.form)
     privkey, chain_url = data["privkey"], data["chain_url"]
     gas_price_strategy = data["gas_price_strategy"]
-    _, rpc_client_id = current_app.config["rpc-client"][(chain_url, privkey, gas_price_strategy)]
-    resp_data = new_instance_schema.dumps({"rpc_client_id": rpc_client_id})
+    _, client_id = current_app.config["rpc-client"][(chain_url, privkey, gas_price_strategy)]
+    resp_data = new_instance_schema.dumps({"client_id": client_id})
     return jsonify(resp_data)
 
 
-@instances_blueprint.route("/rpc/client/<rpc_client_id>", methods=["DELETE"])
-def rpc_delete_view(rpc_client_id):
-    """Delete the JSONRPCCLient instance with the given `rpc_client_id`.
+@instances_blueprint.route("/rpc/client", methods=["DELETE"])
+def rpc_delete_view():
+    """Delete the JSONRPCCLient instance with the given `client_id`.
 
-    This method always return 204, even if the rpc_client_id did not exist.
+    This method always return 204, even if the client_id did not exist.
 
     Example::
 
-        DELETE /rpc/client/valid_rpc_client_id
+        DELETE /rpc/client?client_id=valid_client_id
 
         204 No Content
 
 
-        DELETE /rpc/client/non_existing_rpc_client_id
+        DELETE /rpc/client?client_id=non_existing_client_id
 
         204 No Content
 
     """
     handlers = {"DELETE": delete_client}
     with REDMetricsTracker():
-        return handlers[request.method](rpc_client_id)
+        return handlers[request.method]()
 
 
-def delete_client(rpc_client_id):
-    delete_instance_schema.validate_and_deserialize({"rpc_client_id": rpc_client_id})
-    current_app.config["rpc-client"].pop(rpc_client_id, None)
+def delete_client(client_id):
+    delete_instance_schema.validate_and_deserialize({"client_id": request.params["client_id"]})
+    current_app.config["rpc-client"].pop(client_id, None)
     return Response(204)
