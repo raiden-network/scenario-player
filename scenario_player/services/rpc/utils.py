@@ -3,47 +3,10 @@ import hmac
 from collections.abc import Mapping
 from typing import Tuple, Union
 
-from flask import abort, current_app
+from flask import abort
 from web3 import Web3
-from werkzeug.routing import BaseConverter
 
 from raiden.network.rpc.client import JSONRPCClient
-
-
-class RPCClientLoader(BaseConverter):
-    """Url Variable converter to automatically load rpc client instances using their ids.
-
-    This converter must first be registered with the app before it can be used::
-
-
-        from flask import Flask
-
-        app = Flask(__name__)
-
-        from .util import ListConverter
-
-        app.url_map.converters['rpc-client'] = RPCClientLoader
-
-    You can then use it as follows in route decorators::
-
-        from raiden.network.rpc.client import JSONRPCClient
-
-        @app.route('/rpc/client/<client_id:rpc-client>')
-        def converter_demo(client):
-            assert isinstance(client, JSONRPCClient)
-            return "Converted"
-    """
-
-    def to_python(self, value):
-        try:
-            return current_app.config["rpc-client"][value]
-        except KeyError:
-            abort(400, description=value)
-
-    def to_url(self, value):
-        for k, v in current_app.config["rpc-client"].items():
-            if value == v:
-                return k
 
 
 def generate_hash_key(chain_url: str, privkey: bytes):
@@ -82,7 +45,7 @@ class RPCRegistry(Mapping):
                     except ValueError as e:
                         abort(400, description=str(e))
                 return self.dict[key], key
-            abort(404, description=f"No JSONRPCClient instance with id {item} found!")
+            raise KeyError
 
     def __len__(self):
         return len(self.dict)
