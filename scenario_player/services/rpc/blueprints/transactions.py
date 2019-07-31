@@ -11,7 +11,7 @@ The following endpoints are supplied by this blueprint:
         form data.
 
 """
-from flask import Blueprint, Response, request
+from flask import Blueprint, request
 
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.rpc.schemas.transactions import TransactionSendRequest
@@ -61,4 +61,4 @@ def new_transaction():
 
     result = rpc_client.send_transaction(**data)
 
-    return Response(transaction_send_schema.dumps({"tx_hash": result}).encode("UTF-8"), status=200)
+    return transaction_send_schema.jsonify({"tx_hash": result})

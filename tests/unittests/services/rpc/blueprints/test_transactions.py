@@ -120,7 +120,7 @@ class TestNewTransactionEndpoint:
         mock_schema.configure_mock(
             **{
                 "validate_and_deserialize.return_value": deserialized_send_tx_request_parameters,
-                "dumps.return_value": "ok",
+                "jsonify.return_value": "ok",
             }
         )
         transaction_service_client.post(
@@ -135,7 +135,7 @@ class TestNewTransactionEndpoint:
             assert str(default_send_tx_request_parameters[key]) == value
 
     @patch("scenario_player.services.rpc.blueprints.transactions.transaction_send_schema")
-    def test_new_transaction_calls_dumps_of_its_schema(
+    def test_new_transaction_calls_jsonify_of_its_schema(
         self,
         mock_schema,
         transaction_service_client,
@@ -148,7 +148,7 @@ class TestNewTransactionEndpoint:
         mock_schema.configure_mock(
             **{
                 "validate_and_deserialize.return_value": deserialized_send_tx_request_parameters,
-                "dumps.return_value": "ok",
+                "jsonify.return_value": "ok",
             }
         )
         expected_tx_hash = b"my_tx_hash"
@@ -157,7 +157,7 @@ class TestNewTransactionEndpoint:
             f"/rpc/transactions", data=default_send_tx_request_parameters
         )
         assert "200" in r.status
-        mock_schema.dumps.assert_called_once_with({"tx_hash": expected_tx_hash})
+        mock_schema.jsonify.assert_called_once_with({"tx_hash": expected_tx_hash})
 
     @patch("scenario_player.services.rpc.blueprints.transactions.TransactionSendRequest")
     def test_new_transaction_calls_correct_rpc_client_function(
@@ -176,7 +176,7 @@ class TestNewTransactionEndpoint:
         mock_schema.configure_mock(
             **{
                 "validate_and_deserialize.return_value": deserialized_send_tx_request_parameters,
-                "dumps.return_value": "ok",
+                "jsonify.return_value": "ok",
             }
         )
 

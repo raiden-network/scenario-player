@@ -38,7 +38,6 @@ def test_rpcclientid_deserializes_to_rpc_client_instance(
 
 def test_rpcclientid_serializes_to_string(test_schema, transaction_service_app, rpc_client_id):
     """:meth:`RPCClientID._serialize` is expected to return a :class:`str` object."""
-
     client_id = RPCClientID()
     instance = object()
     expected_id = rpc_client_id

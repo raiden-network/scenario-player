@@ -61,7 +61,20 @@ class RPCClientID(String):
 
 
 class RPCCreateResourceSchema(SPSchema):
-    client_id = RPCClientID(required=True)
+    """Default Schema for POST Methods to the RPC client.
+
+    Expects a `client_id` to be present in :var`flask.request.form`. When
+    calling :class:`.validate_and_deserialize`, the class instance will dynamically
+    load the related RPC client instance and add it to the returned data under the
+    `client` key.
+
+    parameters:
+
+        - client_id (:class:`.RPCClientID`)
+
+    """
+
+    client_id = RPCClientID(required=True, load_only=True)
 
     def validate_and_deserialize(self, data_obj) -> dict:
         deserialized = super(RPCCreateResourceSchema, self).validate_and_deserialize(data_obj)
