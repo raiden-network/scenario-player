@@ -6,11 +6,7 @@ import pytest
 from raiden.network.rpc.client import JSONRPCClient
 from scenario_player.services.common.schemas import BytesField
 from scenario_player.services.rpc.schemas.base import RPCCreateResourceSchema
-from scenario_player.services.rpc.schemas.tokens import (
-    FunctionArgs,
-    TokenCreateSchema,
-    TokenMintSchema,
-)
+from scenario_player.services.rpc.schemas.tokens import TokenCreateSchema, TokenMintSchema
 from scenario_player.services.rpc.utils import RPCRegistry
 
 
@@ -87,12 +83,18 @@ class TestTokenCreateSchema:
         "input_dict, expected",
         argvalues=[
             (
-                {"constructor_args": [6, "TokenName", "super-fast"], "token_name": "SuperToken"},
-                {"constructor_args": [6, "TokenName", "super-fast"], "token_name": "SuperToken"},
+                {
+                    "constructor_args": [6789, "TokenName", "super-fast"],
+                    "token_name": "SuperToken",
+                },
+                {
+                    "constructor_args": (6789, "TokenName", "super-fast"),
+                    "token_name": "SuperToken",
+                },
             ),
             (
-                {"constructor_args": [6, "TokenName", "super-fast"]},
-                {"constructor_args": [6, "TokenName", "super-fast"], "token_name": None},
+                {"constructor_args": [6789, "TokenName", "super-fast"]},
+                {"constructor_args": (6789, "TokenName", "super-fast"), "token_name": None},
             ),
         ],
         ids=["All fields given", "token_name field missing assigns it None"],
@@ -115,9 +117,9 @@ class TestTokenCreateSchema:
             {},
             {"constructor_args": ["seven", "TokenName", "super-fast"]},
             {"constructor_args": ["seven", "TokenName"]},
-            {"constructor_args": [6, 80085, "super-fast"]},
-            {"constructor_args": [6, "TokenName", 80085]},
-            {"constructor_args": [6, "TokenName", "super-fast"], "token_name": 5000},
+            {"constructor_args": [6789, 80085, "super-fast"]},
+            {"constructor_args": [6789, "TokenName", 80085]},
+            {"constructor_args": [6789, "TokenName", "super-fast"], "token_name": 5000},
         ],
         ids=[
             "constructor_args are required",
@@ -132,9 +134,6 @@ class TestTokenCreateSchema:
         with app.test_client() as c:
             resp = c.post("/test-create", data=input_dict)
             assert "400 Bad Request".lower() in resp.status.lower()
-
-    def test_constructor_args_is_a_function_args_field(self):
-        assert isinstance(TokenCreateSchema._declared_fields["constructor_args"], FunctionArgs)
 
 
 class TestTokenMintSchema:
