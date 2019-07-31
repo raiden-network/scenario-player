@@ -37,7 +37,7 @@ class TestCreateRPCInstanceEndpoint:
             "missing 'chain_url' is not ok",
             "missing 'privkey'is not ok",
             "missing 'gas_price_strategy' is ok",
-            "No missing paramters is ok",
+            "No missing parameters is ok",
         ],
     )
     def testcreate_rpc_instance_requires_parameters_specified_in_schema(
@@ -77,7 +77,7 @@ class TestCreateRPCInstanceEndpoint:
         mock_schema.configure_mock(
             **{
                 "validate_and_deserialize.return_value": deserialized_create_rpc_instance_request_parameters,
-                "dumps.return_value": "ok",
+                "jsonify.return_value": "ok",
             }
         )
         transaction_service_client.post(
@@ -91,10 +91,12 @@ class TestCreateRPCInstanceEndpoint:
             assert key in default_create_rpc_instance_request_parameters
             assert str(default_create_rpc_instance_request_parameters[key]) == value
 
+    @patch("scenario_player.services.rpc.blueprints.instances.jsonify", return_value="ok")
     @patch("scenario_player.services.rpc.blueprints.instances.new_instance_schema")
-    def test_create_rpc_instance_calls_dumps_of_its_schema(
+    def test_create_rpc_instance_calls_flask_jsonify(
         self,
         mock_schema,
+        mock_jsonify,
         transaction_service_client,
         deserialized_create_rpc_instance_request_parameters,
         default_create_rpc_instance_request_parameters,
@@ -105,8 +107,7 @@ class TestCreateRPCInstanceEndpoint:
         """
         mock_schema.configure_mock(
             **{
-                "validate_and_deserialize.return_value": deserialized_create_rpc_instance_request_parameters,
-                "dumps.return_value": "ok",
+                "validate_and_deserialize.return_value": deserialized_create_rpc_instance_request_parameters
             }
         )
 
@@ -114,4 +115,4 @@ class TestCreateRPCInstanceEndpoint:
             f"/rpc/client", data=default_create_rpc_instance_request_parameters
         )
         assert "200" in r.status
-        mock_schema.dumps.assert_called_once_with({"client_id": rpc_client_id})
+        mock_jsonify.assert_called_once_with({"client_id": rpc_client_id})

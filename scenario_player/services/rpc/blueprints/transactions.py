@@ -61,4 +61,4 @@ def new_transaction():
 
     result = rpc_client.send_transaction(**data)
 
-    return Response(transaction_send_schema.dumps({"tx_hash": result}).encode("UTF-8"), status=200)
+    return transaction_send_schema.jsonify({"tx_hash": result})

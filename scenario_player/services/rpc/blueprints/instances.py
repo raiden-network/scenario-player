@@ -56,13 +56,17 @@ def create_client():
                 "client_id": <str>,
             }
 
+    FIXME: calling new_instance_schema.jsonify() results in a look-up error
+        when calling it with the newly created RPC client's ID.
+
+
     """
     data = new_instance_schema.validate_and_deserialize(request.form)
     privkey, chain_url = data["privkey"], data["chain_url"]
     gas_price_strategy = data["gas_price_strategy"]
     _, client_id = current_app.config["rpc-client"][(chain_url, privkey, gas_price_strategy)]
-    resp_data = new_instance_schema.dumps({"client_id": client_id})
-    return jsonify(resp_data)
+
+    return jsonify({"client_id": client_id})
 
 
 @instances_blueprint.route("/rpc/client", methods=["DELETE"])
