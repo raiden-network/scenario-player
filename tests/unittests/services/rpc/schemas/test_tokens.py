@@ -84,17 +84,38 @@ class TestTokenCreateSchema:
         argvalues=[
             (
                 {
-                    "constructor_args": [6789, "TokenName", "super-fast"],
+                    "constructor_args": {
+                        "decimals": 6789,
+                        "name": "TokenName",
+                        "symbol": "TokenSymbol",
+                    },
                     "token_name": "SuperToken",
                 },
                 {
-                    "constructor_args": (6789, "TokenName", "super-fast"),
+                    "constructor_args": {
+                        "decimals": 6789,
+                        "name": "TokenName",
+                        "symbol": "TokenSymbol",
+                    },
                     "token_name": "SuperToken",
                 },
             ),
             (
-                {"constructor_args": [6789, "TokenName", "super-fast"]},
-                {"constructor_args": (6789, "TokenName", "super-fast"), "token_name": None},
+                {
+                    "constructor_args": {
+                        "decimals": 6789,
+                        "name": "TokenName",
+                        "symbol": "TokenSymbol",
+                    }
+                },
+                {
+                    "constructor_args": {
+                        "decimals": 6789,
+                        "name": "TokenName",
+                        "symbol": "TokenSymbol",
+                    },
+                    "token_name": None,
+                },
             ),
         ],
         ids=["All fields given", "token_name field missing assigns it None"],
@@ -115,24 +136,41 @@ class TestTokenCreateSchema:
         "input_dict",
         argvalues=[
             {},
-            {"constructor_args": ["seven", "TokenName", "super-fast"]},
-            {"constructor_args": ["seven", "TokenName"]},
-            {"constructor_args": [6789, 80085, "super-fast"]},
-            {"constructor_args": [6789, "TokenName", 80085]},
-            {"constructor_args": [6789, "TokenName", "super-fast"], "token_name": 5000},
+            {"constructor_args": {"name": "TokenName", "symbol": "TokenSymbol"}},
+            {"constructor_args": {"decimals": 6789, "symbol": "TokenSymbol"}},
+            {"constructor_args": {"decimals": 6789, "name": "TokenName"}},
+            {"constructor_args": {"decimals": 6789, "name": 80085, "symbol": "TokenSymbol"}},
+            {
+                "constructor_args": {
+                    "decimals": "fifty",
+                    "name": "TokenName",
+                    "symbol": "TokenSymbol",
+                }
+            },
+            {"constructor_args": {"decimals": 6789, "name": "TokenName", "symbol": 8000}},
+            {
+                "constructor_args": {
+                    "decimals": 6789,
+                    "name": "TokenName",
+                    "symbol": "TokenSymbol",
+                },
+                "token_name": 5000,
+            },
         ],
         ids=[
             "constructor_args are required",
-            "constructor_args must be 3-item list",
-            "constructor_args[0] must be an integer",
-            "constructor_args[1] must be a string",
-            "constructor_args[2] must be a string",
+            "constructor_args requires decimals key",
+            "constructor_args requires name key",
+            "constructor_args requires symbol key",
+            "constructor_args.deccimals must be an integer",
+            "constructor_args.name must be a string",
+            "constructor_args.symbol must be a string",
             "token_name must be a string",
         ],
     )
     def test_validate_and_deserialize_raises_excpetions_on_faulty_input(self, input_dict, app):
         with app.test_client() as c:
-            resp = c.post("/test-create", data=input_dict)
+            resp = c.post("/test-create", json=input_dict)
             assert "400 Bad Request".lower() in resp.status.lower()
 
 
