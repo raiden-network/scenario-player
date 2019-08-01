@@ -223,8 +223,7 @@ def run(
         except ServiceProcessException:
             service_process.kill()
         finally:
-            if runner.is_managed:
-                runner.node_controller.stop()
+            runner.node_controller.stop()
             if ui_greenlet is not None and not ui_greenlet.dead:
                 ui_greenlet.kill(ExitMainLoop)
                 ui_greenlet.join()

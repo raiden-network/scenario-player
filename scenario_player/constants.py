@@ -12,7 +12,7 @@ TIMEOUT = 200
 API_URL_ADDRESS = "{protocol}://{target_host}/api/v1/address"
 API_URL_TOKENS = "{protocol}://{target_host}/api/v1/tokens"
 API_URL_TOKEN_NETWORK_ADDRESS = "{protocol}://{target_host}/api/v1/tokens/{token_address}"
-SUPPORTED_SCENARIO_VERSIONS = {1, 2}
+SUPPORTED_SCENARIO_VERSIONS = {2}
 
 
 class NodeMode(enum.Enum):
