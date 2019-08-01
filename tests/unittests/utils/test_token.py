@@ -373,12 +373,11 @@ class TestToken:
                 return json_resp
 
         expected_params = {
-            "constructor_args": [
-                0,
-                instance_under_test.decimals,
-                instance_under_test.name,
-                instance_under_test.symbol,
-            ],
+            "constructor_args": {
+                "decimals": instance_under_test.decimals,
+                "name": instance_under_test.name,
+                "symbol": instance_under_test.symbol,
+            },
             "token_name": instance_under_test.name,
         }
 
