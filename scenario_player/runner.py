@@ -4,7 +4,7 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 
 import gevent
 import structlog
@@ -33,7 +33,6 @@ from scenario_player.constants import (
 from scenario_player.exceptions import NodesUnreachableError, ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
 from scenario_player.scenario import Scenario
-from scenario_player.tasks.base import Task, TaskState
 from scenario_player.utils import (
     TimeOutHTTPAdapter,
     get_or_deploy_token,
@@ -41,6 +40,9 @@ from scenario_player.utils import (
     mint_token_if_balance_low,
     wait_for_txs,
 )
+
+if TYPE_CHECKING:
+    from scenario_player.tasks.base import Task, TaskState
 
 log = structlog.get_logger(__name__)
 
@@ -55,7 +57,9 @@ class ScenarioRunner:
         auth: str,
         data_path: Path,
         scenario_file: Path,
-        task_state_callback: Optional[Callable[["ScenarioRunner", Task, TaskState], None]] = None,
+        task_state_callback: Optional[
+            Callable[["ScenarioRunner", "Task", "TaskState"], None]
+        ] = None,
     ):
         from scenario_player.node_support import RaidenReleaseKeeper, NodeController
 

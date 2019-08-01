@@ -67,6 +67,22 @@ class DepositTask(ChannelActionTask):
         return dict(total_deposit=self._config["total_deposit"])
 
 
+class WithdrawTask(ChannelActionTask):
+    """ Perform a withdraw on the given channel.
+
+    Example usage::
+
+        # Withdraw ``100`` tokens from channel ``[Node 0] -> [Node 1]``
+        withdraw: {from: 0, to: 1, total_withdraw: 100}
+    """
+
+    _name = "withdraw"
+
+    @property
+    def _request_params(self):
+        return dict(total_withdraw=self._config["total_withdraw"])
+
+
 class TransferTask(ChannelActionTask):
     _name = "transfer"
     _url_template = "{protocol}://{target_host}/api/v1/payments/{token_address}/{partner_address}"
@@ -192,6 +208,7 @@ class AssertAllTask(ChannelActionTask):
                     f'Value mismatch for field "{field}". '
                     f"Not all values consumed, remaining: {channel_field_values}"
                 )
+        return response_dict
 
 
 class AssertSumTask(AssertAllTask):
@@ -221,3 +238,4 @@ class AssertSumTask(AssertAllTask):
                     f'Actual value: "{channel_value_sum}". '
                     f"Channels: {response_dict}"
                 )
+        return response_dict
