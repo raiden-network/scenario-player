@@ -111,8 +111,7 @@ commands:
       - run:
           name: Install the project.
           command: |
-            pip install .
-            pip install ".[dev]"
+            make install-dev
 
 
   validate_commit_format:
