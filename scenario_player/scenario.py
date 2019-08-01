@@ -15,12 +15,18 @@ from scenario_player.exceptions import (
     MultipleTaskDefinitions,
     ScenarioError,
 )
-from scenario_player.utils import get_gas_price_strategy
+from scenario_player.utils.configuration import (
+    NodesConfig,
+    ScenarioConfig,
+    SettingsConfig,
+    SPaaSConfig,
+    TokenConfig,
+)
 
 log = structlog.get_logger(__name__)
 
 
-class NodesConfig(Mapping):
+class NodesConfig_(Mapping):
     """Thin wrapper around a Node configuration dictionary.
 
     Handles exceptions handling for missing values. Additionally, enables users
@@ -122,6 +128,18 @@ class NodesConfig(Mapping):
         return self._config.get("commands", {})
 
 
+class ScenarioYAML:
+    def __init__(self, yaml_path: pathlib.Path, data_path: pathlib.Path) -> None:
+        self.path = yaml_path
+        with yaml_path.open() as f:
+            self._loaded = yaml.safe_load(f)
+        self.nodes = NodesConfig(self._loaded)
+        self.settings = SettingsConfig(self._loaded)
+        self.scenario = ScenarioConfig(self._loaded)
+        self.token = TokenConfig(self._loaded, data_path)
+        self.spaas = SPaaSConfig(self._loaded)
+
+
 class Scenario(Mapping):
     """Thin wrapper class around a scenario .yaml file.
 
@@ -170,11 +188,6 @@ class Scenario(Mapping):
         return self._yaml_path.stem
 
     @property
-    def settings(self):
-        """Return the 'settings' dictionary for the scenario."""
-        return self._config.get("settings", {})
-
-    @property
     def protocol(self) -> str:
         """Return the designated protocol of the scenario.
 
@@ -215,10 +228,6 @@ class Scenario(Mapping):
         This defaults to 'fast'.
         """
         return self._config.get("gas_price", "fast")
-
-    @property
-    def gas_price_strategy(self) -> Callable:
-        return get_gas_price_strategy(self.gas_price)
 
     @property
     def nodes(self) -> NodesConfig:

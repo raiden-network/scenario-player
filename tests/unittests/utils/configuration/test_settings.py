@@ -69,8 +69,7 @@ class TestSettingsConfig:
     def test_gas_price_strategy_property_returns_strategy_from_web3(
         self, strategy, expected_func, minimal_yaml_dict
     ):
-        """The gas price strategy is dynamically fetched by calling
-        :func:`get_gas_price_strategy` with :attr:`SettingsConfig.gas_price`."""
+        """The gas price strategy is dynamically fetched."""
         minimal_yaml_dict["settings"]["gas_price"] = strategy
         config = SettingsConfig(minimal_yaml_dict)
         assert config.gas_price_strategy == expected_func

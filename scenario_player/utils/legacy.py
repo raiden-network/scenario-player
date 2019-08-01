@@ -326,21 +326,6 @@ def send_notification_mail(target_mail, subject, message, api_key):
     log.debug("Notification mail result", code=res.status_code, text=res.text)
 
 
-def get_gas_price_strategy(gas_price: Union[int, str]) -> Callable:
-    if isinstance(gas_price, int):
-
-        def fixed_gas_price(_web3, _tx):
-            return gas_price
-
-        return fixed_gas_price
-    elif gas_price == "fast":
-        return fast_gas_price_strategy
-    elif gas_price == "medium":
-        return medium_gas_price_strategy
-    else:
-        raise ValueError(f'Invalid gas_price value: "{gas_price}"')
-
-
 def reclaim_eth(
     account: Account, chain_rpc_urls: dict, data_path: pathlib.Path, min_age_hours: int
 ):

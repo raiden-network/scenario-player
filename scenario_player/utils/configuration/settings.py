@@ -4,7 +4,6 @@ import structlog
 
 from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
 from scenario_player.exceptions.config import ScenarioConfigurationError, ServiceConfigurationError
-from scenario_player.utils import get_gas_price_strategy
 from scenario_player.utils.configuration.base import ConfigMapping
 
 log = structlog.get_logger(__name__)
