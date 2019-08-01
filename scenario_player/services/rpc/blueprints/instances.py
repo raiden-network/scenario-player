@@ -29,38 +29,49 @@ delete_instance_schema = DeleteInstanceRequest()
 
 @instances_blueprint.route("/rpc/client", methods=["POST"])
 def rpc_create_view():
+    """Request a client id for a JSONRPCClient instance with the given configuration.
+
+    This view is idempotent, and will return an exising instance if one with
+    an identical configuration already exists.
+
+    FIXME: calling new_instance_schema.jsonify() results in a look-up error
+        when calling it with the newly created RPC client's ID.
+
+    ---
+    post:
+      description: "Create and send a new transaction via RPC."
+      parameters:
+      - name: chain_url
+        required: true
+        in: query
+        schema:
+          type: string
+
+      - name: privkey
+        required: true
+        in: query
+        schema:
+          type: str
+
+      - name: gas_price_strategy
+        required: false
+        in: query
+        schema:
+          type: str
+
+      responses:
+        200:
+          description: "The client id of the created/existing RPC instance matching your config."
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/NewInstanceRequest'}
+    """
     handlers = {"POST": create_client}
     with REDMetricsTracker():
         return handlers[request.method]()
 
 
 def create_client():
-    """Request a JSONRPCClient instance for the given configuration.
-
-    This view is idempotent, and will return an exising instance if one with
-    an identical configuration already exists.
-
-    Example::
-
-        POST /rpc/client
-
-            {
-                "chain_url": <str>,
-                "privkey": <str>,
-                "gas_price_strategy": <str - optional>,
-            }
-
-        200 OK
-
-            {
-                "client_id": <str>,
-            }
-
-    FIXME: calling new_instance_schema.jsonify() results in a look-up error
-        when calling it with the newly created RPC client's ID.
-
-
-    """
     data = new_instance_schema.validate_and_deserialize(request.form)
     privkey, chain_url = data["privkey"], data["chain_url"]
     gas_price_strategy = data["gas_price_strategy"]
@@ -75,17 +86,24 @@ def rpc_delete_view():
 
     This method always return 204, even if the client_id did not exist.
 
-    Example::
+    ---
+    delete:
+      description: "Assign the instance related to `client_id` for deletion."
+      parameters:
+      - name: client_id
+        required: true
+        in: query
+        schema:
+          type: string
 
-        DELETE /rpc/client?client_id=valid_client_id
-
-        204 No Content
-
-
-        DELETE /rpc/client?client_id=non_existing_client_id
-
-        204 No Content
-
+      responses:
+        204:
+          description: >
+            The entry for the client was deleted, and the instance
+            handed over to garbage collection.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteInstanceRequest'}
     """
     handlers = {"DELETE": delete_client}
     with REDMetricsTracker():

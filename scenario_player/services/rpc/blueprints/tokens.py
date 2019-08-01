@@ -33,28 +33,43 @@ token_mint_schema = TokenMintSchema()
 def deploy_token():
     """Deploy a new token contract.
 
-    Example::
+    ---
+    parameters:
+      - name: client_id
+        in: query
+        required: true
+        schema:
+          type: string
 
-        POST /rpc/token
+    post:
+      description": "Deploy a new token contract."
+      parameters:
+        - name: constructor_args
+          in: query
+          required: true
+          schema:
+            type: object
+            properties:
+              decimals:
+                type: integer
+                format: int32
+              name:
+                type: string
+              symbol:
+                type: string
 
-            {
-                "client_id": <str>,
-                "constructor_args": {
-                    "decimals": <int>,
-                    "name": <str>,
-                    "symbol: <str>,
-                }
-                "token_name": <str (optional)>,
-            }
+        - name: token_name
+          in: query
+          required: false
+          schema:
+            type: string
 
-        200 OK
-
-            {
-                "address": <str>,
-                "deployment_block": <int>,
-            }
-
-    If `token_name` is not given, we'll use constructor_args["name"] instead.
+      responses:
+        200:
+          description: "Address and deployment block of the deployed contract."
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenCreateSchema'}
 
     """
     with REDMetricsTracker():
@@ -90,23 +105,48 @@ def deploy_token():
 def mint_token():
     """Mint new tokens at the given token contract for the given target address.
 
-    Example::
+    parameters:
+      - name: client_id
+        in: query
+        required: true
+        schema:
+          type: string
 
-        POST /rpc/token/mint
+    post:
+      description": "Mint a token at `contract_address` for the given `target_address`",
+      parameters:
+        - name: contract_address
+          in: query
+          required: true
+          schema:
+            type: string
 
-            {
-                "client_id": <str>,
-                "contract_address": <str>,
-                "target_address": <str>,
-                "gas_limit": <float>,
-                "amount": <float>,
-            }
+        - name: target_address
+          in: query
+          required: true
+          schema:
+            type: string
 
-        200 OK
+        - name: gas_limit
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
 
-            {
-                "tx_hash": <str>,
-            }
+        - name: amount
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+
+      responses:
+        200:
+          description: "Transaction hash of the mint request."
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenMintSchema'}
     """
     with REDMetricsTracker():
         data = token_mint_schema.validate_and_deserialize(request.get_json())
