@@ -1,10 +1,12 @@
 from unittest.mock import patch
 
 import pytest
+from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
 from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.settings import (
     PFSSettingsConfig,
+    ScenarioConfigurationError,
     ServiceSettingsConfig,
     SettingsConfig,
     UDCSettingsConfig,
@@ -35,20 +37,43 @@ class TestSettingsConfig:
         config = SettingsConfig(minimal_yaml_dict)
         assert isinstance(config.services, ServiceSettingsConfig)
 
+    @pytest.mark.parametrize(
+        "value, raises",
+        argvalues=[("super-fast", True), (1.22, True), (11, False), ("fast", False)],
+        ids=[
+            "Unknown strategy key",
+            "Non-int number",
+            "valid integer value",
+            "Valid strategy ket",
+        ],
+    )
+    def test_validate_raises_exception_for_invalid_gas_price_values(
+        self, value, raises, minimal_yaml_dict
+    ):
+        minimal_yaml_dict["settings"]["gas_price"] = value
+        try:
+            SettingsConfig(minimal_yaml_dict)
+        except ScenarioConfigurationError:
+            if not raises:
+                pytest.fail("Raised ScenarioConfigurationError unexpectedly!")
+
     def test_gas_price_strategy_returns_a_callable(self, minimal_yaml_dict):
         """The :attr:`SettingsConfig.gas_price_strategy` returns a callable."""
         config = SettingsConfig(minimal_yaml_dict)
         assert callable(config.gas_price_strategy)
 
-    @patch("scenario_player.utils.configuration.settings.get_gas_price_strategy")
-    def test_gas_price_strategy_property_calls_getter_function(
-        self, mock_get_strategy, minimal_yaml_dict
+    @pytest.mark.parametrize(
+        "strategy, expected_func",
+        argvalues=[("fast", fast_gas_price_strategy), ("medium", medium_gas_price_strategy)],
+    )
+    def test_gas_price_strategy_property_returns_strategy_from_web3(
+        self, strategy, expected_func, minimal_yaml_dict
     ):
         """The gas price strategy is dynamically fetched by calling
         :func:`get_gas_price_strategy` with :attr:`SettingsConfig.gas_price`."""
+        minimal_yaml_dict["settings"]["gas_price"] = strategy
         config = SettingsConfig(minimal_yaml_dict)
-        _ = config.gas_price_strategy
-        mock_get_strategy.assert_called_once_with(config.gas_price)
+        assert config.gas_price_strategy == expected_func
 
 
 class TestServiceSettingsConfig:
