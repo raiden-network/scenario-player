@@ -219,7 +219,7 @@ def run(
                 log.warning("Press q to exit")
                 while not ui_greenlet.dead:
                     gevent.sleep(1)
-            service_process.start()
+            service_process.stop()
         except ServiceProcessException:
             service_process.kill()
         finally:
