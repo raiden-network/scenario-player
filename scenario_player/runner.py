@@ -28,9 +28,8 @@ from scenario_player.constants import (
     NODE_ACCOUNT_BALANCE_FUND,
     NODE_ACCOUNT_BALANCE_MIN,
     OWN_ACCOUNT_BALANCE_MIN,
-    NodeMode,
 )
-from scenario_player.exceptions import NodesUnreachableError, ScenarioError, TokenRegistrationError
+from scenario_player.exceptions import ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
 from scenario_player.scenario import Scenario
 from scenario_player.utils import (
@@ -81,19 +80,13 @@ class ScenarioRunner:
 
         self.run_number = self.determine_run_number()
 
-        self.node_mode = self.scenario.nodes.mode
-
-        if self.is_managed:
-            self.node_controller = NodeController(
-                self,
-                self.scenario.nodes.raiden_version,
-                self.scenario.nodes.count,
-                self.scenario.nodes.default_options,
-                self.scenario.nodes.node_options,
-            )
-        else:
-            self.raiden_nodes = self.scenario.nodes
-            self.node_commands = self.scenario.nodes.commands
+        self.node_controller = NodeController(
+            self,
+            self.scenario.nodes.raiden_version,
+            self.scenario.nodes.count,
+            self.scenario.nodes.default_options,
+            self.scenario.nodes.node_options,
+        )
 
         self.timeout = self.scenario.timeout
         self.protocol = self.scenario.protocol
@@ -125,7 +118,6 @@ class ScenarioRunner:
         self.session.mount("http", TimeOutHTTPAdapter(timeout=self.timeout))
         self.session.mount("https", TimeOutHTTPAdapter(timeout=self.timeout))
 
-        self._node_to_address = None
         self.token_address = None
         self.token_deployment_block = 0
         self.token_network_address = None
@@ -271,8 +263,7 @@ class ScenarioRunner:
         # Start root task
         root_task_greenlet = gevent.spawn(self.root_task)
         greenlets = {root_task_greenlet}
-        if self.is_managed:
-            greenlets.add(self.node_controller.start_node_monitor())
+        greenlets.add(self.node_controller.start_node_monitor())
         try:
             gevent.joinall(greenlets, raise_error=True)
         except BaseException:
@@ -372,36 +363,26 @@ class ScenarioRunner:
         self
     ) -> Tuple[Set[TransactionHash], gevent.Greenlet, Set[ChecksumAddress], int]:
         fund_tx = set()
-        node_starter: gevent.Greenlet = None
-        if self.is_managed:
-            self.node_controller.initialize_nodes()
-            node_addresses = self.node_controller.addresses
-            node_count = len(self.node_controller)
-            node_balances = {address: self.client.balance(address) for address in node_addresses}
-            low_balances = {
-                address: balance
-                for address, balance in node_balances.items()
-                if balance < NODE_ACCOUNT_BALANCE_MIN
-            }
-            if low_balances:
-                log.info("Funding nodes", nodes=low_balances.keys())
-                fund_tx = {
-                    self.client.send_transaction(
-                        to=address, startgas=21_000, value=NODE_ACCOUNT_BALANCE_FUND - balance
-                    )
-                    for address, balance in low_balances.items()
-                }
-            node_starter = self.node_controller.start(wait=False)
 
-        else:
-            log.info("Fetching node addresses")
-            unreachable_nodes = [node for node, addr in self.node_to_address.items() if not addr]
-            if not self.node_to_address or unreachable_nodes:
-                raise NodesUnreachableError(
-                    f"Raiden nodes unreachable: {','.join(unreachable_nodes)}"
+        self.node_controller.initialize_nodes()
+        node_addresses = self.node_controller.addresses
+        node_count = len(self.node_controller)
+        node_balances = {address: self.client.balance(address) for address in node_addresses}
+        low_balances = {
+            address: balance
+            for address, balance in node_balances.items()
+            if balance < NODE_ACCOUNT_BALANCE_MIN
+        }
+        if low_balances:
+            log.info("Funding nodes", nodes=low_balances.keys())
+            fund_tx = {
+                self.client.send_transaction(
+                    to=address, startgas=21_000, value=NODE_ACCOUNT_BALANCE_FUND - balance
                 )
-            node_addresses = set(self.node_to_address.values())
-            node_count = len(self.node_to_address)
+                for address, balance in low_balances.items()
+            }
+        node_starter = self.node_controller.start(wait=False)
+
         return fund_tx, node_starter, node_addresses, node_count
 
     def task_state_changed(self, task: "Task", state: "TaskState"):
@@ -427,21 +408,11 @@ class ScenarioRunner:
         gevent.joinall(set(tasks.values()))
         return {obj: task.get() for obj, task in tasks.items()}
 
-    @property
-    def is_managed(self):
-        return self.node_mode is NodeMode.MANAGED
-
     def get_node_address(self, index):
-        if self.is_managed:
-            return self.node_controller[index].address
-        else:
-            return self.node_to_address[self.raiden_nodes[index]]
+        return self.node_controller[index].address
 
     def get_node_baseurl(self, index):
-        if self.is_managed:
-            return self.node_controller[index].base_url
-        else:
-            return self.raiden_nodes[index]
+        return self.node_controller[index].base_url
 
     # Legacy for 'external' nodes
     def _get_node_addresses(self, nodes):
@@ -464,14 +435,3 @@ class ScenarioRunner:
 
         ret = self._spawn_and_wait(nodes, cb)
         return ret
-
-    @property
-    def node_to_address(self) -> Dict[str, ChecksumAddress]:
-        if not self.raiden_nodes:
-            return {}
-        if self._node_to_address is None:
-            self._node_to_address = {
-                node: address
-                for node, address in self._get_node_addresses(self.raiden_nodes).items()
-            }
-        return self._node_to_address

@@ -241,10 +241,8 @@ class ScenarioUI:
         return uwd.ListBox(self._log_walker)
 
     def _update_header_text(self):
-        if self._runner.is_managed:
-            node_count = len(self._runner.node_controller)
-        else:
-            node_count = len(self._runner.raiden_nodes)
+        node_count = len(self._runner.node_controller)
+
         self._header_text.set_text(
             f"Scenario Player - "
             f"Nodes: {node_count} - "

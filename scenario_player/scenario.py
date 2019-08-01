@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pathlib
+import warnings
 from collections.abc import Mapping
 from typing import Any, Callable, Dict, List, Tuple, Union
 
@@ -47,21 +48,12 @@ class NodesConfig(Mapping):
 
     @property
     def mode(self):
-        if self._scenario_version == 2:
-            try:
-                mode = self._config["mode"].upper()
-            except KeyError:
-                raise MissingNodesConfiguration(
-                    'Version 2 scenarios require a "mode" in the "nodes" section.'
-                )
-            try:
-                return NodeMode[mode]
-            except KeyError:
-                known_modes = ", ".join(mode.name.lower() for mode in NodeMode)
-                raise ScenarioError(
-                    f'Unknown node mode "{mode}". Expected one of {known_modes}'
-                ) from None
-        return NodeMode.EXTERNAL
+        """Return the node mode."""
+        warnings.warn(
+            "Node Mode is always 'managed', mode 'external' is no longer supported.",
+            DeprecationWarning,
+        )
+        return NodeMode.MANAGED
 
     @property
     def raiden_version(self) -> str:
@@ -166,7 +158,7 @@ class Scenario(Mapping):
         :raises InvalidScenarioVersion:
             if the supplied version is not present in :var:`SUPPORTED_SCENARIO_VERSIONS`.
         """
-        version = self._config.get("version", 1)
+        version = self._config.get("version", 2)
 
         if version not in SUPPORTED_SCENARIO_VERSIONS:
             raise InvalidScenarioVersion(f"Unexpected scenario version {version}")
@@ -186,18 +178,12 @@ class Scenario(Mapping):
     def protocol(self) -> str:
         """Return the designated protocol of the scenario.
 
-        If the node's mode is :attr:`NodeMode.MANAGED`, we always choose `http` and
-        display a warning if there was a 'protocol' set explicitly in the
-        scenario's yaml.
+        ..Note::
 
-        Otherwise we simply access the 'protocol' key of the yaml, defaulting to
-        'http' if it does not exist.
+            Scneario Version 1 is no longer supported, so this always returns `http`.
+
         """
-        if self.nodes.mode is NodeMode.MANAGED:
-            if "protocol" in self._config:
-                log.warning('The "protocol" setting is not supported in "managed" node mode.')
-            return "http"
-        return self._config.get("protocol", "http")
+        return "http"
 
     @property
     def timeout(self) -> int:
