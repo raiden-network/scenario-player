@@ -229,7 +229,11 @@ class Token:
         resp = self.interface.post(
             "spaas://rpc/token",
             params={
-                "constructor_args": [0, self.decimals, self.name, self.symbol],
+                "constructor_args": {
+                    "decimals": self.decimals,
+                    "name": self.name,
+                    "symbol": self.symbol,
+                },
                 "token_name": self.name,
             },
         )
