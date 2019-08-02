@@ -25,16 +25,11 @@ def response():
 
 
 @pytest.fixture
-def runner():
+def runner(dummy_scenario_runner):
     runner = ScenarioRunner.__new__(ScenarioRunner)
 
-    # Monkeypatch the minimum required attributes.
-    for attr, value in (
-        ("timeout", 2),
-        ("protocol", "http"),
-        ("token_address", "some_address"),
-        ("session", requests.Session),
-    ):
+    # Monkeypatch the instance using the dummy_scenario_runner
+    for attr, value in dummy_scenario_runner.__dict__.items():
         setattr(runner, attr, value)
     yield runner
 
