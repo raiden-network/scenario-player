@@ -157,13 +157,20 @@ class TestDeployTokenEndpoint:
         )
 
 
+@pytest.mark.parametrize(
+    "method_endpoint_tuple",
+    argvalues=[("post", "/rpc/token/mint"), ("put", "/rpc/token/allowance")],
+)
 @pytest.mark.dependency(name="tokens_blueprint_loaded")
 @patch(f"{rpc_blueprints_module_path}.tokens.token_mint_schema", spec=TokenMintSchema)
 @patch(
     f"{rpc_blueprints_module_path}.tokens.ContractManager.get_contract_abi",
     return_value="token_abi",
 )
-class TestMintTokenEndpoint:
+class TestTokenEndpoint:
+
+    ENDPOINT_TO_ACTION = {"/rpc/token/mint": "mintFor", "/rpc/token/allowance": "approve"}
+
     @pytest.fixture(autouse=True)
     def setup_mint_token_tests(
         self, app, default_mint_token_params, deserialized_mint_token_params, hexed_client_id
@@ -172,23 +179,28 @@ class TestMintTokenEndpoint:
         self.deserialized_params = deserialized_mint_token_params
         self.app = app
         self.client_id = hexed_client_id
-        self.mock_contract_proxy = MagicMock(**{"transact.return_value": b"mint_tx_hash"})
+        self.mock_contract_proxy = MagicMock(**{"transact.return_value": b"tx_hash"})
         self.app.config["rpc-client"].dict[
             self.client_id
         ].new_contract_proxy.return_value = self.mock_contract_proxy
 
-    def test_the_endpoint_calls_validate_and_deserialize_of_its_schema(self, _, mock_schema):
+    def test_the_endpoint_calls_validate_and_deserialize_of_its_schema(
+        self, _, mock_schema, method_endpoint_tuple
+    ):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
-
+        method, endpoint = method_endpoint_tuple
         with self.app.test_client() as c:
-            c.post("/rpc/token/mint", json=self.request_params)
+            getattr(c, method)(endpoint, json=self.request_params)
         mock_schema.validate_and_deserialize.assert_called_once_with(self.request_params)
 
-    def test_endpoint_fetches_proxy_using_the_contract_address_provided(self, _, mock_schema):
+    def test_endpoint_fetches_proxy_using_the_contract_address_provided(
+        self, _, mock_schema, method_endpoint_tuple
+    ):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
+        method, endpoint = method_endpoint_tuple
 
         with self.app.test_client() as c:
-            c.post("/rpc/token/mint", json=self.request_params)
+            getattr(c, method)(endpoint, json=self.request_params)
         self.app.config["rpc-client"].dict[
             self.client_id
         ].new_contract_proxy.assert_called_once_with(
@@ -196,23 +208,28 @@ class TestMintTokenEndpoint:
         )
 
     def test_endpoint_calls_proxy_contract_transact_with_passed_request_parameters(
-        self, _, mock_schema
+        self, _, mock_schema, method_endpoint_tuple
     ):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
 
+        method, endpoint = method_endpoint_tuple
+        expected_action = self.ENDPOINT_TO_ACTION[endpoint]
+
         with self.app.test_client() as c:
-            c.post("/rpc/token/mint", json=self.request_params)
+            getattr(c, method)(endpoint, json=self.request_params)
 
         gas_limit = self.deserialized_params["gas_limit"]
         amount = self.deserialized_params["amount"]
         target = self.deserialized_params["target_address"]
         self.mock_contract_proxy.transact.assert_called_once_with(
-            "mintFor", gas_limit, amount, target
+            expected_action, gas_limit, amount, target
         )
 
-    def test_endpoint_returns_jsonified_data(self, _, mock_schema):
+    def test_endpoint_returns_jsonified_data(self, _, mock_schema, method_endpoint_tuple):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
         mock_schema.dump.side_effect = lambda x: x
+
+        method, endpoint = method_endpoint_tuple
         with self.app.test_client() as c:
-            resp = c.post("/rpc/token/mint", json=self.request_params)
-            assert resp.data == b'{"tx_hash":"mint_tx_hash"}\n'
+            resp = getattr(c, method)(endpoint, json=self.request_params)
+            assert resp.data == b'{"tx_hash":"tx_hash"}\n'
