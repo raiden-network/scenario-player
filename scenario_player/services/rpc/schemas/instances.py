@@ -1,10 +1,22 @@
 from marshmallow.fields import String, Url
 
 from scenario_player.services.common.schemas import BytesField, SPSchema
+from scenario_player.services.rpc.schemas.base import RPCClientID, RPCCreateResourceSchema
 
 
 class NewInstanceRequest(SPSchema):
-    """Validator for POST /rpc/client requests."""
+    """POST /rpc/client
+
+    load-only parameters:
+
+        - chain_url (:class:`Url`)
+        - privkey (:class:`BytesField`)
+        - gas_price (str)
+
+    dump-only parameters:
+
+        - client_id (:class:`RPCClientID`)
+    """
 
     # Deserialization fields.
     chain_url = Url(required=True, load_only=True)
@@ -12,10 +24,13 @@ class NewInstanceRequest(SPSchema):
     gas_price_strategy = String(required=False, load_only=True, missing="fast")
 
     # Serialization fields.
-    rpc_client_id = String(required=True, dump_only=True)
+    client_id = RPCClientID(required=True, dump_only=True)
 
 
-class DeleteInstanceRequest(SPSchema):
-    """Validator for DELETE /rpc/client/<rpc_client_id> requests."""
+class DeleteInstanceRequest(RPCCreateResourceSchema):
+    """DELETE /rpc/client
 
-    rpc_client_id = String(required=True)
+    load-only parameters:
+
+        - client_id (:class:`RPCClientID`)
+    """

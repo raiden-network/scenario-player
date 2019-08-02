@@ -44,15 +44,6 @@ COMMIT_ISSUE = commit_match.get("ISSUE", "")
 COMMIT_TYPE = (commit_match.get("TYPE", "") or release_match.get("TYPE", "")).upper()
 
 
-# Construct the branch name to use if we need to create PRs programmatically
-# We only do this for RELEASE and HOTFIX type merge commits on master.
-if COMMIT_TYPE == "HOTFIX":
-    NEW_BRANCH = f"{COMMIT_TYPE}-{COMMIT_ISSUE}"
-elif COMMIT_TYPE == "RELEASE":
-    NEW_BRANCH = "release-to-dev"
-else:
-    NEW_BRANCH = os.environ.get("NEW_BRANCH", "")
-
 # GH API auth token.
 GH_AUTH_TOKEN = os.environ["GITHUB_TOKEN"]
 GH_AUTH_HEADERS = {"Authorization": f"token {GH_AUTH_TOKEN}"}

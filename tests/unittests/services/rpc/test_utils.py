@@ -41,7 +41,7 @@ class TestRPCRegistry:
         ],
     )
     def test_getitem_raises_keyerror(self, invalid_key):
-        with pytest.raises(werkzeug.exceptions.NotFound):
+        with pytest.raises(KeyError):
             RPCRegistry()[invalid_key]
 
     @pytest.mark.parametrize(
@@ -61,7 +61,7 @@ class TestRPCRegistry:
         chain_url, privkey, *strategy = valid_tuple
         expected_id = generate_hash_key(chain_url, privkey)
         # Assert the registry does not have the instance.
-        with pytest.raises(werkzeug.exceptions.NotFound):
+        with pytest.raises(KeyError):
             registry[expected_id]
 
         instance, actual_id = registry[valid_tuple]
