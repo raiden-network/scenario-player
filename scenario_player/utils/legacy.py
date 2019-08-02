@@ -9,7 +9,7 @@ from collections import defaultdict, deque
 from datetime import datetime
 from itertools import islice
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import click
 import mirakuru
@@ -23,7 +23,6 @@ from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPO
 from raiden_contracts.contract_manager import get_contracts_deployment_info
 from requests.adapters import HTTPAdapter
 from web3 import HTTPProvider, Web3
-from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
 from raiden.accounts import Account
 from raiden.network.rpc.client import JSONRPCClient, check_address_has_code

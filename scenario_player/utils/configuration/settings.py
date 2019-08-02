@@ -128,12 +128,14 @@ class SettingsConfig(ConfigMapping):
     def validate(self):
         self.assert_option(
             isinstance(self.gas_price, (int, str)),
-            f"Gas Price must be an integer or one of {list(GAS_STRATEGIES.keys())}, not {self.gas_price}",
+            f"Gas Price must be an integer or one of "
+            f"{list(GAS_STRATEGIES.keys())}, not {self.gas_price}",
         )
         if isinstance(self.gas_price, str):
             self.assert_option(
                 self.gas_price in GAS_STRATEGIES,
-                f"Gas Price must be an integer or one of {list(GAS_STRATEGIES.keys())}, not {self.gas_price}",
+                f"Gas Price must be an integer or one of "
+                f"{list(GAS_STRATEGIES.keys())}, not {self.gas_price}",
             )
 
     @property
