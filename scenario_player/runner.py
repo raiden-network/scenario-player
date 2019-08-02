@@ -111,7 +111,7 @@ class ScenarioRunner:
         self.session.mount("http", TimeOutHTTPAdapter(timeout=self.yaml.settings.timeout))
         self.session.mount("https", TimeOutHTTPAdapter(timeout=self.yaml.settings.timeout))
 
-        self.token = Token(self.yaml.token, self, data_path)
+        self.token = Token(self.yaml, self, data_path)
 
         self.token_network_address = None
 
