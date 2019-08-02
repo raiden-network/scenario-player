@@ -15,8 +15,8 @@ The following endpoints are supplied by this blueprint:
         what token contract is used to do this.aa
 """
 from eth_utils.address import to_checksum_address
-from flask import Blueprint, jsonify, request
-from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN
+from flask import Blueprint, abort, jsonify, request
+from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
 
 from scenario_player.services.common.metrics import REDMetricsTracker
@@ -102,9 +102,10 @@ def deploy_token():
 
 
 @tokens_blueprint.route("/rpc/token/mint", methods=["POST"])
-def mint_token():
+def mint_contract():
     """Mint new tokens at the given token contract for the given target address.
 
+    ---
     parameters:
       - name: client_id
         in: query
@@ -148,16 +149,81 @@ def mint_token():
             application/json:
               schema: {$ref: '#/components/schemas/TokenMintSchema'}
     """
+
     with REDMetricsTracker():
         data = token_mint_schema.validate_and_deserialize(request.get_json())
-        rpc_client = data["client"]
 
-        contract_manager = ContractManager(contracts_precompiled_path())
+        tx_hash = transact_call(data, CONTRACT_CUSTOM_TOKEN)
 
-        token_specs = contract_manager.get_contract(CONTRACT_CUSTOM_TOKEN)
-        token_proxy = rpc_client.new_contract_proxy(token_specs["abi"], data["contract_address"])
-        tx_hash = token_proxy.transact(
-            "mintFor", data["gas_limit"], data["amount"], data["target_address"]
-        )
         dumped = token_mint_schema.dump({"tx_hash": tx_hash})
         return jsonify(dumped)
+
+
+@tokens_blueprint.route("/rpc/token/allowance", methods=["PUT"])
+def contract_allowance():
+    """Update the allowance for a User Deposit Contract.
+
+    ---
+    parameters:
+      - name: client_id
+        in: query
+        required: true
+        schema:
+          type: string
+
+    post:
+      description": "Set the allowance of a UserDeposit Contract at `contract_address` for the given `target_address`",
+      parameters:
+        - name: contract_address
+          in: query
+          required: true
+          schema:
+            type: string
+
+        - name: target_address
+          in: query
+          required: true
+          schema:
+            type: string
+
+        - name: gas_limit
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+
+        - name: amount
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+
+      responses:
+        200:
+          description: "Transaction hash of the mint request."
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenMintSchema'}
+    """
+    with REDMetricsTracker():
+        data = token_mint_schema.validate_and_deserialize(request.get_json())
+
+        tx_hash = transact_call(data, CONTRACT_USER_DEPOSIT)
+
+        dumped = token_mint_schema.dump({"tx_hash": tx_hash})
+        return jsonify(dumped)
+
+
+def transact_call(data, contract):
+    transact_actions = {CONTRACT_USER_DEPOSIT: "approve", CONTRACT_CUSTOM_TOKEN: "mintFor"}
+
+    rpc_client = data["client"]
+    contract_manager = ContractManager(contracts_precompiled_path())
+
+    token_abi = contract_manager.get_contract_abi(contract)
+    token_proxy = rpc_client.new_contract_proxy(token_abi, data["contract_address"])
+    return token_proxy.transact(
+        transact_actions[contract], data["gas_limit"], data["amount"], data["target_address"]
+    )
