@@ -312,7 +312,7 @@ class ScenarioRunner:
 
         log.info("UDC enabled", contract_address=udc_address, token_address=ud_token_address)
 
-        should_deposit_ud_token = udc_enabled and udc_settings.token.deposit
+        should_deposit_ud_token = udc_enabled and udc_settings.token["deposit"]
 
         if should_deposit_ud_token:
             tx = mint_token_if_balance_low(
