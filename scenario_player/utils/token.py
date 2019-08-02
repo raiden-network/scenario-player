@@ -4,7 +4,6 @@ from typing import Dict, Tuple, Union
 
 import structlog
 from eth_utils import to_checksum_address
-from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 
 from raiden.network.rpc.client import AddressWithoutCode, check_address_has_code
 from scenario_player.exceptions.config import (
@@ -50,7 +49,6 @@ class Contract:
         if balance < self.config.token.min_balance:
             mint_amount = self.config.token.max_funding - balance
             params = {
-                "action": "mintFor",
                 "gas_limit": self.config.gas_limit,
                 "amount": mint_amount,
                 "contract_address": self.address,
@@ -292,11 +290,22 @@ class Token(Contract):
 
 
 class UserDepositContract(Contract):
+    """User Deposit Contract wrapper for scenario runs.
+
+    Takes care of:
+
+        - Minting tokens for nodes on the UDC
+        - Updating the allowance of nodes
+    """
+
     def __init__(self, scenario_runner, contract_proxy, token_proxy):
         super(UserDepositContract, self).__init__(scenario_runner, contract_proxy.contract_address)
         self.contract_proxy = contract_proxy
         self.token_proxy = token_proxy
         self.tx_hashes = set()
+
+    def init(self):
+        self.update_allowance()
 
     @property
     def allowance(self):
@@ -304,8 +313,7 @@ class UserDepositContract(Contract):
             self._local_rpc_client.address, self.address
         ).call()
 
-    @allowance.setter
-    def allowance(self, value):
+    def update_allowance(self):
         node_count = self.config.nodes.count
         udt_allowance = self.allowance
 
@@ -315,9 +323,3 @@ class UserDepositContract(Contract):
             params = {}
             resp = self.interface.put(f"spaas://rpc/token/allowance", params=params)
             self.tx_hashes.add(resp.json()["tx_hash"])
-
-            udt_tx.add(
-                self.token_proxy.transact(
-                    "approve", self.config.gas_limit, self.contract_proxy.contract_address, value
-                )
-            )

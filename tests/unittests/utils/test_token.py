@@ -445,7 +445,6 @@ class TestToken:
         expected_amount = 9900
 
         expected_params = {
-            "action": "mintFor",
             "gas_limit": instance_under_test.config.gas_limit,
             "amount": expected_amount,
             "target_address": "the_address",
