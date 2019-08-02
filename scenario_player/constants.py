@@ -20,6 +20,8 @@ SUPPORTED_SCENARIO_VERSIONS = {2}
 #: settings.gas_price config option in the scenario yaml.
 GAS_STRATEGIES = {"FAST": fast_gas_price_strategy, "MEDIUM": medium_gas_price_strategy}
 
+GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL = 100_000
+
 
 class NodeMode(enum.Enum):
     EXTERNAL = 1
