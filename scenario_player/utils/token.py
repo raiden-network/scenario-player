@@ -4,6 +4,7 @@ from typing import Dict, Tuple, Union
 
 import structlog
 from eth_utils import to_checksum_address
+from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 
 from raiden.network.rpc.client import AddressWithoutCode, check_address_has_code
 from scenario_player.exceptions.config import (
@@ -13,7 +14,6 @@ from scenario_player.exceptions.config import (
     TokenSourceCodeDoesNotExist,
 )
 from scenario_player.services.utils.interface import ServiceInterface
-from scenario_player.utils.configuration.settings import SettingsConfig
 
 log = structlog.get_logger(__name__)
 
@@ -313,7 +313,7 @@ class UserDepositContract(Contract):
             allow_amount = (self.config.token.max_funding * 10 * node_count) - udt_allowance
             log.debug("Updating UD token allowance", allowance=allow_amount)
             params = {}
-            resp = self.interface.post("spaas://rpc/token/mint", params=params)
+            resp = self.interface.put(f"spaas://rpc/token/allowance", params=params)
             self.tx_hashes.add(resp.json()["tx_hash"])
 
             udt_tx.add(
