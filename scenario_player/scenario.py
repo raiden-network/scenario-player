@@ -31,7 +31,7 @@ class ScenarioYAML:
         self.nodes = NodesConfig(self._loaded)
         self.settings = SettingsConfig(self._loaded)
         self.scenario = ScenarioConfig(self._loaded)
-        self.token = TokenConfig(self._loaded, data_path)
+        self.token = TokenConfig(self._loaded, data_path.joinpath("token.info"))
         self.spaas = SPaaSConfig(self._loaded)
 
         self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
