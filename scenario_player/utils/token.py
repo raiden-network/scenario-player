@@ -72,8 +72,6 @@ class Token(Contract):
 
     def __init__(self, scenario_runner, data_path: pathlib.Path):
         super(Token, self).__init__(scenario_runner)
-        self._local_rpc_client = scenario_runner.client
-        self._local_contract_manager = scenario_runner.contract_manager
         self._token_file = data_path.joinpath("token.info")
         self.contract_data = {}
         self.deployment_receipt = None
