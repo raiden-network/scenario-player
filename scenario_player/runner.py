@@ -20,7 +20,6 @@ from raiden.network.rpc.client import JSONRPCClient
 from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from raiden.utils.typing import TransactionHash
 from scenario_player.constants import (
-    API_URL_ADDRESS,
     API_URL_TOKEN_NETWORK_ADDRESS,
     API_URL_TOKENS,
     DEFAULT_TOKEN_BALANCE_FUND,
@@ -31,10 +30,9 @@ from scenario_player.constants import (
 )
 from scenario_player.exceptions import ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
-from scenario_player.scenario import Scenario, ScenarioYAML
+from scenario_player.scenario import ScenarioYAML
 from scenario_player.utils import (
     TimeOutHTTPAdapter,
-    get_or_deploy_token,
     get_udc_and_token,
     mint_token_if_balance_low,
     wait_for_txs,
