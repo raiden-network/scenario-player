@@ -160,8 +160,8 @@ class TestDeployTokenEndpoint:
 @pytest.mark.dependency(name="tokens_blueprint_loaded")
 @patch(f"{rpc_blueprints_module_path}.tokens.token_mint_schema", spec=TokenMintSchema)
 @patch(
-    f"{rpc_blueprints_module_path}.tokens.ContractManager.get_contract",
-    return_value={"abi": "token_abi"},
+    f"{rpc_blueprints_module_path}.tokens.ContractManager.get_contract_abi",
+    return_value="token_abi",
 )
 class TestMintTokenEndpoint:
     @pytest.fixture(autouse=True)
