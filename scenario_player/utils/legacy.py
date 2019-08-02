@@ -260,7 +260,7 @@ def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[Contrac
 
     assert isinstance(runner, ScenarioRunner)
 
-    udc_config = runner.yaml.services.udc
+    udc_config = runner.yaml.settings.services.udc
 
     if not udc_config.enable:
         return None, None
