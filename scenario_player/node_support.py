@@ -393,7 +393,7 @@ class NodeRunner:
     @property
     def _pfs_address(self):
         local_pfs = self._options.get("pathfinding-service-address")
-        global_pfs = self._runner.yaml.services.pfs.url
+        global_pfs = self._runner.yaml.settings.services.pfs.url
         if local_pfs:
             if global_pfs:
                 log.warning(
