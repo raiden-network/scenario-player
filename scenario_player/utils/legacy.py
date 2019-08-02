@@ -204,7 +204,7 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
     """ Deploy or reuse  """
     token_contract = runner.contract_manager.get_contract(CONTRACT_CUSTOM_TOKEN)
 
-    token_config = runner.scenario.get("token", {})
+    token_config = runner.yaml.token
     if not token_config:
         token_config = {}
     address = token_config.get("address")
@@ -261,12 +261,12 @@ def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[Contrac
 
     assert isinstance(runner, ScenarioRunner)
 
-    udc_config = runner.scenario.services.get("udc", {})
+    udc_config = runner.yaml.services.udc
 
-    if not udc_config.get("enable", False):
+    if not udc_config.enable:
         return None, None
 
-    udc_address = udc_config.get("address")
+    udc_address = udc_config.address
     if udc_address is None:
         contracts = get_contracts_deployment_info(
             chain_id=runner.chain_id, version=DEVELOPMENT_CONTRACT_VERSION
