@@ -2,17 +2,7 @@ import json
 
 import pytest
 
-
-@pytest.fixture
-def minimal_yaml_dict():
-    """A dictionary with the minimum required keys for instantiating any ConfigMapping."""
-    return {
-        "scenario": {"serial": {"runner": None, "config": "salami"}},
-        "settings": {},
-        "token": {},
-        "nodes": {"count": 1},
-        "spaas": {},
-    }
+from ..conftest import minimal_yaml_dict
 
 
 @pytest.fixture

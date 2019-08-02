@@ -2,9 +2,8 @@ from typing import Callable, Union
 
 import structlog
 
-from scenario_player.constants import TIMEOUT
+from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
 from scenario_player.exceptions.config import ScenarioConfigurationError, ServiceConfigurationError
-from scenario_player.utils import get_gas_price_strategy
 from scenario_player.utils.configuration.base import ConfigMapping
 
 log = structlog.get_logger(__name__)
@@ -126,6 +125,19 @@ class SettingsConfig(ConfigMapping):
         self.services = ServiceSettingsConfig(loaded_yaml)
         self.validate()
 
+    def validate(self):
+        self.assert_option(
+            isinstance(self.gas_price, (int, str)),
+            f"Gas Price must be an integer or one of "
+            f"{list(GAS_STRATEGIES.keys())}, not {self.gas_price}",
+        )
+        if isinstance(self.gas_price, str):
+            self.assert_option(
+                self.gas_price in GAS_STRATEGIES,
+                f"Gas Price must be an integer or one of "
+                f"{list(GAS_STRATEGIES.keys())}, not {self.gas_price}",
+            )
+
     @property
     def timeout(self) -> int:
         """Returns the scenario's set timeout in seconds."""
@@ -150,8 +162,29 @@ class SettingsConfig(ConfigMapping):
 
         This defaults to 'fast'.
         """
-        return self.get("gas_price", "fast")
+        gas_price = self.get("gas_price", "fast")
+        if isinstance(gas_price, str):
+            return gas_price.upper()
+        return gas_price
 
     @property
     def gas_price_strategy(self) -> Callable:
-        return get_gas_price_strategy(self.gas_price)
+        """Return the gas price strategy callable requested in :attr:`.gas_price`.
+
+        If the price is an int, the callable will always return :attr:`.gas_price`.
+
+        If the price is a string, we fetch the appropriate callable from :mod:`web3`.
+
+        :raises ValueError: If the strategy cannot be found.
+        """
+        if isinstance(self.gas_price, int):
+
+            def fixed_gas_price(*_, **__):
+                return self.gas_price
+
+            return fixed_gas_price
+
+        try:
+            return GAS_STRATEGIES[self.gas_price.upper()]
+        except KeyError:
+            raise ValueError(f'Invalid gas_price value: "{self.gas_price}"')

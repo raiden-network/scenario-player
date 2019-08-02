@@ -182,7 +182,7 @@ def run(
         except ScenarioAssertionError as ex:
             log.error("Run finished", result="assertion errors")
             send_notification_mail(
-                runner.notification_email,
+                runner.yaml.settings.notify,
                 f"Assertion mismatch in {scenario_file.name}",
                 str(ex),
                 mailgun_api_key,
@@ -190,7 +190,7 @@ def run(
         except ScenarioError:
             log.exception("Run finished", result="scenario error")
             send_notification_mail(
-                runner.notification_email,
+                runner.yaml.settings.notify,
                 f"Invalid scenario {scenario_file.name}",
                 traceback.format_exc(),
                 mailgun_api_key,
@@ -199,7 +199,7 @@ def run(
             success = True
             log.info("Run finished", result="success")
             send_notification_mail(
-                runner.notification_email,
+                runner.yaml.settings.notify,
                 f"Scenario successful {scenario_file.name}",
                 "Success",
                 mailgun_api_key,
@@ -207,7 +207,7 @@ def run(
     except Exception:
         log.exception("Exception while running scenario")
         send_notification_mail(
-            runner.notification_email,
+            runner.yaml.settings.notify,
             f"Error running scenario {scenario_file.name}",
             traceback.format_exc(),
             mailgun_api_key,

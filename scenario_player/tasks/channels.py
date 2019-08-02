@@ -27,7 +27,9 @@ class OpenChannelTask(RaidenAPIActionTask):
             partner_address = self._config["to"]
         else:
             partner_address = self._runner.get_node_address(self._config["to"])
-        params = dict(token_address=self._runner.token_address, partner_address=partner_address)
+        params = dict(
+            token_address=self._runner.token.checksum_address, partner_address=partner_address
+        )
         total_deposit = self._config.get("total_deposit")
         if total_deposit is not None:
             params["total_deposit"] = total_deposit
@@ -48,7 +50,9 @@ class ChannelActionTask(RaidenAPIActionTask):
         else:
             partner_address = self._runner.get_node_address(self._config["to"])
 
-        return dict(token_address=self._runner.token_address, partner_address=partner_address)
+        return dict(
+            token_address=self._runner.token.checksum_address, partner_address=partner_address
+        )
 
 
 class CloseChannelTask(ChannelActionTask):
@@ -98,7 +102,7 @@ class TransferTask(ChannelActionTask):
         if str(self._config.get("identifier", "")).lower() == "generate":
             transfer_count = self.__class__._transfer_count
             scenario_hash = int.from_bytes(
-                hashlib.sha256(self._runner.scenario_name.encode()).digest()[:2], "little"
+                hashlib.sha256(self._runner.yaml.name.encode()).digest()[:2], "little"
             )
             self._config["identifier"] = int(
                 f"1{scenario_hash}1{self._runner.run_number:04d}{transfer_count:06d}"
@@ -163,7 +167,7 @@ class AssertAllTask(ChannelActionTask):
 
     @property
     def _url_params(self):
-        return dict(token_address=self._runner.token_address)
+        return dict(token_address=self._runner.token.checksum_address)
 
     def _process_response(self, response_dict: dict):
         response_dict = super()._process_response(response_dict)

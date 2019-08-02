@@ -20,7 +20,6 @@ from raiden.network.rpc.client import JSONRPCClient
 from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from raiden.utils.typing import TransactionHash
 from scenario_player.constants import (
-    API_URL_ADDRESS,
     API_URL_TOKEN_NETWORK_ADDRESS,
     API_URL_TOKENS,
     DEFAULT_TOKEN_BALANCE_FUND,
@@ -31,14 +30,14 @@ from scenario_player.constants import (
 )
 from scenario_player.exceptions import ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
-from scenario_player.scenario import Scenario
+from scenario_player.scenario import ScenarioYAML
 from scenario_player.utils import (
     TimeOutHTTPAdapter,
-    get_or_deploy_token,
     get_udc_and_token,
     mint_token_if_balance_low,
     wait_for_txs,
 )
+from scenario_player.utils.token import Token
 
 if TYPE_CHECKING:
     from scenario_player.tasks.base import Task, TaskState
@@ -62,47 +61,40 @@ class ScenarioRunner:
     ):
         from scenario_player.node_support import RaidenReleaseKeeper, NodeController
 
+        self.auth = auth
+
+        self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
+
         self.task_count = 0
         self.running_task_count = 0
-        self.auth = auth
-        self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
         self.task_cache = {}
         self.task_state_callback = task_state_callback
         # Storage for arbitrary data tasks might need to persist
         self.task_storage = defaultdict(dict)
 
-        self.scenario = Scenario(scenario_file)
-        self.scenario_name = self.scenario.name
-
-        self.data_path = data_path.joinpath("scenarios", self.scenario.name)
+        self.data_path = data_path.joinpath("scenarios", self.yaml.name)
         self.data_path.mkdir(exist_ok=True, parents=True)
+        self.yaml = ScenarioYAML(scenario_file, self.data_path)
         log.debug("Data path", path=self.data_path)
 
+        # Determining the run number requires :attr:`.data_path`
         self.run_number = self.determine_run_number()
 
-        self.node_controller = NodeController(
-            self,
-            self.scenario.nodes.raiden_version,
-            self.scenario.nodes.count,
-            self.scenario.nodes.default_options,
-            self.scenario.nodes.node_options,
-        )
+        self.node_controller = NodeController(self, self.yaml.nodes)
 
-        self.timeout = self.scenario.timeout
-        self.protocol = self.scenario.protocol
+        self.protocol = "http"
 
-        self.notification_email = self.scenario.notification_email
+        self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
         self.chain_name, chain_urls = self.select_chain(chain_urls)
         self.eth_rpc_urls = chain_urls
-
         self.client = JSONRPCClient(
             Web3(HTTPProvider(chain_urls[0])),
             privkey=account.privkey,
-            gas_price_strategy=self.scenario.gas_price_strategy,
+            gas_price_strategy=self.yaml.settings.gas_price_strategy,
         )
-
         self.chain_id = int(self.client.web3.net.version)
+
         self.contract_manager = ContractManager(contracts_precompiled_path())
 
         balance = self.client.balance(account.address)
@@ -115,15 +107,15 @@ class ScenarioRunner:
         self.session = Session()
         if auth:
             self.session.auth = tuple(auth.split(":"))
-        self.session.mount("http", TimeOutHTTPAdapter(timeout=self.timeout))
-        self.session.mount("https", TimeOutHTTPAdapter(timeout=self.timeout))
+        self.session.mount("http", TimeOutHTTPAdapter(timeout=self.yaml.settings.timeout))
+        self.session.mount("https", TimeOutHTTPAdapter(timeout=self.yaml.settings.timeout))
 
-        self.token_address = None
-        self.token_deployment_block = 0
+        self.token = Token(self.yaml.token, self, data_path)
+
         self.token_network_address = None
 
-        task_config = self.scenario.task_config
-        task_class = self.scenario.task_class
+        task_config = self.yaml.scenario.root_config
+        task_class = self.yaml.scenario.root_class
         self.root_task = task_class(runner=self, config=task_config)
 
     def determine_run_number(self) -> int:
@@ -154,7 +146,7 @@ class ScenarioRunner:
             if ScenarioRunner.scenario.chain_name is not one of `('any', 'Any', 'ANY')`
             and it is not a key in `chain_urls`.
         """
-        chain_name = self.scenario.chain_name
+        chain_name = self.yaml.settings.chain
         if chain_name in ("any", "Any", "ANY"):
             chain_name = random.choice(list(chain_urls.keys()))
 
@@ -177,12 +169,12 @@ class ScenarioRunner:
         """
         log.info("Waiting till new network is found by nodes")
         node_endpoint = API_URL_TOKEN_NETWORK_ADDRESS.format(
-            protocol=self.protocol, target_host=node, token_address=self.token_address
+            protocol=self.protocol, target_host=node, token_address=self.token.address
         )
 
         started = time.monotonic()
         elapsed = 0
-        while elapsed < self.timeout:
+        while elapsed < self.yaml.settings.timeout:
             try:
                 resp = self.session.get(node_endpoint)
                 resp.raise_for_status()
@@ -243,9 +235,9 @@ class ScenarioRunner:
                 API_URL_TOKENS.format(protocol=self.protocol, target_host=first_node)
             ).json()
         )
-        if self.token_address not in registered_tokens:
+        if self.token.checksum_address not in registered_tokens:
             for _ in range(5):
-                code, msg = self.register_token(self.token_address, first_node)
+                code, msg = self.register_token(self.token.checksum_address, first_node)
                 if 199 < code < 300:
                     break
                 gevent.sleep(1)
@@ -279,22 +271,11 @@ class ScenarioRunner:
         should_deposit_ud_token: bool,
         gas_limit: int,
     ) -> Set[TransactionHash]:
-        token_ctr, token_block = get_or_deploy_token(self)
-        self.token_address = to_checksum_address(token_ctr.contract_address)
-        self.token_deployment_block = token_block
-        token_settings = self.scenario.get("token") or {}
-        token_balance_min = token_settings.get("balance_min", DEFAULT_TOKEN_BALANCE_MIN)
-        token_balance_fund = token_settings.get("balance_fund", DEFAULT_TOKEN_BALANCE_FUND)
+        """Deploy new token to the blockchain, or load an existing one's data from disk."""
+        self.token.init()
         mint_tx = set()
         for address in node_addresses:
-            tx = mint_token_if_balance_low(
-                token_contract=token_ctr,
-                target_address=address,
-                min_balance=token_balance_min,
-                fund_amount=token_balance_fund,
-                gas_limit=gas_limit,
-                mint_msg="Minting tokens for",
-            )
+            tx = self.token.mint(address, gas_limit)
             if tx:
                 mint_tx.add(tx)
 
@@ -315,8 +296,8 @@ class ScenarioRunner:
         self, gas_limit: int, node_count: int
     ) -> Tuple[Set[TransactionHash], Optional[ContractProxy], bool]:
         our_address = to_checksum_address(self.client.address)
-        udc_settings = self.scenario.services.get("udc", {})
-        udc_enabled = udc_settings.get("enable")
+        udc_settings = self.yaml.settings.services.udc
+        udc_enabled = udc_settings.enable
 
         ud_token_tx = set()
 
@@ -330,9 +311,8 @@ class ScenarioRunner:
 
         log.info("UDC enabled", contract_address=udc_address, token_address=ud_token_address)
 
-        should_deposit_ud_token = udc_enabled and udc_settings.get("token", {}).get(
-            "deposit", False
-        )
+        should_deposit_ud_token = udc_enabled and udc_settings.token.deposit
+
         if should_deposit_ud_token:
             tx = mint_token_if_balance_low(
                 token_contract=ud_token_ctr,
@@ -390,6 +370,7 @@ class ScenarioRunner:
             self.task_state_callback(self, task, state)
 
     def register_token(self, token_address, node):
+        # TODO: Move this to :class:`scenario_player.utils.token.Token`.
         try:
             base_url = API_URL_TOKENS.format(protocol=self.protocol, target_host=node)
             url = "{}/{}".format(base_url, token_address)
@@ -413,25 +394,3 @@ class ScenarioRunner:
 
     def get_node_baseurl(self, index):
         return self.node_controller[index].base_url
-
-    # Legacy for 'external' nodes
-    def _get_node_addresses(self, nodes):
-        def cb(node):
-            log.debug("Getting node address", node=node)
-            url = API_URL_ADDRESS.format(protocol=self.protocol, target_host=node)
-            log.debug("Requesting", url=url)
-            try:
-                resp = self.session.get(url)
-            except RequestException:
-                log.error("Error fetching node address", url=url, node=node)
-                return None
-            try:
-                return to_checksum_address(resp.json().get("our_address", ""))
-            except ValueError:
-                log.error(
-                    "Error decoding response", response=resp.text, code=resp.status_code, url=url
-                )
-            return None
-
-        ret = self._spawn_and_wait(nodes, cb)
-        return ret

@@ -13,7 +13,7 @@ def expected_defaults():
         "name": "<Unnamed Scenario>",
         "scenario": {"serial": {"runner": None, "config": "salami"}},
         "settings": {
-            "gas_price": "fast",
+            "gas_price": "FAST",
             "timeout": 200,
             "notify": None,
             "chain": "any",
