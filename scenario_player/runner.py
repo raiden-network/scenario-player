@@ -72,7 +72,8 @@ class ScenarioRunner:
         # Storage for arbitrary data tasks might need to persist
         self.task_storage = defaultdict(dict)
 
-        self.data_path = data_path.joinpath("scenarios", self.yaml.name)
+        scenario_name = scenario_file.stem
+        self.data_path = data_path.joinpath("scenarios", scenario_name)
         self.data_path.mkdir(exist_ok=True, parents=True)
         self.yaml = ScenarioYAML(scenario_file, self.data_path)
         log.debug("Data path", path=self.data_path)
