@@ -1,9 +1,14 @@
 from collections import defaultdict
+from unittest.mock import MagicMock
 
 import pytest
 import requests
 import responses
 from eth_utils.address import to_checksum_address
+from raiden_contracts.contract_manager import ContractManager
+
+from raiden.network.rpc.client import JSONRPCClient
+from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 
 
 @pytest.fixture
@@ -29,14 +34,23 @@ class DummySettingsConfig:
         self.timeout = 2
 
 
+class DummyTokenConfig:
+    def __init__(self):
+        self.address = "the_token_config_address"
+
+
 class DummyScenarioYAML:
     def __init__(self, scenario_name):
         self.name = scenario_name
         self.settings = DummySettingsConfig()
+        self.token = DummyTokenConfig()
+        self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
 
 class DummyScenarioRunner:
     def __init__(self, scenario_name, token_address):
+        self.client = MagicMock(spec=JSONRPCClient)
+        self.contract_manager = MagicMock(spec=ContractManager)
         self.scenario_name = scenario_name
         self.yaml = DummyScenarioYAML(scenario_name)
         self.session = requests.Session()

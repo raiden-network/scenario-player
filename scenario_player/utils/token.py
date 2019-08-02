@@ -13,11 +13,55 @@ from scenario_player.exceptions.config import (
     TokenSourceCodeDoesNotExist,
 )
 from scenario_player.services.utils.interface import ServiceInterface
+from scenario_player.utils.configuration.settings import SettingsConfig
 
 log = structlog.get_logger(__name__)
 
 
-class Token:
+class Contract:
+    def __init__(self, runner, address=None):
+        self._address = address
+        self.config = runner.yaml
+        self._local_rpc_client = runner.client
+        self._local_contract_manager = runner.contract_manager
+        self.interface = ServiceInterface(runner.yaml.spaas)
+
+    @property
+    def address(self):
+        return self._address
+
+    @property
+    def checksum_address(self) -> str:
+        """Checksum'd address of the deployed contract."""
+        return to_checksum_address(self.address)
+
+    @property
+    def balance(self):
+        return self._local_rpc_client.balance(self.address)
+
+    def mint(self, target_address):
+        """Mint new tokens for the given `target_address`.
+
+        The amount of tokens depends on the scenario yaml's settings, and defaults to
+        :attr:`.DEFAULT_TOKEN_BALANCE_MIN` and :attr:`.DEFAULT_TOKEN_BALANCE_FUND`
+        if those settings are absent.
+        """
+        balance = self.balance
+        if balance < self.config.token.min_balance:
+            mint_amount = self.config.token.max_funding - balance
+            params = {
+                "action": "mintFor",
+                "gas_limit": self.config.gas_limit,
+                "amount": mint_amount,
+                "contract_address": self.address,
+                "target_address": target_address,
+            }
+            resp = self.interface.post("spaas://rpc/token/mint", params=params)
+            resp.raise_for_status()
+            return resp.json()
+
+
+class Token(Contract):
     """Token Contract data and configuration class.
 
     Takes care of setting up a token for the scenario run:
@@ -28,29 +72,28 @@ class Token:
         - Saves token contract data to file for reuse in later scenario runs
     """
 
-    def __init__(self, yaml_config, scenario_runner, data_path: pathlib.Path):
-        self.config = yaml_config.token
+    def __init__(self, scenario_runner, data_path: pathlib.Path):
+        super(Token, self).__init__(scenario_runner)
         self._local_rpc_client = scenario_runner.client
         self._local_contract_manager = scenario_runner.contract_manager
         self._token_file = data_path.joinpath("token.info")
         self.contract_data = {}
         self.deployment_receipt = None
-        self.interface = ServiceInterface(yaml_config.spaas)
 
     @property
     def name(self) -> str:
         """Name of the token contract, as defined in the config."""
-        return self.contract_data.get("contract_name") or self.config.name
+        return self.contract_data.get("contract_name") or self.config.token.name
 
     @property
     def symbol(self) -> str:
         """Symbol of the token, as defined in the scenario config."""
-        return self.config.symbol
+        return self.config.token.symbol
 
     @property
     def decimals(self) -> int:
         """Number of decimals to use for the tokens."""
-        return self.config.decimals
+        return self.config.token.decimals
 
     @property
     def address(self) -> str:
@@ -64,12 +107,7 @@ class Token:
         try:
             return self.contract_data["contract_address"]
         except KeyError:
-            return self.config.address
-
-    @property
-    def checksum_address(self) -> str:
-        """Checksum'd address of the deployed contract."""
-        return to_checksum_address(self.address)
+            return self.config.token.address
 
     @property
     def deployment_block(self) -> int:
@@ -98,7 +136,7 @@ class Token:
         It is an error to access this property before the token is deployed.
         """
         if self.deployed:
-            return self._local_rpc_client.balance(self.address)
+            return super(Token, self).balance
         else:
             raise TokenNotDeployed
 
@@ -172,7 +210,7 @@ class Token:
 
     def init(self):
         """Load an existing or deploy a new token contract.O"""
-        if self.config.reuse_token:
+        if self.config.token.reuse_token:
             return self.use_existing()
         return self.deploy_new()
 
@@ -244,7 +282,7 @@ class Token:
         self.contract_data = token_contract_data
         self.deployment_receipt = receipt
 
-        if self.config.reuse_token:
+        if self.config.token.reuse_token:
             self.save_token()
 
         log.info(
@@ -252,26 +290,34 @@ class Token:
         )
         return self.address, self.deployment_block
 
-    def mint(self, node_address, gas_limit):
-        """Mint new tokens for the given `address`.
 
-        The amount of tokens depends on the scenario yaml's settings, and defaults to
-        :attr:`.DEFAULT_TOKEN_BALANCE_MIN` and :attr:`.DEFAULT_TOKEN_BALANCE_FUND`
-         if those settings are absent.
-        """
-        token_balance_min = self.config.min_balance
-        token_balance_fund = self.config.max_funding
+class UserDepositContract(Contract):
+    def __init__(self, scenario_runner, contract_proxy, token_proxy):
+        super(UserDepositContract, self).__init__(scenario_runner, contract_proxy.contract_address)
+        self.contract_proxy = contract_proxy
+        self.token_proxy = token_proxy
+        self.tx_hashes = set()
 
-        balance = self.balance
-        if balance < token_balance_min:
-            mint_amount = token_balance_fund - balance
-            params = {
-                "action": "mintFor",
-                "gas_limit": gas_limit,
-                "amount": mint_amount,
-                "target_address": node_address,
-            }
-            log.debug("Minting tokens", contract=self, token=self.name, parameters=params)
+    @property
+    def allowance(self):
+        return self.token_proxy.contract.functions.allowance(
+            self._local_rpc_client.address, self.address
+        ).call()
+
+    @allowance.setter
+    def allowance(self, value):
+        node_count = self.config.nodes.count
+        udt_allowance = self.allowance
+
+        if udt_allowance < self.config.token.min_balance * node_count:
+            allow_amount = (self.config.token.max_funding * 10 * node_count) - udt_allowance
+            log.debug("Updating UD token allowance", allowance=allow_amount)
+            params = {}
             resp = self.interface.post("spaas://rpc/token/mint", params=params)
-            resp.raise_for_status()
-            return resp.json()
+            self.tx_hashes.add(resp.json()["tx_hash"])
+
+            udt_tx.add(
+                self.token_proxy.transact(
+                    "approve", self.config.gas_limit, self.contract_proxy.contract_address, value
+                )
+            )

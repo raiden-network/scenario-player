@@ -35,40 +35,25 @@ class Sentinel(Exception):
 
 
 @pytest.fixture
-def config(minimal_yaml_dict, token_info_path):
-    """Returns a mock config with a minimal yaml config and tmp path without token.info file."""
-
+def runner(dummy_scenario_runner, minimal_yaml_dict, token_info_path, tmp_path):
     token_config = TokenConfig(minimal_yaml_dict, token_info_path)
+    dummy_scenario_runner.yaml.spaas = SPaaSConfig(minimal_yaml_dict)
+    dummy_scenario_runner.yaml.token = token_config
 
-    class MockConfig:
-        def __init__(self):
-            self.token = token_config
-            self.spaas = SPaaSConfig(minimal_yaml_dict)
+    dummy_scenario_runner.token = Token(dummy_scenario_runner, tmp_path)
 
-    yield MockConfig()
-
-
-@pytest.fixture
-def runner():
-    class MockRunner:
-        def __init__(self):
-            self.client = MagicMock(spec=JSONRPCClient)
-            self.contract_manager = MagicMock(spec=ContractManager)
-
-    return MockRunner()
+    return dummy_scenario_runner
 
 
 @pytest.fixture
-def instance_under_test(config, runner, tmp_path):
-    return Token(config, runner, tmp_path)
+def instance_under_test(runner, tmp_path):
+    return Token(runner, tmp_path)
 
 
 @pytest.mark.dependency(name="TestClass")
 class TestToken:
     @patch(f"{token_import_path}.ServiceInterface")
-    def test_constructor_loads_attributes_correctly(
-        self, mock_interface, config, runner, tmp_path
-    ):
+    def test_constructor_loads_attributes_correctly(self, mock_interface, runner, tmp_path):
         """The following attributes are loaded correctly from the given parameters:
 
             - :attr:`Token.interface` is an instance of :class:`ServiceInterface` and constructed
@@ -82,42 +67,51 @@ class TestToken:
         """
         iface = object()
         mock_interface.return_value = iface
-        token = Token(config, runner, tmp_path)
+        token = Token(runner, tmp_path)
 
-        mock_interface.assert_called_once_with(config.spaas)
+        mock_interface.assert_called_once_with(runner.yaml.spaas)
         assert token.interface == iface
 
         assert token._local_rpc_client == runner.client
         assert token._local_contract_manager == runner.contract_manager
         assert token._token_file == tmp_path.joinpath("token.info")
-        assert token.config == config.token
+        assert token.config == runner.yaml
 
     @pytest.mark.parametrize("prop", argvalues=["name", "symbol", "decimals"])
     @patch(f"{token_config_import_path}.TokenConfig.decimals", new_callable=PropertyMock)
     @patch(f"{token_config_import_path}.TokenConfig.symbol", new_callable=PropertyMock)
     @patch(f"{token_config_import_path}.TokenConfig.name", new_callable=PropertyMock)
     def test_properties__delegate_to_equivalent_property_on_token_config(
-        self, m_name, m_symbol, m_decimals, prop, config, runner, tmp_path
+        self,
+        m_name,
+        m_symbol,
+        m_decimals,
+        prop,
+        runner,
+        tmp_path,
+        token_info_path,
+        minimal_yaml_dict,
     ):
         mocked_properties = {"name": m_name, "symbol": m_symbol, "decimals": m_decimals}
-        token = Token(config, runner, tmp_path)
+        runner.yaml.token = TokenConfig(minimal_yaml_dict, token_info_path)
+        token = Token(runner, tmp_path)
         getattr(token, prop)
         assert len(mocked_properties[prop].mock_calls) == 1
 
     @patch(f"{token_config_import_path}.TokenConfig.address", new_callable=PropertyMock)
     def test_address_is_fetched_from_contract_data_if_available(
-        self, mock_address, config, runner, tmp_path
+        self, mock_address, runner, tmp_path
     ):
-        token = Token(config, runner, tmp_path)
+        token = Token(runner, tmp_path)
         token.contract_data = {"contract_address": 100}
         mock_address.return_value = 200
         assert token.address == 100
 
     @patch(f"{token_config_import_path}.TokenConfig.address", new_callable=PropertyMock)
     def test_address_is_fetched_from_token_config_if_no_contract_data_available(
-        self, mock_address, config, runner, tmp_path
+        self, mock_address, runner, tmp_path
     ):
-        token = Token(config, runner, tmp_path)
+        token = Token(runner, tmp_path)
         mock_address.return_value = 100
         assert token.address == 100
 
@@ -126,16 +120,16 @@ class TestToken:
         self, mock_to_checksum, instance_under_test
     ):
         # inject address key to token config
-        instance_under_test.config.dict["address"] = "my_addr"
+        instance_under_test.config.token.dict["address"] = "my_addr"
         assert instance_under_test.contract_data == {}
         instance_under_test.checksum_address
         mock_to_checksum.assert_called_once_with("my_addr")
 
     @patch(f"{token_import_path}.to_checksum_address")
     def test_checksum_address_returns_checksummed_raw_address_from_contract_data_if_available(
-        self, mock_checksum, config, runner, tmp_path
+        self, mock_checksum, runner, tmp_path
     ):
-        token = Token(config, runner, tmp_path)
+        token = Token(runner, tmp_path)
 
         raw_addr = "0x12ae66cdc592e10b60f9097a7b0d3c59fce29876"
         token.contract_data = {"contract_address": raw_addr}
@@ -397,12 +391,8 @@ class TestToken:
     @patch(f"{token_import_path}.ServiceInterface.request")
     @patch(f"{token_import_path}.Token.save_token")
     @patch(f"{token_import_path}.to_checksum_address", side_effect=lambda x: "checksummed")
-    @patch(
-        f"scenario_player.utils.configuration.token.TokenConfig.reuse_token",
-        new_callable=PropertyMock,
-    )
     def test_deploy_new_calls_save_token_depending_on_reuse_token_property(
-        self, mock_reuse_token, _, mock_save_token, mock_request, reuse_token, instance_under_test
+        self, _, mock_save_token, mock_request, reuse_token, instance_under_test
     ):
         json_resp = {"contract": {}, "receipt": {}}
 
@@ -410,7 +400,10 @@ class TestToken:
             def json(self):
                 return json_resp
 
-        mock_reuse_token.return_value = reuse_token
+        instance_under_test.config.token.dict["reuse"] = reuse_token
+        if reuse_token:
+            instance_under_test.config.token._token_file.touch()
+
         mock_request.return_value = MockResp()
         mock_save_token.side_effect = Sentinel
         try:
@@ -438,7 +431,7 @@ class TestToken:
     def test_mint_is_a_no_op_if_balance_is_sufficient(self, mock_request, instance_under_test):
         instance_under_test = self.setup_instance_with_balance(instance_under_test, 100000)
 
-        assert instance_under_test.mint("the_address", 100) is None
+        assert instance_under_test.mint("the_address") is None
         assert mock_request.called is False
 
     @patch(f"{token_import_path}.ServiceInterface.post", side_effect=Sentinel)
@@ -453,12 +446,13 @@ class TestToken:
 
         expected_params = {
             "action": "mintFor",
-            "gas_limit": 100,
+            "gas_limit": instance_under_test.config.gas_limit,
             "amount": expected_amount,
             "target_address": "the_address",
+            "contract_address": None,
         }
 
         with pytest.raises(Sentinel):
-            instance_under_test.mint("the_address", 100)
+            instance_under_test.mint("the_address")
 
         mock_request.assert_called_once_with("spaas://rpc/token/mint", params=expected_params)
