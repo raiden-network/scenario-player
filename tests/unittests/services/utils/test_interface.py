@@ -29,7 +29,7 @@ class TestSPaaSAdapter:
         """If a host and port key have **not** been given in the SPAAS config section,
         SPaaSAdapter.prep_service_request should default to sensible values."""
 
-        expected_url = f"{scheme or 'https'}://{host or 'localhost'}:{port or '5000'}/my-endpoint"
+        expected_url = f"{scheme or 'http'}://{host or 'localhost'}:{port or '5000'}/my-endpoint"
 
         input_config = {}
         if host:
@@ -96,5 +96,5 @@ class TestSPaaSAdapter:
         with pytest.raises(expected_err):
             config = SPaaSConfig({"spaas": {}})
             adapter = SPaaSAdapter(config)
-            req = requests.Request(url="https://localhost:5000").prepare()
+            req = requests.Request(url="http://localhost:5000").prepare()
             adapter.send(req)
