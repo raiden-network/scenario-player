@@ -34,7 +34,7 @@ class SPaaSServiceConfig(ConfigMapping):
 
     @property
     def scheme(self):
-        return self.get("scheme", "https")
+        return self.get("scheme", "http")
 
     @property
     def host(self):
