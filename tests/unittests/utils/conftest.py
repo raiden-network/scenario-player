@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from ..conftest import minimal_yaml_dict
+from ..conftest import dummy_scenario_runner, minimal_yaml_dict
 
 
 @pytest.fixture

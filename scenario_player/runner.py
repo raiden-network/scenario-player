@@ -31,6 +31,8 @@ from scenario_player.constants import (
 from scenario_player.exceptions import ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
 from scenario_player.scenario import ScenarioYAML
+from scenario_player.services.rpc.utils import assign_rpc_instance_id
+from scenario_player.services.utils.interface import ServiceInterface
 from scenario_player.utils import (
     TimeOutHTTPAdapter,
     get_udc_and_token,
@@ -46,8 +48,6 @@ log = structlog.get_logger(__name__)
 
 
 class ScenarioRunner:
-    # TODO: #73 Drop support for version 1 scenario files.
-
     def __init__(
         self,
         account: Account,
@@ -111,7 +111,11 @@ class ScenarioRunner:
         self.session.mount("http", TimeOutHTTPAdapter(timeout=self.yaml.settings.timeout))
         self.session.mount("https", TimeOutHTTPAdapter(timeout=self.yaml.settings.timeout))
 
-        self.token = Token(self.yaml, self, data_path)
+        self.service_session = ServiceInterface(self.yaml.spaas)
+        # Request an RPC Client instance ID from the RPC service and assign it to the runner.
+        assign_rpc_instance_id(self, chain_urls[0], account.privkey, self.yaml.settings.gas_price)
+
+        self.token = Token(self, data_path)
 
         self.token_network_address = None
 

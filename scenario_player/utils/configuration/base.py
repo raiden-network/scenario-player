@@ -24,6 +24,19 @@ class ConfigMapping(Mapping):
     def __len__(self):
         return len(self.dict)
 
+    def __eq__(self, other):
+        if isinstance(other, dict):
+            return self.dict == other
+        elif isinstance(other, ConfigMapping):
+            return self.dict == other.dict
+        raise TypeError(f"Incomparable types! {self.__class__.__qualname__} and {type(other)}")
+
+    def __str__(self):
+        return str(self.dict)
+
+    def __repr__(self):
+        return f"{self.__class__.__qualname__}({self.dict})"
+
     @classmethod
     def assert_option(cls, expression, err: Optional[Union[str, Exception]] = None):
         """Wrap `assert` to raise a ConfigurationError instead of an AssertionError."""

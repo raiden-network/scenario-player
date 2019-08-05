@@ -13,12 +13,14 @@ from scenario_player.services.utils.interface import ServiceInterface, SPaaSAdap
 from scenario_player.utils.configuration.spaas import SPaaSConfig
 
 
+@pytest.mark.depends(name="spaas_adapter_mounted")
 def test_adapter_is_auto_mounted_in_interface_class():
     iface = ServiceInterface(SPaaSConfig({}))
     assert "spaas" in iface.adapters
     assert isinstance(iface.adapters["spaas"], SPaaSAdapter)
 
 
+@pytest.mark.depends(depends=["spaas_adapter_mounted"])
 @patch("scenario_player.services.utils.interface.HTTPAdapter.send")
 class TestSPaaSAdapter:
     @pytest.mark.parametrize("service", ["rpc"])
