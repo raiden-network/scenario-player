@@ -41,13 +41,14 @@ Using a ``pip`` installation::
 
 Running a scenario::
 
-    $ scenario_player --chain=goerli:http:geth.goerli.ethnodes.brainbot.com:8545 \
+    $ scenario-player --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
+
         run --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW} \
         /path/to/scenario.yaml
 
 Reclaiming spent test ether::
 
-    $ scenario_player --chain=goerli:http:geth.goerli.ethnodes.brainbot.com:8545 \
+    $ scenario-player --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
         reclaim-eth --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW}
 
 Scenario Examples
