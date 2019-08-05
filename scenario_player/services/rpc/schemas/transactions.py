@@ -1,9 +1,10 @@
-from marshmallow.fields import Float, List
+from marshmallow.fields import Float
 
-from scenario_player.services.common.schemas import BytesField, SPSchema
+from scenario_player.services.common.schemas import BytesField
+from scenario_player.services.rpc.schemas.base import RPCCreateResourceSchema
 
 
-class TransactionSendRequest(SPSchema):
+class TransactionSendRequest(RPCCreateResourceSchema):
     """Validator for POST /rpc/<rpc_client_id>/transactions requests"""
 
     # Serialization fields.
@@ -13,14 +14,3 @@ class TransactionSendRequest(SPSchema):
 
     # Deserialization fields.
     tx_hash = BytesField(required=True, dump_only=True)
-
-
-class TransactionTrackRequest(SPSchema):
-    """Validator for GET /transactions requests"""
-
-    # Serialization fields.
-    hashes = List(BytesField(), required=True, load_only=True)
-
-    # Deserialization fields.
-    missing = List(BytesField(), missing=[], dump_only=True)
-    found = List(BytesField(), missing=[], dump_only=True)

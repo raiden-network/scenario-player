@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import random
+import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 
 import gevent
 import structlog
 from eth_typing import ChecksumAddress
-from eth_utils import to_checksum_address
+from eth_utils import is_checksum_address, to_checksum_address
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
-from requests import RequestException, Session
+from requests import HTTPError, RequestException, Session
 from web3 import HTTPProvider, Web3
 
 from raiden.accounts import Account
@@ -19,7 +20,6 @@ from raiden.network.rpc.client import JSONRPCClient
 from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from raiden.utils.typing import TransactionHash
 from scenario_player.constants import (
-    API_URL_ADDRESS,
     API_URL_TOKEN_NETWORK_ADDRESS,
     API_URL_TOKENS,
     DEFAULT_TOKEN_BALANCE_FUND,
@@ -27,18 +27,20 @@ from scenario_player.constants import (
     NODE_ACCOUNT_BALANCE_FUND,
     NODE_ACCOUNT_BALANCE_MIN,
     OWN_ACCOUNT_BALANCE_MIN,
-    NodeMode,
 )
-from scenario_player.exceptions import NodesUnreachableError, ScenarioError, TokenRegistrationError
-from scenario_player.scenario import Scenario
-from scenario_player.tasks.base import Task, TaskState
+from scenario_player.exceptions import ScenarioError, TokenRegistrationError
+from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
+from scenario_player.scenario import ScenarioYAML
 from scenario_player.utils import (
     TimeOutHTTPAdapter,
-    get_or_deploy_token,
     get_udc_and_token,
     mint_token_if_balance_low,
     wait_for_txs,
 )
+from scenario_player.utils.token import Token
+
+if TYPE_CHECKING:
+    from scenario_player.tasks.base import Task, TaskState
 
 log = structlog.get_logger(__name__)
 
@@ -53,57 +55,47 @@ class ScenarioRunner:
         auth: str,
         data_path: Path,
         scenario_file: Path,
-        task_state_callback: Optional[Callable[["ScenarioRunner", Task, TaskState], None]] = None,
+        task_state_callback: Optional[
+            Callable[["ScenarioRunner", "Task", "TaskState"], None]
+        ] = None,
     ):
         from scenario_player.node_support import RaidenReleaseKeeper, NodeController
 
+        self.auth = auth
+
+        self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
+
         self.task_count = 0
         self.running_task_count = 0
-        self.auth = auth
-        self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
         self.task_cache = {}
         self.task_state_callback = task_state_callback
         # Storage for arbitrary data tasks might need to persist
         self.task_storage = defaultdict(dict)
 
-        self.scenario = Scenario(scenario_file)
-        self.scenario_name = self.scenario.name
-
-        self.data_path = data_path.joinpath("scenarios", self.scenario.name)
+        scenario_name = scenario_file.stem
+        self.data_path = data_path.joinpath("scenarios", scenario_name)
         self.data_path.mkdir(exist_ok=True, parents=True)
+        self.yaml = ScenarioYAML(scenario_file, self.data_path)
         log.debug("Data path", path=self.data_path)
 
+        # Determining the run number requires :attr:`.data_path`
         self.run_number = self.determine_run_number()
 
-        self.node_mode = self.scenario.nodes.mode
+        self.node_controller = NodeController(self, self.yaml.nodes)
 
-        if self.is_managed:
-            self.node_controller = NodeController(
-                self,
-                self.scenario.nodes.raiden_version,
-                self.scenario.nodes.count,
-                self.scenario.nodes.default_options,
-                self.scenario.nodes.node_options,
-            )
-        else:
-            self.raiden_nodes = self.scenario.nodes
-            self.node_commands = self.scenario.nodes.commands
+        self.protocol = "http"
 
-        self.timeout = self.scenario.timeout
-        self.protocol = self.scenario.protocol
-
-        self.notification_email = self.scenario.notification_email
+        self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
         self.chain_name, chain_urls = self.select_chain(chain_urls)
         self.eth_rpc_urls = chain_urls
-
         self.client = JSONRPCClient(
             Web3(HTTPProvider(chain_urls[0])),
             privkey=account.privkey,
-            gas_price_strategy=self.scenario.gas_price_strategy,
+            gas_price_strategy=self.yaml.settings.gas_price_strategy,
         )
-
         self.chain_id = int(self.client.web3.net.version)
+
         self.contract_manager = ContractManager(contracts_precompiled_path())
 
         balance = self.client.balance(account.address)
@@ -116,16 +108,15 @@ class ScenarioRunner:
         self.session = Session()
         if auth:
             self.session.auth = tuple(auth.split(":"))
-        self.session.mount("http", TimeOutHTTPAdapter(timeout=self.timeout))
-        self.session.mount("https", TimeOutHTTPAdapter(timeout=self.timeout))
+        self.session.mount("http", TimeOutHTTPAdapter(timeout=self.yaml.settings.timeout))
+        self.session.mount("https", TimeOutHTTPAdapter(timeout=self.yaml.settings.timeout))
 
-        self._node_to_address = None
-        self.token_address = None
-        self.token_deployment_block = 0
+        self.token = Token(self.yaml, self, data_path)
+
         self.token_network_address = None
 
-        task_config = self.scenario.task_config
-        task_class = self.scenario.task_class
+        task_config = self.yaml.scenario.root_config
+        task_class = self.yaml.scenario.root_class
         self.root_task = task_class(runner=self, config=task_config)
 
     def determine_run_number(self) -> int:
@@ -156,7 +147,7 @@ class ScenarioRunner:
             if ScenarioRunner.scenario.chain_name is not one of `('any', 'Any', 'ANY')`
             and it is not a key in `chain_urls`.
         """
-        chain_name = self.scenario.chain_name
+        chain_name = self.yaml.settings.chain
         if chain_name in ("any", "Any", "ANY"):
             chain_name = random.choice(list(chain_urls.keys()))
 
@@ -167,6 +158,54 @@ class ScenarioRunner:
             raise ScenarioError(
                 f'The scenario requested chain "{chain_name}" for which no RPC-URL is known.'
             )
+
+    def wait_for_token_network_discovery(self, node):
+        """Check for token network discovery with the given `node`.
+
+        By default exit the wait if the token has not been discovered after `n` seconds,
+        where `n` is the value of :attr:`.timeout`.
+
+        :raises TokenNetworkDiscoveryTimeout:
+            If we waited a set time for the token network to be discovered, but it wasn't.
+        """
+        log.info("Waiting till new network is found by nodes")
+        node_endpoint = API_URL_TOKEN_NETWORK_ADDRESS.format(
+            protocol=self.protocol, target_host=node, token_address=self.token.address
+        )
+
+        started = time.monotonic()
+        elapsed = 0
+        while elapsed < self.yaml.settings.timeout:
+            try:
+                resp = self.session.get(node_endpoint)
+                resp.raise_for_status()
+
+            except HTTPError as e:
+                # We explicitly handle 404 Not Found responses only - anything else is none
+                # of our business.
+                if e.response.status_code != 404:
+                    raise
+
+                # Wait before continuing, no sense in spamming the node.
+                gevent.sleep(1)
+
+                # Update our elapsed time tracker.
+                elapsed = time.monotonic() - started
+                continue
+
+            else:
+                # The node appears to have discovered our token network.
+                data = resp.json()
+
+                if not is_checksum_address(data):
+                    # Something's amiss about this response. Notify a human.
+                    raise TypeError(f"Unexpected response type from API: {data!r}")
+
+                return data
+
+        # We could not assert that our token network was registered within an
+        # acceptable time frame.
+        raise TokenNetworkDiscoveryTimeout
 
     def run_scenario(self):
         mint_gas = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
@@ -197,9 +236,9 @@ class ScenarioRunner:
                 API_URL_TOKENS.format(protocol=self.protocol, target_host=first_node)
             ).json()
         )
-        if self.token_address not in registered_tokens:
+        if self.token.checksum_address not in registered_tokens:
             for _ in range(5):
-                code, msg = self.register_token(self.token_address, first_node)
+                code, msg = self.register_token(self.token.checksum_address, first_node)
                 if 199 < code < 300:
                     break
                 gevent.sleep(1)
@@ -207,19 +246,8 @@ class ScenarioRunner:
                 log.error("Couldn't register token with network", code=code, message=msg)
                 raise TokenRegistrationError(msg)
 
-        # The nodes need some time to find the token, see
-        # https://github.com/raiden-network/raiden/issues/3544
-        # FIXME: Add proper check via API
-        log.info("Waiting till new network is found by nodes")
-        while self.token_network_address is None:
-            self.token_network_address = self.session.get(
-                API_URL_TOKEN_NETWORK_ADDRESS.format(
-                    protocol=self.protocol,
-                    target_host=first_node,
-                    token_address=self.token_address,
-                )
-            ).json()
-            gevent.sleep(1)
+        last_node = self.node_controller[-1].base_url
+        self.token_network_address = self.wait_for_token_network_discovery(last_node)
 
         log.info(
             "Received token network address", token_network_address=self.token_network_address
@@ -228,8 +256,7 @@ class ScenarioRunner:
         # Start root task
         root_task_greenlet = gevent.spawn(self.root_task)
         greenlets = {root_task_greenlet}
-        if self.is_managed:
-            greenlets.add(self.node_controller.start_node_monitor())
+        greenlets.add(self.node_controller.start_node_monitor())
         try:
             gevent.joinall(greenlets, raise_error=True)
         except BaseException:
@@ -245,22 +272,11 @@ class ScenarioRunner:
         should_deposit_ud_token: bool,
         gas_limit: int,
     ) -> Set[TransactionHash]:
-        token_ctr, token_block = get_or_deploy_token(self)
-        self.token_address = to_checksum_address(token_ctr.contract_address)
-        self.token_deployment_block = token_block
-        token_settings = self.scenario.get("token") or {}
-        token_balance_min = token_settings.get("balance_min", DEFAULT_TOKEN_BALANCE_MIN)
-        token_balance_fund = token_settings.get("balance_fund", DEFAULT_TOKEN_BALANCE_FUND)
+        """Deploy new token to the blockchain, or load an existing one's data from disk."""
+        self.token.init()
         mint_tx = set()
         for address in node_addresses:
-            tx = mint_token_if_balance_low(
-                token_contract=token_ctr,
-                target_address=address,
-                min_balance=token_balance_min,
-                fund_amount=token_balance_fund,
-                gas_limit=gas_limit,
-                mint_msg="Minting tokens for",
-            )
+            tx = self.token.mint(address, gas_limit)
             if tx:
                 mint_tx.add(tx)
 
@@ -281,8 +297,8 @@ class ScenarioRunner:
         self, gas_limit: int, node_count: int
     ) -> Tuple[Set[TransactionHash], Optional[ContractProxy], bool]:
         our_address = to_checksum_address(self.client.address)
-        udc_settings = self.scenario.services.get("udc", {})
-        udc_enabled = udc_settings.get("enable")
+        udc_settings = self.yaml.settings.services.udc
+        udc_enabled = udc_settings.enable
 
         ud_token_tx = set()
 
@@ -296,9 +312,8 @@ class ScenarioRunner:
 
         log.info("UDC enabled", contract_address=udc_address, token_address=ud_token_address)
 
-        should_deposit_ud_token = udc_enabled and udc_settings.get("token", {}).get(
-            "deposit", False
-        )
+        should_deposit_ud_token = udc_enabled and udc_settings.token["deposit"]
+
         if should_deposit_ud_token:
             tx = mint_token_if_balance_low(
                 token_contract=ud_token_ctr,
@@ -329,36 +344,26 @@ class ScenarioRunner:
         self
     ) -> Tuple[Set[TransactionHash], gevent.Greenlet, Set[ChecksumAddress], int]:
         fund_tx = set()
-        node_starter: gevent.Greenlet = None
-        if self.is_managed:
-            self.node_controller.initialize_nodes()
-            node_addresses = self.node_controller.addresses
-            node_count = len(self.node_controller)
-            node_balances = {address: self.client.balance(address) for address in node_addresses}
-            low_balances = {
-                address: balance
-                for address, balance in node_balances.items()
-                if balance < NODE_ACCOUNT_BALANCE_MIN
-            }
-            if low_balances:
-                log.info("Funding nodes", nodes=low_balances.keys())
-                fund_tx = {
-                    self.client.send_transaction(
-                        to=address, startgas=21_000, value=NODE_ACCOUNT_BALANCE_FUND - balance
-                    )
-                    for address, balance in low_balances.items()
-                }
-            node_starter = self.node_controller.start(wait=False)
 
-        else:
-            log.info("Fetching node addresses")
-            unreachable_nodes = [node for node, addr in self.node_to_address.items() if not addr]
-            if not self.node_to_address or unreachable_nodes:
-                raise NodesUnreachableError(
-                    f"Raiden nodes unreachable: {','.join(unreachable_nodes)}"
+        self.node_controller.initialize_nodes()
+        node_addresses = self.node_controller.addresses
+        node_count = len(self.node_controller)
+        node_balances = {address: self.client.balance(address) for address in node_addresses}
+        low_balances = {
+            address: balance
+            for address, balance in node_balances.items()
+            if balance < NODE_ACCOUNT_BALANCE_MIN
+        }
+        if low_balances:
+            log.info("Funding nodes", nodes=low_balances.keys())
+            fund_tx = {
+                self.client.send_transaction(
+                    to=address, startgas=21_000, value=NODE_ACCOUNT_BALANCE_FUND - balance
                 )
-            node_addresses = set(self.node_to_address.values())
-            node_count = len(self.node_to_address)
+                for address, balance in low_balances.items()
+            }
+        node_starter = self.node_controller.start(wait=False)
+
         return fund_tx, node_starter, node_addresses, node_count
 
     def task_state_changed(self, task: "Task", state: "TaskState"):
@@ -366,6 +371,7 @@ class ScenarioRunner:
             self.task_state_callback(self, task, state)
 
     def register_token(self, token_address, node):
+        # TODO: Move this to :class:`scenario_player.utils.token.Token`.
         try:
             base_url = API_URL_TOKENS.format(protocol=self.protocol, target_host=node)
             url = "{}/{}".format(base_url, token_address)
@@ -384,51 +390,8 @@ class ScenarioRunner:
         gevent.joinall(set(tasks.values()))
         return {obj: task.get() for obj, task in tasks.items()}
 
-    @property
-    def is_managed(self):
-        return self.node_mode is NodeMode.MANAGED
-
     def get_node_address(self, index):
-        if self.is_managed:
-            return self.node_controller[index].address
-        else:
-            return self.node_to_address[self.raiden_nodes[index]]
+        return self.node_controller[index].address
 
     def get_node_baseurl(self, index):
-        if self.is_managed:
-            return self.node_controller[index].base_url
-        else:
-            return self.raiden_nodes[index]
-
-    # Legacy for 'external' nodes
-    def _get_node_addresses(self, nodes):
-        def cb(node):
-            log.debug("Getting node address", node=node)
-            url = API_URL_ADDRESS.format(protocol=self.protocol, target_host=node)
-            log.debug("Requesting", url=url)
-            try:
-                resp = self.session.get(url)
-            except RequestException:
-                log.error("Error fetching node address", url=url, node=node)
-                return None
-            try:
-                return to_checksum_address(resp.json().get("our_address", ""))
-            except ValueError:
-                log.error(
-                    "Error decoding response", response=resp.text, code=resp.status_code, url=url
-                )
-            return None
-
-        ret = self._spawn_and_wait(nodes, cb)
-        return ret
-
-    @property
-    def node_to_address(self) -> Dict[str, ChecksumAddress]:
-        if not self.raiden_nodes:
-            return {}
-        if self._node_to_address is None:
-            self._node_to_address = {
-                node: address
-                for node, address in self._get_node_addresses(self.raiden_nodes).items()
-            }
-        return self._node_to_address
+        return self.node_controller[index].base_url

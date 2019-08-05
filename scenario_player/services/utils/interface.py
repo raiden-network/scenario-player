@@ -36,7 +36,7 @@ class SPaaSAdapter(HTTPAdapter):
         service_conf = getattr(self.config, request.service, SPaaSServiceConfig({}))
 
         unparse_args = (
-            service_conf.scheme or "https",
+            service_conf.scheme or "http",
             service_conf.netloc or "localhost:5000",
             *parsed[2:],
         )

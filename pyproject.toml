@@ -66,6 +66,7 @@ dev = [
     "pytest==4.5.0",
     "pytest-cov",
     "pytest-dependency==0.4.0",
+    "responses==0.10.6",
     "tox",
     "coverage",
     "codecov",
