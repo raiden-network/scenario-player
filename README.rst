@@ -24,8 +24,8 @@ Usage
 
 Using a ``pip`` installation::
 
-    $ scenario-player --help
-    Usage: scenario-player [OPTIONS] COMMAND [ARGS]...
+    $ scenario_player --help
+    Usage: scenario_player [OPTIONS] COMMAND [ARGS]...
 
     Options:
       --data-path DIRECTORY           [default: $HOME/.raiden/scenario-player]
@@ -42,6 +42,7 @@ Using a ``pip`` installation::
 Running a scenario::
 
     $ scenario-player --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
+
         run --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW} \
         /path/to/scenario.yaml
 
