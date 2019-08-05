@@ -8,6 +8,13 @@ from web3 import Web3
 from raiden.network.rpc.client import JSONRPCClient
 
 
+def assign_rpc_instance_id(runner, chain_url, privkey, gas_price):
+    params = {"chain_url": chain_url, "privkey": privkey.decode(), "gas_price": gas_price}
+    resp = runner.interface.post("spaas://rpc/instance", json=params)
+    client_id = resp.json()["client_id"]
+    runner.yaml.settings.services.rpc.client_id = client_id
+
+
 def generate_hash_key(chain_url: str, privkey: bytes, strategy: Callable):
     """Generate a hash key to use as `client_id`, using the :mod:`hmac` library.
 

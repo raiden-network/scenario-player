@@ -52,7 +52,10 @@ class SPaaSServiceConfig(ConfigMapping):
 class SPaaSConfig(ConfigMapping):
     def __init__(self, loaded_yaml: dict):
         super(SPaaSConfig, self).__init__(loaded_yaml.get("spaas", {}))
+        self.rpc = RPCServiceConfig(self.dict)
 
-    @property
-    def rpc(self) -> SPaaSServiceConfig:
-        return SPaaSServiceConfig(self.get("rpc", {}))
+
+class RPCServiceConfig(SPaaSServiceConfig):
+    def __init__(self, spaas_config: dict):
+        super(RPCServiceConfig, self).__init__(spaas_config.get("rpc", {}))
+        self.client_id = None

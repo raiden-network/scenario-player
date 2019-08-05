@@ -5,6 +5,7 @@ from typing import Dict, Tuple, Union
 import structlog
 from eth_utils import to_checksum_address
 
+from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import AddressWithoutCode, check_address_has_code
 from scenario_player.exceptions.config import (
     TokenFileError,
@@ -24,19 +25,24 @@ class Contract:
         self._local_rpc_client = runner.client
         self._local_contract_manager = runner.contract_manager
         self.interface = ServiceInterface(runner.yaml.spaas)
+        self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
+
+    @property
+    def client_id(self):
+        return self.config.settings.services.rpc.client_id
 
     @property
     def address(self):
         return self._address
 
     @property
+    def balance(self):
+        return self._local_rpc_client.balance(self.address)
+
+    @property
     def checksum_address(self) -> str:
         """Checksum'd address of the deployed contract."""
         return to_checksum_address(self.address)
-
-    @property
-    def balance(self):
-        return self._local_rpc_client.balance(self.address)
 
     def mint(self, target_address):
         """Mint new tokens for the given `target_address`.
@@ -49,6 +55,7 @@ class Contract:
         if balance < self.config.token.min_balance:
             mint_amount = self.config.token.max_funding - balance
             params = {
+                "client_id": self.client_id,
                 "gas_limit": self.config.gas_limit,
                 "amount": mint_amount,
                 "contract_address": self.address,
@@ -297,7 +304,9 @@ class UserDepositContract(Contract):
     """
 
     def __init__(self, scenario_runner, contract_proxy, token_proxy):
-        super(UserDepositContract, self).__init__(scenario_runner, contract_proxy.contract_address)
+        super(UserDepositContract, self).__init__(
+            scenario_runner, address=contract_proxy.contract_address
+        )
         self.contract_proxy = contract_proxy
         self.token_proxy = token_proxy
         self.tx_hashes = set()
@@ -318,6 +327,13 @@ class UserDepositContract(Contract):
         if udt_allowance < self.config.token.min_balance * node_count:
             allow_amount = (self.config.token.max_funding * 10 * node_count) - udt_allowance
             log.debug("Updating UD token allowance", allowance=allow_amount)
-            params = {}
+            params = {
+                "client_id": self.client_id,
+                "constructor_args": {
+                    "gas_limit": self.gas_limit,
+                    "udc_address": self.address,
+                    "allowance_amount": allow_amount,
+                },
+            }
             resp = self.interface.put(f"spaas://rpc/token/allowance", params=params)
             self.tx_hashes.add(resp.json()["tx_hash"])
