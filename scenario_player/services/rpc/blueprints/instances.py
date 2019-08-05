@@ -14,8 +14,9 @@ The following endpoints are supplied by this blueprint:
         collection.
 
 """
-from flask import Blueprint, Response, current_app, jsonify, request
+from flask import Blueprint, Response, abort, current_app, jsonify, request
 
+from scenario_player.constants import GAS_STRATEGIES
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.rpc.schemas.instances import (
     DeleteInstanceRequest,
@@ -53,7 +54,7 @@ def rpc_create_view():
         schema:
           type: str
 
-      - name: gas_price_strategy
+      - name: gas_price
         required: false
         in: query
         schema:
@@ -73,11 +74,26 @@ def rpc_create_view():
 
 def create_client():
     data = new_instance_schema.validate_and_deserialize(request.form)
-    privkey, chain_url = data["privkey"], data["chain_url"]
-    gas_price_strategy = data["gas_price_strategy"]
-    _, client_id = current_app.config["rpc-client"][(chain_url, privkey, gas_price_strategy)]
 
-    return jsonify({"client_id": client_id})
+    gas_price = data.get("gas_price", "FAST")
+
+    if isinstance(gas_price, int):
+
+        def fixed_gas_price(*_, **__):
+            return gas_price
+
+        strategy_callable = fixed_gas_price
+    else:
+        try:
+            strategy_callable = GAS_STRATEGIES[gas_price]
+        except KeyError:
+            return abort(400, f'Invalid gas_price value: "{gas_price}"')
+
+    chain_url, privkey = data["chain_url"], data["privkey"]
+
+    client = current_app.config["rpc-client"][(chain_url, privkey, strategy_callable)]
+
+    return jsonify({"client_id": client.client_id})
 
 
 @instances_blueprint.route("/rpc/client", methods=["DELETE"])
