@@ -30,9 +30,7 @@ def test_spaas_config_returns_spaas_service_config_when_accessig_service_configs
     assert isinstance(getattr(SPaaSConfig({}), attr), SPaaSServiceConfig)
 
 
-@pytest.mark.parametrize("attr", argvalues=["rpc"])
-def test_spaas_config_inits_service_config_with_correct_dict(attr):
+def test_spaas_config_inits_rpc_service_config_with_correct_dict():
     expected_service_conf = {"scheme": "bobbity", "host": "schmooby.com", "port": "1"}
-    conf = SPaaSConfig({"spaas": {attr: expected_service_conf}})
-    actual_service_conf = getattr(conf, attr).dict
-    assert actual_service_conf == expected_service_conf
+    conf = SPaaSConfig({"spaas": {"rpc": expected_service_conf}})
+    assert conf.rpc == expected_service_conf

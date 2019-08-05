@@ -29,9 +29,20 @@ class DummyTokenContract:
         self.address = token_address
 
 
+class DummyRPCConfig:
+    def __init__(self):
+        self.client_id = "the_client_id"
+
+
+class DummyServicesConfig:
+    def __init__(self):
+        self.rpc = DummyRPCConfig()
+
+
 class DummySettingsConfig:
     def __init__(self):
         self.timeout = 2
+        self.services = DummyServicesConfig()
 
 
 class DummyTokenConfig:

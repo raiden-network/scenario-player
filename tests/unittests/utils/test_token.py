@@ -118,6 +118,7 @@ class TestContract:
         expected_amount = contract_instance.config.token.max_funding - 100
 
         expected_params = {
+            "client_id": "the_client_id",
             "gas_limit": contract_instance.config.gas_limit,
             "amount": expected_amount,
             "target_address": "the_address",
