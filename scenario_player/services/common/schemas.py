@@ -1,3 +1,5 @@
+import base64
+
 import flask
 from flask_marshmallow.schema import Schema
 from marshmallow.fields import String
@@ -67,7 +69,7 @@ class BytesField(String):
     """A field for (de)serializing :class:`bytes` from and to :class:`str` dict values."""
 
     default_error_messages = {
-        "not_a_str": "Must be string!",
+        "not_b64": "Must be a base64 encoded string!",
         "not_bytes": "Must be decodable to bytes!",
         "empty": "Must not be empty!",
     }
@@ -78,7 +80,10 @@ class BytesField(String):
     def _deserialize(self, value: str, attr, data, **kwargs) -> bytes:
         """Load the :class:`str` object for usage with the JSONRPCClient.
 
-        This encodes the :class:`str` using UTF-8 and returns a :class:`bytes` object.
+        `value` is expected to a bytes object encdoded to a string using
+         :func:`base64.encodebytes`.
+
+        This encodes the :class:`str` using 'ascii' and returns a :class:`bytes` object.
 
         If `kwargs` is not empty, we will emit a warning, since we do not currently
         support additional kwargs passed to this method.
@@ -90,14 +95,17 @@ class BytesField(String):
 
         deserialized_string = super(BytesField, self)._deserialize(value, attr, data, **kwargs)
 
+        to_bytes = deserialized_string.encode("ascii")
         try:
-            return deserialized_string.encode("UTF-8")
-        except AttributeError:
-            self.fail("not_a_str")
+            return base64.decodebytes(to_bytes)
+        except base64.binascii.Error:
+            self.fail("not_b64")
 
     def _serialize(self, value: bytes, attr, obj) -> str:
         """Prepare :class:`bytes` object for JSON-encoding.
 
-        This decodes the :class:`bytes` object using UTF-8.
+        This decodes the :class:`bytes` object using base64.
         """
-        return value.decode("utf-8")
+
+        encoded = base64.encodebytes(value)
+        return encoded.decode("ascii")
