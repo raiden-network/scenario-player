@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import pytest
 from flask import current_app
 from werkzeug.exceptions import BadRequest
@@ -32,7 +34,7 @@ def test_rpcclientid_deserializes_to_rpc_client_instance(
     expected = (object(), client_id)
 
     with transaction_service_app.app_context() as app:
-        current_app.config["rpc-client"].dict[client_id] = expected[0]
+        current_app.config["rpc-client"].dict[client_id] = expected
         assert client_id_field._deserialize(client_id, "client_id", {}) == expected
 
 
@@ -81,7 +83,7 @@ def test_rpccreateresourceschema_validate_and_deserialize_adds_client_key_to_unp
     test_schema, transaction_service_app, rpc_client_id
 ):
     client_id = rpc_client_id
-    expected_instance = object()
+    expected_instance = Mock(client_id=client_id)
     input_dict = {"client_id": client_id}
     expected = {"client_id": client_id, "client": expected_instance}
     with transaction_service_app.app_context():

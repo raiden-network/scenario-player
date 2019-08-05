@@ -69,12 +69,7 @@ class TestNewTransactionEndpoint:
 
         These are as follows:
 
-            - `chain_url` - The url for configuring a Web3 instance, if this is the first
-                transaction sent via the given `run_id`.
-            - `privkey` - the private key required to send the transaction via a
-                :class:`raiden.network.rpc.client.JSONRPCClient` instance.
-            - `gas_price_strategy` - the strategy to set when instantiaing the
-                :class:`raiden.network.rpc.client.JSONRPCClient` instance.
+            - `client_id` - the client id of the RPCClient to use.
             - `to` - a transaction hash, sent as a  `utf-8` encoded :class:`str`.
             - `startgas` - the starting gas to use, as either :class:`int` or :class:`float`.
             - `amount` - the amount to send with the transaction, as either :class:`int` or :class:`float`.
