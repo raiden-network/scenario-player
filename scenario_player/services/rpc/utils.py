@@ -3,11 +3,9 @@ import hmac
 from collections.abc import Mapping
 from typing import Callable, Tuple, Union
 
-from flask import abort
 from web3 import Web3
 
 from raiden.network.rpc.client import JSONRPCClient
-from scenario_player.constants import GAS_STRATEGIES
 
 
 def generate_hash_key(chain_url: str, privkey: bytes, strategy: Callable):
