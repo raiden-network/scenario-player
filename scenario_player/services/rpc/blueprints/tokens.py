@@ -15,7 +15,7 @@ The following endpoints are supplied by this blueprint:
         what token contract is used to do this.aa
 """
 from eth_utils.address import to_checksum_address
-from flask import Blueprint, abort, jsonify, request
+from flask import Blueprint, jsonify, request
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
 
@@ -172,7 +172,9 @@ def contract_allowance():
           type: string
 
     post:
-      description": "Set the allowance of a UserDeposit Contract at `contract_address` for the given `target_address`",
+      description": >
+        Set the allowance of a UserDeposit Contract at `contract_address`
+        for the given `target_address`
       parameters:
         - name: contract_address
           in: query
