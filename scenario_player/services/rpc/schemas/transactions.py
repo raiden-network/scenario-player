@@ -5,7 +5,7 @@ from scenario_player.services.rpc.schemas.base import RPCCreateResourceSchema
 
 
 class TransactionSendRequest(RPCCreateResourceSchema):
-    """Validator for POST /rpc/<rpc_client_id>/transactions requests"""
+    """Validator for POST /rpc/transactions requests"""
 
     # Serialization fields.
     to = BytesField(required=True, load_only=True)

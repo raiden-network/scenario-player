@@ -63,7 +63,12 @@ class TestNewTransactionEndpoint:
         ],
     )
     def test_endpoint_requires_parameter_and_expects_types(
-        self, parameters, expected_status, transaction_service_client, rpc_client_id
+        self,
+        parameters,
+        expected_status,
+        transaction_service_client,
+        rpc_client_id,
+        serialized_address,
     ):
         """The transactions service's `POST /rpc/transactions` endpoint requires a set of parameters with specific types.
 
@@ -82,6 +87,8 @@ class TestNewTransactionEndpoint:
         see a `400 Bad Request` response from the service.
         """
         pseudo_id = parameters.get("client_id")
+        if "to" in parameters:
+            parameters["to"] = serialized_address
         if pseudo_id is None:
             # Client id isn't given, and is supposed to be absent.
             pass
@@ -136,6 +143,8 @@ class TestNewTransactionEndpoint:
         transaction_service_client,
         deserialized_send_tx_request_parameters,
         default_send_tx_request_parameters,
+        serialized_tx_hash,
+        tx_hash,
     ):
         """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.dump`
         must be called when processing a request and its result returned by the function.
@@ -146,13 +155,13 @@ class TestNewTransactionEndpoint:
                 "jsonify.return_value": "ok",
             }
         )
-        expected_tx_hash = b"my_tx_hash"
+        expected_tx_hash = tx_hash
 
         r = transaction_service_client.post(
             f"/rpc/transactions", data=default_send_tx_request_parameters
         )
         assert "200" in r.status
-        mock_schema.jsonify.assert_called_once_with({"tx_hash": expected_tx_hash})
+        mock_schema.jsonify.assert_called_once_with({"tx_hash": tx_hash})
 
     @patch("scenario_player.services.rpc.blueprints.transactions.TransactionSendRequest")
     def test_new_transaction_calls_correct_rpc_client_function(
