@@ -7,7 +7,7 @@ from raiden.network.rpc.client import JSONRPCClient
 from scenario_player.services.common.schemas import BytesField
 from scenario_player.services.rpc.schemas.base import RPCCreateResourceSchema
 from scenario_player.services.rpc.schemas.tokens import TokenCreateSchema, TokenMintSchema
-from scenario_player.services.rpc.utils import RPCRegistry
+from scenario_player.services.rpc.utils import RPCClient, RPCRegistry
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def base_request_params(hexed_client_id):
 @pytest.fixture
 def deserialized_base_params(app, base_request_params):
     deserialized = dict(base_request_params)
-    deserialized["client"], _ = app.config["rpc-client"][base_request_params["client_id"]]
+    deserialized["client"] = app.config["rpc-client"][base_request_params["client_id"]]
     return deserialized
 
 
@@ -47,7 +47,7 @@ def app(hexed_client_id):
         return "ok"
 
     registry = RPCRegistry()
-    registry.dict[hexed_client_id] = mock.MagicMock(spec=JSONRPCClient)
+    registry.dict[hexed_client_id] = mock.MagicMock(spec=RPCClient, client_id=hexed_client_id)
 
     app = flask.Flask(__name__)
     app.config["TESTING"] = True

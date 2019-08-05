@@ -42,19 +42,18 @@ class RPCClientID(String):
             self.fail("not_hex")
 
         try:
-            client, client_id = current_app.config["rpc-client"][deserialized_string]
+            client = current_app.config["rpc-client"][deserialized_string]
         except KeyError:
             self.fail("unknown_client_id")
 
-        return client, client_id
+        return client
 
     def _serialize(self, value: JSONRPCClient, attr, obj, **kwargs) -> str:
         """Prepare :class:`JSONRPCClient` object for JSON-encoding.
 
         Returns the object's related client id from the config of the flask app.
         """
-        for client_id, client_tuple in current_app.config["rpc-client"].items():
-            client, _ = client_tuple
+        for client_id, client in current_app.config["rpc-client"].items():
             if client == value:
                 return client_id
         self.fail("missing_client_id")
@@ -78,6 +77,6 @@ class RPCCreateResourceSchema(SPSchema):
 
     def validate_and_deserialize(self, data_obj) -> dict:
         deserialized = super(RPCCreateResourceSchema, self).validate_and_deserialize(data_obj)
-        client, client_id = deserialized["client_id"]
-        deserialized["client_id"], deserialized["client"] = client_id, client
+        client = deserialized["client_id"]
+        deserialized["client_id"], deserialized["client"] = client.client_id, client
         return deserialized
