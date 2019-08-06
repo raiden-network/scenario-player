@@ -1,8 +1,11 @@
 """Programmatic interface for requesting SP services."""
+from json import JSONDecodeError
 from urllib.parse import urlparse, urlunparse
 
 import requests
+import structlog
 from requests.sessions import HTTPAdapter
+from simplejson import JSONDecodeError as SimpleJSONDecodeError
 
 from scenario_player.exceptions.services import (
     BrokenService,
@@ -11,6 +14,8 @@ from scenario_player.exceptions.services import (
     ServiceUnreachable,
 )
 from scenario_player.utils.configuration.spaas import SPaaSConfig, SPaaSServiceConfig
+
+log = structlog.getLogger(__name__)
 
 
 class SPaaSAdapter(HTTPAdapter):
@@ -34,13 +39,15 @@ class SPaaSAdapter(HTTPAdapter):
 
         # Load the service's configured url. Default to localhost if not present.
         service_conf = getattr(self.config, request.service, SPaaSServiceConfig({}))
-
+        path = f"{request.service}{parsed[2]}"
         unparse_args = (
             service_conf.scheme or "http",
             service_conf.netloc or "localhost:5000",
-            *parsed[2:],
+            path,
+            *parsed[3:],
         )
         request.url = urlunparse(unparse_args)
+        log.debug(event="service request", url=request.url, service=request.service)
 
         return request
 
@@ -68,9 +75,9 @@ class SPaaSAdapter(HTTPAdapter):
         requesting code instead.
         """
         if exc.response.status_code == 500:
-            raise BrokenService from exc
+            raise BrokenService(exc.response.text) from exc
         elif exc.response.status_code == 503:
-            raise ServiceUnavailable from exc
+            raise ServiceUnavailable(exc.response.text) from exc
 
     def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
         """Send the request to the service.
@@ -82,14 +89,33 @@ class SPaaSAdapter(HTTPAdapter):
         request = self.prep_service_request(request)
         try:
             resp = super(SPaaSAdapter, self).send(request, stream, timeout, verify, cert, proxies)
-        except (requests.Timeout, requests.ConnectionError) as e:
+        except (requests.Timeout, requests.ConnectionError, ConnectionError) as e:
             self.handle_connection_error(e)
             raise
         try:
             resp.raise_for_status()
         except requests.HTTPError as e:
             self.handle_http_error(e)
+
+        try:
+            resp.json()
+        except (JSONDecodeError, SimpleJSONDecodeError) as e:
+            log.debug(
+                event="error while JSON-loading response",
+                response=resp.text,
+                request=request.url,
+                exc=e,
+            )
+            raise
+
         return resp
+
+
+class SPaaSPreparedRequest(requests.PreparedRequest):
+    def __init__(self):
+        super(SPaaSPreparedRequest, self).__init__()
+        self.service = None
+        self.orig_url = None
 
 
 class ServiceInterface(requests.Session):
@@ -97,3 +123,16 @@ class ServiceInterface(requests.Session):
         super(ServiceInterface, self).__init__()
         self.config = spaas_config
         self.mount("spaas", SPaaSAdapter(self.config))
+
+    def prepare_request(self, request):
+        p = super(ServiceInterface, self).prepare_request(request)
+        prepped = SPaaSPreparedRequest()
+        prepped.method = p.method
+        prepped.url = p.url
+        prepped.body = p.body
+        prepped._cookies = p._cookies
+        prepped.headers = p.headers
+        prepped.hooks = p.hooks
+        prepped._body_position = p._body_position
+
+        return prepped
