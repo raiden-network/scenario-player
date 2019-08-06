@@ -13,7 +13,7 @@ class ConfigMapping(Mapping):
     CONFIGURATION_ERROR = ConfigurationError
 
     def __init__(self, loaded_yaml: Mapping):
-        self.dict = loaded_yaml
+        self.dict = loaded_yaml or {}
 
     def __getitem__(self, item):
         return self.dict[item]

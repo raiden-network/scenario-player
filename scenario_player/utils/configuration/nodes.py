@@ -33,7 +33,7 @@ class NodesConfig(ConfigMapping):
     CONFIGURATION_ERROR = NodeConfigurationError
 
     def __init__(self, loaded_yaml: dict):
-        super(NodesConfig, self).__init__(loaded_yaml.get("nodes", {}))
+        super(NodesConfig, self).__init__(loaded_yaml.get("nodes") or {})
         self.validate()
 
     @property
