@@ -251,8 +251,10 @@ def transact_call(data, contract):
     rpc_client = data["client"]
     contract_manager = ContractManager(contracts_precompiled_path())
 
+    log.info("Minting tokens", contract=contract)
     token_abi = contract_manager.get_contract_abi(contract)
     token_proxy = rpc_client.new_contract_proxy(token_abi, data["contract_address"])
+    log.debug("Transacting..", **data)
     return token_proxy.transact(
         transact_actions[contract], data["gas_limit"], data["amount"], data["target_address"]
     )

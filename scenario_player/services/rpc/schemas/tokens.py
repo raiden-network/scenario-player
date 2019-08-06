@@ -68,7 +68,7 @@ class TokenMintSchema(RPCCreateResourceSchema):
     target_address = String(load_only=True, required=True)
     contract_address = String(load_only=True, required=True)
     amount = Number(load_only=True, required=True)
-    gas_limit = Number(load_only=True, required=True)
+    gas_limit = Integer(load_only=True, required=True)
 
     # Serializer fields
     tx_hash = BytesField(required=True, dump_only=True)

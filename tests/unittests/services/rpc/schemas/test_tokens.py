@@ -130,7 +130,7 @@ class TestTokenMintSchema:
         argvalues=[
             ("target_address", ma.fields.String),
             ("contract_address", ma.fields.String),
-            ("gas_limit", ma.fields.Number),
+            ("gas_limit", ma.fields.Integer),
             ("amount", ma.fields.Number),
         ],
     )
