@@ -160,8 +160,7 @@ def run(
     collect_tasks(tasks)
 
     # Start our Services
-    service = construct_flask_app()
-    service_process = ServiceProcess(service)
+    service_process = ServiceProcess()
 
     service_process.start()
 
