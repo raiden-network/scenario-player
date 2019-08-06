@@ -115,7 +115,9 @@ class TestTokenCreateSchema:
 
 
 class TestTokenMintSchema:
-    @pytest.mark.parametrize("field", ["token_address", "mint_target", "amount"])
+    @pytest.mark.parametrize(
+        "field", ["target_address", "contract_address", "amount", "gas_limit"]
+    )
     def test_field_is_load_only(self, field):
         assert TokenMintSchema._declared_fields[field].load_only is True
 
@@ -123,46 +125,24 @@ class TestTokenMintSchema:
     def test_field_is_dump_only(self, field):
         assert TokenMintSchema._declared_fields[field].dump_only is True
 
-    def test_validate_and_deserialize_returns_expected_dict(
-        self, app, base_request_params, deserialized_base_params
-    ):
-        input_dict = {"token_address": "0x0002", "mint_target": "0x0001", "amount": "123.5"}
-        expected = {"token_address": "0x0002", "mint_target": "0x0001", "amount": 123.5}
-        base_request_params.update(input_dict)
-        deserialized_base_params.update(expected)
-
-        with app.app_context():
-            assert (
-                TokenMintSchema().validate_and_deserialize(base_request_params)
-                == deserialized_base_params
-            )
-
     @pytest.mark.parametrize(
-        "input_dict",
+        "field, field_type",
         argvalues=[
-            {"mint_target": "0x0001", "amount": "123.5"},
-            {"token_address": "0x0002", "amount": "123.5"},
-            {"token_address": "0x0002", "mint_target": "0x0001"},
-            {"token_address": "0x0002", "mint_target": "0x0001", "amount": "123.5"},
-            {"token_address": "0x0002", "mint_target": 1000, "amount": "123.5"},
-            {"token_address": 1000, "mint_target": "0x0001", "amount": "123.5"},
-        ],
-        ids=[
-            "token_address required",
-            "mint_target required",
-            "amount required",
-            "amount must be a number",
-            "mint_target must be a string",
-            "token_address must be a string",
+            ("target_address", ma.fields.String),
+            ("contract_address", ma.fields.String),
+            ("gas_limit", ma.fields.Number),
+            ("amount", ma.fields.Number),
         ],
     )
-    def test_validate_and_deserialize_raises_excpetions_on_faulty_input(self, input_dict, app):
-        with app.test_client() as c:
-            resp = c.post("/test-mint", data=input_dict)
-            assert "400 Bad Request".lower() in resp.status.lower()
+    def test_deserializer_fields_are_expected_type(self, field, field_type):
+        assert isinstance(TokenMintSchema._declared_fields[field], field_type)
 
-    def test_tx_hash_is_bytesfield(self):
-        assert isinstance(TokenMintSchema._declared_fields["tx_hash"], BytesField)
+    @pytest.mark.parametrize("field, field_type", argvalues=[("tx_hash", BytesField)])
+    def test_serializer_fields_are_expected_type(self, field, field_type):
+        assert isinstance(TokenMintSchema._declared_fields[field], field_type)
 
-    def test_tx_hash_is_dump_only(self):
-        assert TokenMintSchema._declared_fields["tx_hash"].dump_only is True
+    @pytest.mark.parametrize(
+        "field", argvalues=["target_address", "contract_address", "amount", "gas_limit", "tx_hash"]
+    )
+    def test_field_is_required(self, field):
+        assert TokenMintSchema._declared_fields[field].required is True
