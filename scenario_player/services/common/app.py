@@ -1,10 +1,13 @@
 import multiprocessing as mp
 
 import requests
+import structlog
 import waitress
 
 from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.services.utils.factories import construct_flask_app
+
+log = structlog.getLogger(__name__)
 
 
 class ServiceProcess(mp.Process):
