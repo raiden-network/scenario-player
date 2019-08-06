@@ -61,7 +61,7 @@ class Contract:
                 "contract_address": self.address,
                 "target_address": target_address,
             }
-            resp = self.interface.post("spaas://rpc/token/mint", params=params)
+            resp = self.interface.post("spaas://rpc/token/mint", json=params)
             resp.raise_for_status()
             return resp.json()
 
@@ -86,7 +86,7 @@ class Token(Contract):
     @property
     def name(self) -> str:
         """Name of the token contract, as defined in the config."""
-        return self.contract_data.get("contract_name") or self.config.token.name
+        return self.contract_data.get("name") or self.config.token.name
 
     @property
     def symbol(self) -> str:
@@ -108,7 +108,7 @@ class Token(Contract):
         :attr:`.contract_data` instead.
         """
         try:
-            return self.contract_data["contract_address"]
+            return self.contract_data["address"]
         except KeyError:
             return self.config.token.address
 
@@ -119,7 +119,7 @@ class Token(Contract):
         It is an error to access this property before the token is deployed.
         """
         try:
-            return self.deployment_receipt.get("blockNum")
+            return self.deployment_receipt.get("blockNumber")
         except AttributeError:
             # deployment_receipt is empty, token not deployed.
             raise TokenNotDeployed
@@ -280,11 +280,17 @@ class Token(Contract):
             },
         )
         resp_data = resp.json()
-        token_contract_data, receipt = resp_data["contract"], resp_data["receipt"]
+        if "error" in resp_data:
+            raise TokenNotDeployed(f"Error {resp_data['error']: {resp_data['message']}}")
+
+        token_contract_data, deployment_block = (
+            resp_data["contract"],
+            resp_data["deployment_block"],
+        )
 
         # Make deployment address and block available to address/deployment_block properties.
         self.contract_data = token_contract_data
-        self.deployment_receipt = receipt
+        self.deployment_receipt = {"blockNumber": deployment_block}
 
         if self.config.token.reuse_token:
             self.save_token()
@@ -336,5 +342,5 @@ class UserDepositContract(Contract):
                     "allowance_amount": allow_amount,
                 },
             }
-            resp = self.interface.put(f"spaas://rpc/token/allowance", params=params)
+            resp = self.interface.put(f"spaas://rpc/token/allowance", json=params)
             self.tx_hashes.add(resp.json()["tx_hash"])

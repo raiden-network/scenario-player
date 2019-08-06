@@ -14,8 +14,11 @@ The following endpoints are supplied by this blueprint:
         Mint a number of tokens for a given address. `token_address` determines
         what token contract is used to do this.aa
 """
+import json
+
+import structlog
 from eth_utils.address import to_checksum_address
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, abort, jsonify, request
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
 
@@ -27,6 +30,9 @@ tokens_blueprint = Blueprint("tokens_blueprint", __name__)
 
 token_create_schema = TokenCreateSchema()
 token_mint_schema = TokenMintSchema()
+
+
+log = structlog.getLogger(__name__)
 
 
 @tokens_blueprint.route("/rpc/token", methods=["POST"])
@@ -73,10 +79,10 @@ def deploy_token():
 
     """
     with REDMetricsTracker():
-
+        log.info("Processing Token Contract Deployment Request", request=request)
         data = token_create_schema.validate_and_deserialize(request.get_json())
         rpc_client = data["client"]
-        # token_name = data.get("token_name") or data["constructor_args"][1]
+        token_name = data.get("token_name") or data["constructor_args"][1]
 
         contract_manager = ContractManager(contracts_precompiled_path())
 
@@ -88,16 +94,37 @@ def deploy_token():
             constructor_args["symbol"],
         )
 
-        token_contract, receipt = rpc_client.deploy_single_contract(
-            "CustomToken",
-            contract_manager.get_contract("CustomToken"),
+        log.info(
+            "deploying contract",
             constructor_parameters=(1, decimals, name, symbol),
+            client_id=rpc_client.client_id,
         )
+        try:
+            token_contract, receipt = rpc_client.deploy_single_contract(
+                "CustomToken",
+                contract_manager.get_contract("CustomToken"),
+                constructor_parameters=(1, decimals, name, symbol),
+            )
+        except ValueError as e:
+            try:
+                json.loads(str(e))
+            except json.JSONDecodeError:
+                raise e
+
+            abort(status=400, response=str(e))
         contract_address = to_checksum_address(token_contract.contract_address)
-        deployment_block = receipt["blockNum"]
-        dumped = token_create_schema.dump(
-            {"address": contract_address, "deployment_block": deployment_block}
+        log.debug(
+            "Received deployment receipt", receipt=receipt, contract_address=contract_address
         )
+
+        deployment_block = receipt["blockNumber"]
+        dumped = token_create_schema.dump(
+            {
+                "contract": {"address": contract_address, "name": token_name},
+                "deployment_block": deployment_block,
+            }
+        )
+        log.info("Token Contract deployed", receipt=dumped)
         return jsonify(dumped)
 
 
