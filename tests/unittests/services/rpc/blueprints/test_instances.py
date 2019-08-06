@@ -31,7 +31,7 @@ class TestCreateRPCInstanceEndpoint:
             }
         )
         transaction_service_client.post(
-            f"/rpc/client", data=default_create_rpc_instance_request_parameters
+            f"/rpc/client", json=default_create_rpc_instance_request_parameters
         )
 
         mock_schema.validate_and_deserialize.assert_called_once()
