@@ -28,7 +28,7 @@ def assign_rpc_instance_id(runner, chain_url, privkey, gas_price):
     }
     resp = runner.service_session.post("spaas://rpc/client", json=params)
     client_id = resp.json()["client_id"]
-    runner.yaml.settings.services.rpc.client_id = client_id
+    runner.yaml.spaas.rpc.client_id = client_id
 
 
 def generate_hash_key(chain_url: str, privkey: bytes, strategy: Callable):

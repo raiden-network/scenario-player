@@ -29,7 +29,7 @@ class Contract:
 
     @property
     def client_id(self):
-        return self.config.settings.services.rpc.client_id
+        return self.config.spaas.rpc.client_id
 
     @property
     def address(self):
