@@ -20,7 +20,6 @@ requires-python = ">3.6"
 requires = [
     'click',
     'eth-utils',
-    'flasgger',
     'flask',
     'flask_marshmallow',
     'gevent',

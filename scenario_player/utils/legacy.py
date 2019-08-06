@@ -242,7 +242,7 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
     token_ctr, receipt = runner.client.deploy_single_contract(
         "CustomToken",
         runner.contract_manager.contracts["CustomToken"],
-        constructor_parameters=(0, decimals, name, symbol),
+        constructor_parameters=(1, decimals, name, symbol),
     )
     contract_deployment_block = receipt["blockNumber"]
     contract_checksum_address = to_checksum_address(token_ctr.contract_address)
