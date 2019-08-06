@@ -4,9 +4,12 @@ import hmac
 from collections.abc import Mapping
 from typing import Callable, Tuple, Union
 
-from web3 import Web3
+import structlog
+from web3 import HTTPProvider, Web3
 
 from raiden.network.rpc.client import JSONRPCClient
+
+log = structlog.getLogger(__name__)
 
 
 def bytes_to_json_string(b: bytes):
@@ -45,7 +48,7 @@ def generate_hash_key(chain_url: str, privkey: bytes, strategy: Callable):
 class RPCClient(JSONRPCClient):
     def __init__(self, chain_url, privkey, strategy):
         super(RPCClient, self).__init__(
-            Web3(chain_url), privkey=privkey, gas_price_strategy=strategy
+            Web3(HTTPProvider(chain_url)), privkey=privkey, gas_price_strategy=strategy
         )
         self.client_id = generate_hash_key(chain_url, privkey, strategy)
 
@@ -71,6 +74,9 @@ class RPCRegistry(Mapping):
             client_id = generate_hash_key(chain_url, privkey, strategy)
 
             if client_id not in self.dict:
+                log.debug(
+                    "Creating new RPC instance", chain_url=chain_url, strategy=strategy.__name__
+                )
                 self.dict[client_id] = RPCClient(chain_url, privkey, strategy)
 
             return self.dict[client_id]
