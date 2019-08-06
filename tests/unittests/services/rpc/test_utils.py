@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import hmac
 from unittest import mock
@@ -5,7 +6,25 @@ from unittest import mock
 import pytest
 
 from scenario_player.constants import GAS_STRATEGIES
-from scenario_player.services.rpc.utils import RPCClient, RPCRegistry, generate_hash_key
+from scenario_player.services.rpc.utils import (
+    RPCClient,
+    RPCRegistry,
+    bytes_to_json_string,
+    generate_hash_key,
+    json_string_to_bytes,
+)
+
+
+@pytest.mark.dependency(name="bytes_to_json_string_test")
+def test_bytes_to_json_string_encodes_using_base64():
+    inpurt_bytes = b"super-bytes"
+    assert bytes_to_json_string(inpurt_bytes) == base64.encodebytes(input_bytes).decode("ascii")
+
+
+@pytest.mark.dependency(depends=["bytes_to_json_string_test"])
+def test_json_string_to_bytes_decodes_using_base64():
+    input_string = bytes_to_json_string(b"super-string")
+    assert json_string_to_bytes(input_string) == base64.decodebytes(input_string.encode("ascii"))
 
 
 @pytest.mark.dependency(name="generate_hash_key_for_transactions_service")
