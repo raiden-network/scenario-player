@@ -280,7 +280,7 @@ class ScenarioRunner:
         self.token.init()
         mint_tx = set()
         for address in node_addresses:
-            tx = self.token.mint(address, gas_limit)
+            tx = self.token.mint(address)
             if tx:
                 mint_tx.add(tx)
 
