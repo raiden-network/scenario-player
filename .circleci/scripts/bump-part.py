@@ -96,3 +96,10 @@ subprocess.run(
 
 print("Push Bump tag..")
 subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} push -u --tags origin".split(" "), check=True)
+
+if CURRENT_BRANCH == "master":
+    # Sync up our versions between dev and master. The actual bump to dev's tag will be done
+    # on the next merge commit to it.
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} checkout dev".split(" "), check=True)
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} merge master".split(" "), check=True)
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} git push".split(" "), check=True)
