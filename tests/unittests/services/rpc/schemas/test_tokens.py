@@ -1,12 +1,18 @@
 from unittest import mock
 
 import flask
+import marshmallow as ma
 import pytest
 
 from raiden.network.rpc.client import JSONRPCClient
 from scenario_player.services.common.schemas import BytesField
 from scenario_player.services.rpc.schemas.base import RPCCreateResourceSchema
-from scenario_player.services.rpc.schemas.tokens import TokenCreateSchema, TokenMintSchema
+from scenario_player.services.rpc.schemas.tokens import (
+    ConstructorArgsSchema,
+    ContractSchema,
+    TokenCreateSchema,
+    TokenMintSchema,
+)
 from scenario_player.services.rpc.utils import RPCClient, RPCRegistry
 
 
@@ -64,120 +70,58 @@ def app(hexed_client_id):
     ids=["TokenCreateSchema", "TokenMintSchema"],
 )
 class TestSchemaDefinition:
-    def test_tx_hash_is_bytesfield(self, schema):
-        assert isinstance(schema._declared_fields["tx_hash"], BytesField)
-
-    def test_tx_hash_is_dump_only(self, schema):
-        assert schema._declared_fields["tx_hash"].dump_only is True
-
     def test_schema_inherits_from_rpccreateresourceschema(self, schema):
         assert isinstance(schema, RPCCreateResourceSchema)
 
 
 class TestTokenCreateSchema:
     @pytest.mark.parametrize("field", ["token_name", "constructor_args"])
-    def test_field_is_load_only(self, field):
+    def test_deserializer_field_is_load_only(self, field):
         assert TokenCreateSchema._declared_fields[field].load_only is True
 
-    @pytest.mark.parametrize(
-        "input_dict, expected",
-        argvalues=[
-            (
-                {
-                    "constructor_args": {
-                        "decimals": 6789,
-                        "name": "TokenName",
-                        "symbol": "TokenSymbol",
-                    },
-                    "token_name": "SuperToken",
-                },
-                {
-                    "constructor_args": {
-                        "decimals": 6789,
-                        "name": "TokenName",
-                        "symbol": "TokenSymbol",
-                    },
-                    "token_name": "SuperToken",
-                },
-            ),
-            (
-                {
-                    "constructor_args": {
-                        "decimals": 6789,
-                        "name": "TokenName",
-                        "symbol": "TokenSymbol",
-                    }
-                },
-                {
-                    "constructor_args": {
-                        "decimals": 6789,
-                        "name": "TokenName",
-                        "symbol": "TokenSymbol",
-                    },
-                    "token_name": None,
-                },
-            ),
-        ],
-        ids=["All fields given", "token_name field missing assigns it None"],
-    )
-    def test_validate_and_deserialize_returns_expected_dict(
-        self, input_dict, expected, app, base_request_params, deserialized_base_params
-    ):
-        base_request_params.update(input_dict)
-        deserialized_base_params.update(expected)
-
-        with app.app_context():
-            assert (
-                TokenCreateSchema().validate_and_deserialize(base_request_params)
-                == deserialized_base_params
-            )
+    @pytest.mark.parametrize("field", argvalues=["contract", "deployment_block"])
+    def test_serializer_field_is_dump_only(self, field):
+        assert TokenCreateSchema._declared_fields[field].dump_only is True
 
     @pytest.mark.parametrize(
-        "input_dict",
-        argvalues=[
-            {},
-            {"constructor_args": {"name": "TokenName", "symbol": "TokenSymbol"}},
-            {"constructor_args": {"decimals": 6789, "symbol": "TokenSymbol"}},
-            {"constructor_args": {"decimals": 6789, "name": "TokenName"}},
-            {"constructor_args": {"decimals": 6789, "name": 80085, "symbol": "TokenSymbol"}},
-            {
-                "constructor_args": {
-                    "decimals": "fifty",
-                    "name": "TokenName",
-                    "symbol": "TokenSymbol",
-                }
-            },
-            {"constructor_args": {"decimals": 6789, "name": "TokenName", "symbol": 8000}},
-            {
-                "constructor_args": {
-                    "decimals": 6789,
-                    "name": "TokenName",
-                    "symbol": "TokenSymbol",
-                },
-                "token_name": 5000,
-            },
-        ],
-        ids=[
-            "constructor_args are required",
-            "constructor_args requires decimals key",
-            "constructor_args requires name key",
-            "constructor_args requires symbol key",
-            "constructor_args.deccimals must be an integer",
-            "constructor_args.name must be a string",
-            "constructor_args.symbol must be a string",
-            "token_name must be a string",
-        ],
+        "field, field_type",
+        argvalues=[("constructor_args", ma.fields.Nested), ("token_name", ma.fields.String)],
     )
-    def test_validate_and_deserialize_raises_excpetions_on_faulty_input(self, input_dict, app):
-        with app.test_client() as c:
-            resp = c.post("/test-create", json=input_dict)
-            assert "400 Bad Request".lower() in resp.status.lower()
+    def test_deserializer_fields_are_expected_type(self, field, field_type):
+        assert isinstance(TokenCreateSchema._declared_fields[field], field_type)
+
+    @pytest.mark.parametrize(
+        "field, field_type",
+        argvalues=[("contract", ma.fields.Nested), ("deployment_block", ma.fields.Integer)],
+    )
+    def test_serializer_fields_are_expected_type(self, field, field_type):
+        assert isinstance(TokenCreateSchema._declared_fields[field], field_type)
+
+    @pytest.mark.parametrize(
+        "field", argvalues=["constructor_args", "contract", "deployment_block"]
+    )
+    def test_field_is_required(self, field):
+        assert TokenCreateSchema._declared_fields[field].required is True
+
+    def test_token_name_field_is_optional(self):
+        assert TokenCreateSchema._declared_fields["token_name"].required is False
+
+    @pytest.mark.parametrize(
+        "field, schema",
+        argvalues=[("constructor_args", ConstructorArgsSchema), ("contract", ContractSchema)],
+    )
+    def test_field_nests_correct_schema(self, field, schema):
+        assert TokenCreateSchema._declared_fields[field].nested == schema
 
 
 class TestTokenMintSchema:
     @pytest.mark.parametrize("field", ["token_address", "mint_target", "amount"])
     def test_field_is_load_only(self, field):
         assert TokenMintSchema._declared_fields[field].load_only is True
+
+    @pytest.mark.parametrize("field", ["tx_hash"])
+    def test_field_is_dump_only(self, field):
+        assert TokenMintSchema._declared_fields[field].dump_only is True
 
     def test_validate_and_deserialize_returns_expected_dict(
         self, app, base_request_params, deserialized_base_params
@@ -216,3 +160,9 @@ class TestTokenMintSchema:
         with app.test_client() as c:
             resp = c.post("/test-mint", data=input_dict)
             assert "400 Bad Request".lower() in resp.status.lower()
+
+    def test_tx_hash_is_bytesfield(self):
+        assert isinstance(TokenMintSchema._declared_fields["tx_hash"], BytesField)
+
+    def test_tx_hash_is_dump_only(self):
+        assert TokenMintSchema._declared_fields["tx_hash"].dump_only is True
