@@ -23,7 +23,7 @@ def assign_rpc_instance_id(runner, chain_url, privkey, gas_price):
         "privkey": bytes_to_json_string(privkey),
         "gas_price": gas_price,
     }
-    resp = runner.service_session.post("spaas://rpc/instance", json=params)
+    resp = runner.service_session.post("spaas://rpc/client", json=params)
     client_id = resp.json()["client_id"]
     runner.yaml.settings.services.rpc.client_id = client_id
 
