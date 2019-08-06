@@ -54,9 +54,10 @@ class TokenMintSchema(RPCCreateResourceSchema):
 
     Load-only parameters:
 
-        - token_address (string)
-        - mint_target (string)
+        - target_address (string)
+        - contract_address (string)
         - amount (number)
+        - gas_limit (number)
 
     Dump-only parameters:
 
@@ -64,9 +65,10 @@ class TokenMintSchema(RPCCreateResourceSchema):
     """
 
     # Deserializer fields
-    token_address = String(load_only=True, required=True)
-    mint_target = String(load_only=True, required=True)
+    target_address = String(load_only=True, required=True)
+    contract_address = String(load_only=True, required=True)
     amount = Number(load_only=True, required=True)
+    gas_limit = Number(load_only=True, required=True)
 
     # Serializer fields
     tx_hash = BytesField(required=True, dump_only=True)
