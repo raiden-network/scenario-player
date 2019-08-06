@@ -17,8 +17,8 @@ from scenario_player.services.rpc.utils import (
 
 @pytest.mark.dependency(name="bytes_to_json_string_test")
 def test_bytes_to_json_string_encodes_using_base64():
-    inpurt_bytes = b"super-bytes"
-    assert bytes_to_json_string(inpurt_bytes) == base64.encodebytes(input_bytes).decode("ascii")
+    input_bytes = b"super-bytes"
+    assert bytes_to_json_string(input_bytes) == base64.encodebytes(input_bytes).decode("ascii")
 
 
 @pytest.mark.dependency(depends=["bytes_to_json_string_test"])
