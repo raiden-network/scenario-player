@@ -38,7 +38,7 @@ class SPaaSServiceConfig(ConfigMapping):
 
     @property
     def host(self):
-        return self.get("host", "localhost")
+        return self.get("host", "127.0.0.1")
 
     @property
     def port(self):

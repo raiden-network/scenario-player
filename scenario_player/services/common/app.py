@@ -1,9 +1,10 @@
 import multiprocessing as mp
 
-import flask
 import requests
+import waitress
 
 from scenario_player.exceptions.services import ServiceProcessException
+from scenario_player.services.utils.factories import construct_flask_app
 
 
 class ServiceProcess(mp.Process):
@@ -24,20 +25,18 @@ class ServiceProcess(mp.Process):
     code does not matter) and `False` if a connection error or timeout occurred.
     """
 
-    def __init__(
-        self, app: flask.Flask, *args, host: str = "http://localhost", port: int = 5000, **kwargs
-    ):
+    def __init__(self, *args, host: str = "127.0.0.1", port: int = 5000, **kwargs):
         if "target" in kwargs:
             raise ValueError("'target' is not supported by this class!")
         super(ServiceProcess, self).__init__(*args, **kwargs)
         self.daemon = True
-        self.app = app
-        self.app_url = f"{host}:{port}"
+        self.host = host
+        self.port = port
 
     @property
     def is_reachable(self) -> bool:
         try:
-            requests.get(f"{self.app_url}/status")
+            requests.get(f"{self.host}:{self.port}/status")
         except (requests.ConnectionError, requests.Timeout):
             # The service does not appear to be reachable.
             return False
@@ -67,7 +66,7 @@ class ServiceProcess(mp.Process):
         :raises ServiceProcessException: if we failed to shut down the service.
         """
         try:
-            resp = requests.post(f"{self.app_url}/shutdown")
+            resp = requests.post(f"{self.host}:{self.port}/shutdown")
         except (requests.ConnectionError, requests.Timeout):
             # The server is not responding. Kill it with a hammer.
             return self.kill()
@@ -80,4 +79,5 @@ class ServiceProcess(mp.Process):
 
     def run(self):
         """Run the Service."""
-        self.app.run()
+        app = construct_flask_app()
+        waitress.serve(app, host=self.host, port=self.port)
