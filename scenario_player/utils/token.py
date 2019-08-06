@@ -269,7 +269,8 @@ class Token(Contract):
 
         resp = self.interface.post(
             "spaas://rpc/token",
-            params={
+            json={
+                "client_id": self.client_id,
                 "constructor_args": {
                     "decimals": self.decimals,
                     "name": self.name,
