@@ -58,9 +58,8 @@ class UDCSettingsConfig(ConfigMapping):
     """
 
     def __init__(self, loaded_yaml: dict):
-        super(UDCSettingsConfig, self).__init__(
-            loaded_yaml.get("settings").get("services", {}).get("udc", {})
-        )
+        services_dict = (loaded_yaml.get("settings") or {}).get("services") or {}
+        super(UDCSettingsConfig, self).__init__(services_dict.get("udc", {}))
         self.validate()
 
     @property
@@ -87,7 +86,7 @@ class ServiceSettingsConfig(ConfigMapping):
 
     def __init__(self, loaded_yaml: dict):
         super(ServiceSettingsConfig, self).__init__(
-            loaded_yaml.get("settings").get("services", {})
+            (loaded_yaml.get("settings") or {}).get("services") or {}
         )
         self.pfs = PFSSettingsConfig(loaded_yaml)
         self.udc = UDCSettingsConfig(loaded_yaml)
@@ -121,7 +120,7 @@ class SettingsConfig(ConfigMapping):
     CONFIGURATION_ERROR = ScenarioConfigurationError
 
     def __init__(self, loaded_yaml: dict) -> None:
-        super(SettingsConfig, self).__init__(loaded_yaml.get("settings", {}))
+        super(SettingsConfig, self).__init__(loaded_yaml.get("settings") or {})
         self.services = ServiceSettingsConfig(loaded_yaml)
         self.validate()
 
