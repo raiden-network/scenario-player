@@ -5,12 +5,13 @@ as tracking one or more transactions by their hashes.
 
 The following endpoints are supplied by this blueprint:
 
-    * [POST, GET] /transactions
+    * [POST] /transactions
         Request the status of one or more transactions using their hashes, or
         create a new transaction. The parameters for the latter must be supplied as
         form data.
 
 """
+from eth_utils import encode_hex
 from flask import Blueprint, request
 
 from scenario_player.services.common.metrics import REDMetricsTracker

@@ -3,7 +3,7 @@ import pathlib
 from typing import Dict, Tuple, Union
 
 import structlog
-from eth_utils import to_checksum_address
+from eth_utils import decode_hex, encode_hex, to_checksum_address
 
 from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import AddressWithoutCode, check_address_has_code
@@ -13,7 +13,6 @@ from scenario_player.exceptions.config import (
     TokenNotDeployed,
     TokenSourceCodeDoesNotExist,
 )
-from scenario_player.services.rpc.utils import json_string_to_bytes
 from scenario_player.services.utils.interface import ServiceInterface
 
 log = structlog.get_logger(__name__)
@@ -57,9 +56,10 @@ class Contract:
         log.info(f"Requesting '{action}' call", **payload)
         resp = self.interface.post(f"spaas://rpc/contract/{action}", json=payload)
         resp.raise_for_status()
-        receipt = resp.json()
-        log.info(f"'{action}' call succeeded", receipt=resp.json())
-        return json_string_to_bytes(receipt["tx_hash"])
+        resp_data = resp.json()
+        tx_hash = resp_data["tx_hash"]
+        log.info(f"'{action}' call succeeded", tx_hash=tx_hash)
+        return decode_hex(tx_hash)
 
     def mint(self, target_address) -> Union[str, None]:
         """Mint new tokens for the given `target_address`.
