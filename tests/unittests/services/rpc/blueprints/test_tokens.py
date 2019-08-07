@@ -4,10 +4,9 @@ from unittest.mock import MagicMock, patch
 import flask
 import pytest
 
-from raiden.network.rpc.client import JSONRPCClient
 from scenario_player.services.rpc.blueprints.tokens import tokens_blueprint
 from scenario_player.services.rpc.schemas.tokens import TokenCreateSchema, TokenMintSchema
-from scenario_player.services.rpc.utils import RPCRegistry
+from scenario_player.services.rpc.utils import RPCClient, RPCRegistry
 
 rpc_blueprints_module_path = "scenario_player.services.rpc.blueprints"
 
@@ -22,7 +21,7 @@ def hexed_client_id():
 
 
 @pytest.fixture
-def default_create_token_params(hexed_client_id):
+def create_token_params(hexed_client_id):
     return {
         "client_id": hexed_client_id,
         "constructor_args": {"decimals": 66, "name": "token_name", "symbol": "token_symbol"},
@@ -31,14 +30,14 @@ def default_create_token_params(hexed_client_id):
 
 
 @pytest.fixture
-def deserialized_default_create_token_params(default_create_token_params, app):
-    deserialized = dict(default_create_token_params)
+def deserialized_create_token_params(create_token_params, app):
+    deserialized = dict(create_token_params)
     deserialized["client"] = app.config["rpc-client"].dict[deserialized["client_id"]]
     return deserialized
 
 
 @pytest.fixture
-def default_mint_token_params(hexed_client_id):
+def mint_token_params(hexed_client_id):
     return {
         "client_id": hexed_client_id,
         "contract_address": str(b"1234567890".hex()),
@@ -49,16 +48,16 @@ def default_mint_token_params(hexed_client_id):
 
 
 @pytest.fixture
-def deserialized_mint_token_params(app, default_mint_token_params):
-    deserialized = dict(default_mint_token_params)
+def deserialized_mint_token_params(app, mint_token_params):
+    deserialized = dict(mint_token_params)
     deserialized["client"] = app.config["rpc-client"].dict[deserialized["client_id"]]
     return deserialized
 
 
 @pytest.fixture
 def app(hexed_client_id):
-    rpc_client = MagicMock(spec=JSONRPCClient)
-    rpc_client.deploy_single_contract.return_value = (MockTokenProxy(), {"blockNum": 100})
+    rpc_client = MagicMock(spec=RPCClient, client_id=hexed_client_id)
+    rpc_client.deploy_single_contract.return_value = (MockTokenProxy(), {"blockNumber": 100})
 
     registry = RPCRegistry()
     registry.dict[hexed_client_id] = rpc_client
@@ -89,15 +88,11 @@ def test_token_blueprint_is_loaded(transaction_service_client):
 class TestDeployTokenEndpoint:
     @pytest.fixture(autouse=True)
     def setup_create_token_tests(
-        self,
-        app,
-        hexed_client_id,
-        default_create_token_params,
-        deserialized_default_create_token_params,
+        self, app, hexed_client_id, create_token_params, deserialized_create_token_params
     ):
         self.app = app
-        self.request_params = default_create_token_params
-        self.deserialized_params = deserialized_default_create_token_params
+        self.request_params = create_token_params
+        self.deserialized_params = deserialized_create_token_params
         self.client_id = hexed_client_id
 
     def test_endpoint_calls_validate_and_deserialize_of_its_schema(self, mock_schema, _, __):
@@ -116,7 +111,13 @@ class TestDeployTokenEndpoint:
             assert resp.data == b'{"data":"ok"}\n'
 
     def test_result_returns_expected_dict(self, mock_schema, _, __):
-        expected = {"address": "checksummed_address", "deployment_block": 100}
+        expected = {
+            "contract": {
+                "address": "checksummed_address",
+                "name": self.deserialized_params["token_name"],
+            },
+            "deployment_block": 100,
+        }
 
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
 
@@ -173,9 +174,9 @@ class TestTokenEndpoint:
 
     @pytest.fixture(autouse=True)
     def setup_mint_token_tests(
-        self, app, default_mint_token_params, deserialized_mint_token_params, hexed_client_id
+        self, app, mint_token_params, deserialized_mint_token_params, hexed_client_id
     ):
-        self.request_params = default_mint_token_params
+        self.request_params = mint_token_params
         self.deserialized_params = deserialized_mint_token_params
         self.app = app
         self.client_id = hexed_client_id

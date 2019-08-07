@@ -73,7 +73,7 @@ def rpc_create_view():
 
 
 def create_client():
-    data = new_instance_schema.validate_and_deserialize(request.form)
+    data = new_instance_schema.validate_and_deserialize(request.get_json())
 
     gas_price = data.get("gas_price", "FAST")
 
@@ -127,6 +127,6 @@ def rpc_delete_view():
 
 
 def delete_client(client_id):
-    delete_instance_schema.validate_and_deserialize({"client_id": request.params["client_id"]})
+    delete_instance_schema.validate_and_deserialize({"client_id": request.params.get("client_id")})
     current_app.config["rpc-client"].pop(client_id, None)
     return Response(204)

@@ -38,6 +38,7 @@ class Sentinel(Exception):
 def runner(dummy_scenario_runner, minimal_yaml_dict, token_info_path, tmp_path):
     token_config = TokenConfig(minimal_yaml_dict, token_info_path)
     dummy_scenario_runner.yaml.spaas = SPaaSConfig(minimal_yaml_dict)
+    dummy_scenario_runner.yaml.spaas.rpc.client_id = "the_client_id"
     dummy_scenario_runner.yaml.token = token_config
 
     dummy_scenario_runner.token = Token(dummy_scenario_runner, tmp_path)
@@ -128,7 +129,7 @@ class TestContract:
         with pytest.raises(Sentinel):
             contract_instance.mint("the_address")
 
-        mock_request.assert_called_once_with("spaas://rpc/token/mint", params=expected_params)
+        mock_request.assert_called_once_with("spaas://rpc/token/mint", json=expected_params)
 
 
 @pytest.mark.dependency(name="TestClass")
@@ -175,7 +176,7 @@ class TestToken:
         self, mock_address, runner, tmp_path
     ):
         token = Token(runner, tmp_path)
-        token.contract_data = {"contract_address": 100}
+        token.contract_data = {"address": 100}
         mock_address.return_value = 200
         assert token.address == 100
 
@@ -204,7 +205,7 @@ class TestToken:
         token = Token(runner, tmp_path)
 
         raw_addr = "0x12ae66cdc592e10b60f9097a7b0d3c59fce29876"
-        token.contract_data = {"contract_address": raw_addr}
+        token.contract_data = {"address": raw_addr}
         token.checksum_address
         mock_checksum.assert_called_once_with(raw_addr)
 
@@ -214,7 +215,7 @@ class TestToken:
             token_instance.deployment_block
 
     def test_deployment_block_is_returned_from_deployment_receipt_attribute(self, token_instance):
-        token_instance.deployment_receipt = {"blockNum": 100}
+        token_instance.deployment_receipt = {"blockNumber": 100}
         assert token_instance.deployment_block == 100
 
     @pytest.mark.parametrize(
@@ -222,8 +223,8 @@ class TestToken:
         argvalues=[
             (None, False),
             ({}, False),
-            ({"blockNum": 100}, True),
-            ({"blockNum": None}, False),
+            ({"blockNumber": 100}, True),
+            ({"blockNumber": None}, False),
         ],
     )
     def test_deployed_property_depends_on_value_of_deployment_receipt(
@@ -277,8 +278,8 @@ class TestToken:
         existing_token_info.write_text(old_text)
 
         # Inject a deployment receipt, contract data
-        token_instance.deployment_receipt = {"blockNum": 1}
-        token_instance.contract_data = {"contract_name": "mytoken"}
+        token_instance.deployment_receipt = {"blockNumber": 1}
+        token_instance.contract_data = {"name": "mytoken"}
 
         expected_str = json.dumps({"name": "mytoken", "address": "my_checksum_addr", "block": 1})
         token_instance.save_token()
@@ -290,8 +291,8 @@ class TestToken:
         self, _, token_instance, tmp_path
     ):
         # Inject a deployment receipt, contract data
-        token_instance.deployment_receipt = {"blockNum": 1}
-        token_instance.contract_data = {"contract_name": "mytoken"}
+        token_instance.deployment_receipt = {"blockNumber": 1}
+        token_instance.contract_data = {"name": "mytoken"}
 
         expected_str = json.dumps({"name": "mytoken", "address": "my_checksum_addr", "block": 1})
         token_instance.save_token()
@@ -302,8 +303,8 @@ class TestToken:
     @pytest.mark.dependency(depends=["load_token"])
     def test_save_token_create_loadable_token_file(self, _, token_instance, tmp_path):
         # Inject a deployment receipt, contract data
-        token_instance.deployment_receipt = {"blockNum": 1}
-        token_instance.contract_data = {"contract_name": "mytoken"}
+        token_instance.deployment_receipt = {"blockNumber": 1}
+        token_instance.contract_data = {"name": "mytoken"}
 
         expected_dict = {"name": "mytoken", "address": "my_checksum_addr", "block": 1}
         token_instance.save_token()
@@ -412,8 +413,8 @@ class TestToken:
         self, mock_request, _, token_instance
     ):
         json_resp = {
-            "contract": {"contract_name": "the_token", "contract_address": "the_address"},
-            "receipt": {"blockNum": 111},
+            "contract": {"name": "the_token", "address": "the_address"},
+            "deployment_block": 111,
         }
 
         class MockResp:
@@ -421,6 +422,7 @@ class TestToken:
                 return json_resp
 
         expected_params = {
+            "client_id": "the_client_id",
             "constructor_args": {
                 "decimals": token_instance.decimals,
                 "name": token_instance.name,
@@ -433,13 +435,13 @@ class TestToken:
 
         address, deployment_block = token_instance.deploy_new()
 
-        assert address == json_resp["contract"]["contract_address"]
-        assert deployment_block == json_resp["receipt"]["blockNum"]
+        assert address == json_resp["contract"]["address"]
+        assert deployment_block == json_resp["deployment_block"]
 
-        assert token_instance.deployment_receipt == json_resp["receipt"]
+        assert token_instance.deployment_receipt == {"blockNumber": json_resp["deployment_block"]}
         assert token_instance.contract_data == json_resp["contract"]
 
-        mock_request.assert_called_once_with("spaas://rpc/token", params=expected_params)
+        mock_request.assert_called_once_with("spaas://rpc/token", json=expected_params)
 
     @pytest.mark.parametrize("reuse_token", argvalues=[True, False])
     @patch(f"{token_import_path}.ServiceInterface.request")
@@ -448,7 +450,7 @@ class TestToken:
     def test_deploy_new_calls_save_token_depending_on_reuse_token_property(
         self, _, mock_save_token, mock_request, reuse_token, token_instance
     ):
-        json_resp = {"contract": {}, "receipt": {}}
+        json_resp = {"contract": {}, "deployment_block": 1}
 
         class MockResp:
             def json(self):

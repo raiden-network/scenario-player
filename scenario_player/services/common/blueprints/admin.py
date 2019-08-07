@@ -1,4 +1,5 @@
 from flask import Blueprint, Response, request
+from werkzeug.exceptions import InternalServerError
 
 admin_blueprint = Blueprint("admin_view", __name__)
 
@@ -7,7 +8,7 @@ def shutdown_server():
     """Shutdown the server using :func:`werkzeug.server.shutdown`."""
     func = request.environ.get("werkzeug.server.shutdown")
     if func is None:
-        raise RuntimeError("Not running with the Werkzeug Server")
+        raise InternalServerError
     func()
     return Response(response="Server shutting down...", status=200)
 

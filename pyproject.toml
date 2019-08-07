@@ -32,6 +32,7 @@ requires = [
     'raiden',
     'structlog',
     'urwid',
+    'waitress',
 ]
 
 # Classifiers, Licensing, keywords for pypi.
@@ -86,7 +87,6 @@ common-service = "scenario_player.services.common.blueprints"
 [tool.flit.scripts]
 # CLI commands installed along with out package.
 scenario_player = "scenario_player.__main__:main"
-
 
 #######################
 # ISORT CONFIGURATION #

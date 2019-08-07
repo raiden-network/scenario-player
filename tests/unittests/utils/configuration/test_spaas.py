@@ -5,7 +5,7 @@ from scenario_player.utils.configuration.spaas import SPaaSConfig, SPaaSServiceC
 
 @pytest.mark.parametrize(
     "prop, expected_value",
-    argvalues=[("scheme", "http"), ("port", "5000"), ("netloc", "localhost:5000")],
+    argvalues=[("scheme", "http"), ("port", "5000"), ("netloc", "127.0.0.1:5000")],
 )
 def test_service_config_properties_return_expected_defaults_if_keys_missing(prop, expected_value):
     service_config = SPaaSServiceConfig({})
