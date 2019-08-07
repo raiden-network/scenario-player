@@ -64,6 +64,35 @@ def app(hexed_client_id):
     return app
 
 
+class TestConstructorArgsSchema:
+    @pytest.mark.parametrize("field", ["decimals", "name", "symbol"])
+    def test_field_is_required(self, field):
+        assert ConstructorArgsSchema._declared_fields[field].required is True
+
+    @pytest.mark.parametrize(
+        "field, field_type",
+        [
+            ("decimals", ma.fields.Integer),
+            ("name", ma.fields.String),
+            ("symbol", ma.fields.String),
+        ],
+    )
+    def test_field_is_expected_type(self, field, field_type):
+        assert type(ConstructorArgsSchema._declared_fields[field]) == field_type
+
+
+class TestContractSchema:
+    @pytest.mark.parametrize("field", ["name", "address"])
+    def test_field_is_required(self, field):
+        assert ContractSchema._declared_fields[field].required is True
+
+    @pytest.mark.parametrize(
+        "field, field_type", [("name", ma.fields.String), ("address", ma.fields.String)]
+    )
+    def test_field_is_expected_type(self, field, field_type):
+        assert type(ContractSchema._declared_fields[field]) == field_type
+
+
 @pytest.mark.parametrize(
     "schema",
     argvalues=[TokenCreateSchema(), TokenMintSchema()],
@@ -88,14 +117,14 @@ class TestTokenCreateSchema:
         argvalues=[("constructor_args", ma.fields.Nested), ("token_name", ma.fields.String)],
     )
     def test_deserializer_fields_are_expected_type(self, field, field_type):
-        assert isinstance(TokenCreateSchema._declared_fields[field], field_type)
+        assert type(TokenCreateSchema._declared_fields[field]) == field_type
 
     @pytest.mark.parametrize(
         "field, field_type",
         argvalues=[("contract", ma.fields.Nested), ("deployment_block", ma.fields.Integer)],
     )
     def test_serializer_fields_are_expected_type(self, field, field_type):
-        assert isinstance(TokenCreateSchema._declared_fields[field], field_type)
+        assert type(TokenCreateSchema._declared_fields[field]) == field_type
 
     @pytest.mark.parametrize(
         "field", argvalues=["constructor_args", "contract", "deployment_block"]
@@ -131,15 +160,15 @@ class TestTokenMintSchema:
             ("target_address", ma.fields.String),
             ("contract_address", ma.fields.String),
             ("gas_limit", ma.fields.Integer),
-            ("amount", ma.fields.Number),
+            ("amount", ma.fields.Integer),
         ],
     )
     def test_deserializer_fields_are_expected_type(self, field, field_type):
-        assert isinstance(TokenMintSchema._declared_fields[field], field_type)
+        assert type(TokenMintSchema._declared_fields[field]) == field_type
 
     @pytest.mark.parametrize("field, field_type", argvalues=[("tx_hash", BytesField)])
     def test_serializer_fields_are_expected_type(self, field, field_type):
-        assert isinstance(TokenMintSchema._declared_fields[field], field_type)
+        assert type(TokenMintSchema._declared_fields[field]) == field_type
 
     @pytest.mark.parametrize(
         "field", argvalues=["target_address", "contract_address", "amount", "gas_limit", "tx_hash"]
