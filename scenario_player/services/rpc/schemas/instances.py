@@ -18,7 +18,7 @@ class GasPrice(String):
             raise ValidationError(f"{value} - not an int-string or known gas price strategy!")
 
 
-class NewInstanceRequest(SPSchema):
+class CreateClientSchema(SPSchema):
     """POST /rpc/client
 
     load-only parameters:

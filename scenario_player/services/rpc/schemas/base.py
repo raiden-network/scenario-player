@@ -1,5 +1,6 @@
 from typing import Tuple
 
+from eth_utils.address import is_checksum_address, to_checksum_address
 from flask import current_app
 from marshmallow.fields import String
 

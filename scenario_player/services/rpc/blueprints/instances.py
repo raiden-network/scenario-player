@@ -19,12 +19,12 @@ from flask import Blueprint, Response, abort, current_app, jsonify, request
 from scenario_player.constants import GAS_STRATEGIES
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.rpc.schemas.instances import (
+    CreateClientSchema,
     DeleteInstanceRequest,
-    NewInstanceRequest,
 )
 
 instances_blueprint = Blueprint("instances_blueprint", __name__)
-new_instance_schema = NewInstanceRequest()
+new_instance_schema = CreateClientSchema()
 delete_instance_schema = DeleteInstanceRequest()
 
 
@@ -65,7 +65,7 @@ def rpc_create_view():
           description: "The client id of the created/existing RPC instance matching your config."
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/NewInstanceRequest'}
+              schema: {$ref: '#/components/schemas/CreateClientSchema'}
     """
     handlers = {"POST": create_client}
     with REDMetricsTracker():

@@ -18,24 +18,30 @@ import json
 
 import structlog
 from eth_utils.address import to_checksum_address
-from flask import Blueprint, abort, jsonify, request
+from flask import Blueprint, Response, jsonify, make_response, request
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
 
 from scenario_player.services.common.metrics import REDMetricsTracker
-from scenario_player.services.rpc.schemas.tokens import TokenCreateSchema, TokenMintSchema
+from scenario_player.services.rpc.schemas.tokens import ContractTransactSchema, TokenCreateSchema
 
 tokens_blueprint = Blueprint("tokens_blueprint", __name__)
 
 
 token_create_schema = TokenCreateSchema()
-token_mint_schema = TokenMintSchema()
+token_mint_schema = ContractTransactSchema()
 
+#: Valid actions to pass when calling `POST /rpc/contract/<action>`.
+TRANSACT_ACTIONS = {
+    "allowance": ("approve", CONTRACT_USER_DEPOSIT),
+    "mint": ("mintFor", CONTRACT_CUSTOM_TOKEN),
+    "deposit": ("deposit", CONTRACT_USER_DEPOSIT),
+}
 
 log = structlog.getLogger(__name__)
 
 
-@tokens_blueprint.route("/rpc/token", methods=["POST"])
+@tokens_blueprint.route("/rpc/contract", methods=["POST"])
 def deploy_token():
     """Deploy a new token contract.
 
@@ -99,19 +105,13 @@ def deploy_token():
             constructor_parameters=(1, decimals, name, symbol),
             client_id=rpc_client.client_id,
         )
-        try:
-            token_contract, receipt = rpc_client.deploy_single_contract(
-                "CustomToken",
-                contract_manager.get_contract("CustomToken"),
-                constructor_parameters=(1, decimals, name, symbol),
-            )
-        except ValueError as e:
-            try:
-                json.loads(str(e))
-            except json.JSONDecodeError:
-                raise e
 
-            abort(status=400, response=str(e))
+        token_contract, receipt = rpc_client.deploy_single_contract(
+            "CustomToken",
+            contract_manager.get_contract("CustomToken"),
+            constructor_parameters=(1, decimals, name, symbol),
+        )
+
         contract_address = to_checksum_address(token_contract.contract_address)
         log.debug(
             "Received deployment receipt", receipt=receipt, contract_address=contract_address
@@ -128,10 +128,11 @@ def deploy_token():
         return jsonify(dumped)
 
 
-@tokens_blueprint.route("/rpc/token/mint", methods=["POST"])
-def mint_contract():
+@tokens_blueprint.route("/rpc/contract/<action>", methods=["POST"])
+def mint_contract(action):
     """Mint new tokens at the given token contract for the given target address.
 
+    `action` may be one of :var:`.TRANSACT_ACTIONS` keys.
     ---
     parameters:
       - name: client_id
@@ -171,90 +172,39 @@ def mint_contract():
 
       responses:
         200:
-          description: "Transaction hash of the mint request."
+          description: "Transaction hash of the contract trasnact request."
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/TokenMintSchema'}
+              schema: {$ref: '#/components/schemas/ContractTransactSchema'}
     """
 
     with REDMetricsTracker():
+        if action not in TRANSACT_ACTIONS:
+            return Response(
+                status=400, response=f"'action' must be one of {TRANSACT_ACTIONS.keys()}"
+            )
         data = token_mint_schema.validate_and_deserialize(request.get_json())
 
-        tx_hash = transact_call(data, CONTRACT_CUSTOM_TOKEN)
+        tx_hash = transact_call(action, data)
 
         dumped = token_mint_schema.dump({"tx_hash": tx_hash})
         return jsonify(dumped)
 
 
-@tokens_blueprint.route("/rpc/token/allowance", methods=["PUT"])
-def contract_allowance():
-    """Update the allowance for a User Deposit Contract.
-
-    ---
-    parameters:
-      - name: client_id
-        in: query
-        required: true
-        schema:
-          type: string
-
-    post:
-      description": >
-        Set the allowance of a UserDeposit Contract at `contract_address`
-        for the given `target_address`
-      parameters:
-        - name: contract_address
-          in: query
-          required: true
-          schema:
-            type: string
-
-        - name: target_address
-          in: query
-          required: true
-          schema:
-            type: string
-
-        - name: gas_limit
-          in: query
-          required: true
-          schema:
-            type: number
-            format: float
-
-        - name: amount
-          in: query
-          required: true
-          schema:
-            type: number
-            format: float
-
-      responses:
-        200:
-          description: "Transaction hash of the mint request."
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/TokenMintSchema'}
-    """
-    with REDMetricsTracker():
-        data = token_mint_schema.validate_and_deserialize(request.get_json())
-
-        tx_hash = transact_call(data, CONTRACT_USER_DEPOSIT)
-
-        dumped = token_mint_schema.dump({"tx_hash": tx_hash})
-        return jsonify(dumped)
-
-
-def transact_call(data, contract):
-    transact_actions = {CONTRACT_USER_DEPOSIT: "approve", CONTRACT_CUSTOM_TOKEN: "mintFor"}
-
+def transact_call(key, data):
     rpc_client = data["client"]
     contract_manager = ContractManager(contracts_precompiled_path())
 
-    log.info("Minting tokens", contract=contract)
+    action, contract = TRANSACT_ACTIONS[key]
+
+    log.info("Fetching ABI..", contract=contract)
     token_abi = contract_manager.get_contract_abi(contract)
     token_proxy = rpc_client.new_contract_proxy(token_abi, data["contract_address"])
     log.debug("Transacting..", **data)
-    return token_proxy.transact(
-        transact_actions[contract], data["gas_limit"], data["amount"], data["target_address"]
-    )
+
+    args = data["amount"], data["target_address"]
+    if action == "deposit":
+        # The deposit function expects the address first, amount second.
+        args = (data["target_address"], data["amount"])
+
+    return token_proxy.transact(action, data["gas_limit"], *args)
