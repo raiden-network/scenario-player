@@ -1,5 +1,5 @@
 from flask_marshmallow import Schema
-from marshmallow.fields import Integer, Nested, Number, String
+from marshmallow.fields import Integer, Nested, String
 
 from scenario_player.services.common.schemas import BytesField
 from scenario_player.services.rpc.schemas.base import RPCCreateResourceSchema
@@ -67,7 +67,7 @@ class TokenMintSchema(RPCCreateResourceSchema):
     # Deserializer fields
     target_address = String(load_only=True, required=True)
     contract_address = String(load_only=True, required=True)
-    amount = Number(load_only=True, required=True)
+    amount = Integer(load_only=True, required=True)
     gas_limit = Integer(load_only=True, required=True)
 
     # Serializer fields

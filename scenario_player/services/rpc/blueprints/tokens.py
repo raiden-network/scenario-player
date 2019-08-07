@@ -160,14 +160,14 @@ def mint_contract():
           required: true
           schema:
             type: number
-            format: float
+            format: int
 
         - name: amount
           in: query
           required: true
           schema:
             type: number
-            format: float
+            format: int
 
       responses:
         200:
