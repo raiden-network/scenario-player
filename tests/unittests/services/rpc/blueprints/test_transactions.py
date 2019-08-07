@@ -16,23 +16,23 @@ class TestNewTransactionEndpoint:
     @pytest.mark.parametrize(
         "parameters, expected_status",
         argvalues=[
-            ({"value": 123.0, "to": "someaddress", "startgas": 2.0, "client_id": False}, "400"),
-            ({"value": 123.0, "to": "someaddress", "startgas": 2.0}, "400"),
-            ({"to": "someaddress", "startgas": 2.0, "client_id": "rpc-client-instance-id"}, "400"),
-            ({"value": 123.0, "startgas": 2.0, "client_id": "rpc-client-instance-id"}, "400"),
-            ({"value": 123.0, "to": "someaddress", "client_id": "rpc-client-instance-id"}, "400"),
+            ({"value": 123, "to": "someaddress", "startgas": 2, "client_id": False}, "400"),
+            ({"value": 123, "to": "someaddress", "startgas": 2}, "400"),
+            ({"to": "someaddress", "startgas": 2, "client_id": "rpc-client-instance-id"}, "400"),
+            ({"value": 123, "startgas": 2, "client_id": "rpc-client-instance-id"}, "400"),
+            ({"value": 123, "to": "someaddress", "client_id": "rpc-client-instance-id"}, "400"),
             (
                 {
                     "value": "wholesome",
                     "to": "someaddress",
-                    "startgas": 2.0,
+                    "startgas": 2,
                     "client_id": "rpc-client-instance-id",
                 },
                 "400",
             ),
             (
                 {
-                    "value": 123.0,
+                    "value": 123,
                     "to": "someaddress",
                     "startgas": "hello",
                     "client_id": "rpc-client-instance-id",
@@ -42,9 +42,9 @@ class TestNewTransactionEndpoint:
             ({"value": 123.0, "to": "someaddress", "startgas": "hello", "client_id": 100}, "400"),
             (
                 {
-                    "value": 123.0,
+                    "value": 123,
                     "to": "someaddress",
-                    "startgas": 2.0,
+                    "startgas": 2,
                     "client_id": "rpc-client-instance-id",
                 },
                 "200",
@@ -99,7 +99,7 @@ class TestNewTransactionEndpoint:
             # The client id is supposed to be valid - inject rpc client id fixture.
             parameters["client_id"] = rpc_client_id
 
-        resp = transaction_service_client.post(f"/rpc/transactions", data=parameters)
+        resp = transaction_service_client.post(f"/rpc/transactions", json=parameters)
 
         assert expected_status in resp.status
 
@@ -112,7 +112,7 @@ class TestNewTransactionEndpoint:
         deserialized_send_tx_request_parameters,
         rpc_client_id,
     ):
-        """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.validate_and_deserialize`
+        """The :meth:`scenario_player.services.rpc.blueprints.SendTransactionSchema.validate_and_deserialize`
         must be called when processing a request.
 
         Since the parameters are passed as a :class:`werkzeug.datastructures.ImmutableMultiDict`, which cannot
@@ -126,7 +126,7 @@ class TestNewTransactionEndpoint:
             }
         )
         transaction_service_client.post(
-            f"/rpc/transactions", data=default_send_tx_request_parameters
+            f"/rpc/transactions", json=default_send_tx_request_parameters
         )
 
         mock_schema.validate_and_deserialize.assert_called_once()
@@ -134,7 +134,7 @@ class TestNewTransactionEndpoint:
         params_as_multi_dict, *_ = args
         for key, value in params_as_multi_dict.items():
             assert key in default_send_tx_request_parameters
-            assert str(default_send_tx_request_parameters[key]) == value
+            assert default_send_tx_request_parameters[key] == value
 
     @patch("scenario_player.services.rpc.blueprints.transactions.transaction_send_schema")
     def test_new_transaction_calls_jsonify_of_its_schema(
@@ -146,7 +146,7 @@ class TestNewTransactionEndpoint:
         serialized_tx_hash,
         tx_hash,
     ):
-        """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.dump`
+        """The :meth:`scenario_player.services.rpc.blueprints.SendTransactionSchema.dump`
         must be called when processing a request and its result returned by the function.
         """
         mock_schema.configure_mock(
@@ -155,15 +155,14 @@ class TestNewTransactionEndpoint:
                 "jsonify.return_value": "ok",
             }
         )
-        expected_tx_hash = tx_hash
 
         r = transaction_service_client.post(
-            f"/rpc/transactions", data=default_send_tx_request_parameters
+            f"/rpc/transactions", json=default_send_tx_request_parameters
         )
         assert "200" in r.status
         mock_schema.jsonify.assert_called_once_with({"tx_hash": tx_hash})
 
-    @patch("scenario_player.services.rpc.blueprints.transactions.TransactionSendRequest")
+    @patch("scenario_player.services.rpc.blueprints.transactions.SendTransactionSchema")
     def test_new_transaction_calls_correct_rpc_client_function(
         self,
         mock_schema,
@@ -185,7 +184,7 @@ class TestNewTransactionEndpoint:
         )
 
         transaction_service_client.post(
-            f"/rpc/transactions", data=default_send_tx_request_parameters
+            f"/rpc/transactions", json=default_send_tx_request_parameters
         )
 
         mock_rpc_client.send_transaction.assert_called_once_with(**default_send_tx_func_parameters)

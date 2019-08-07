@@ -1,8 +1,8 @@
 import json
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
-from raiden_contracts.contract_manager import ContractManager
+from eth_utils.address import to_checksum_address
 from requests.exceptions import (
     ConnectionError,
     ConnectTimeout,
@@ -15,7 +15,7 @@ from requests.exceptions import (
     Timeout,
 )
 
-from raiden.network.rpc.client import AddressWithoutCode, JSONRPCClient
+from raiden.network.rpc.client import AddressWithoutCode
 from scenario_player.exceptions.config import (
     TokenFileError,
     TokenFileMissing,
@@ -24,7 +24,7 @@ from scenario_player.exceptions.config import (
 )
 from scenario_player.utils.configuration.spaas import SPaaSConfig
 from scenario_player.utils.configuration.token import TokenConfig
-from scenario_player.utils.token import Contract, Token, UserDepositContract
+from scenario_player.utils.token import Contract, Token
 
 token_import_path = "scenario_player.utils.token"
 token_config_import_path = "scenario_player.utils.configuration.token"
@@ -108,13 +108,13 @@ class TestContract:
     @patch(f"{token_import_path}.ServiceInterface.request")
     def test_mint_is_a_no_op_if_balance_is_sufficient(self, mock_request, contract_instance):
         contract_instance = self.setup_instance_with_balance(contract_instance, 100000)
-
         assert contract_instance.mint("the_address") is None
         assert mock_request.called is False
 
     @patch(f"{token_import_path}.ServiceInterface.post", side_effect=Sentinel)
     def test_mint_correctly_calculates_amount_to_mint(self, mock_request, contract_instance):
         contract_instance = self.setup_instance_with_balance(contract_instance, 100)
+        contract_instance._address = "0x12ae66cdc592e10b60f9097a7b0d3c59fce29876"
 
         expected_amount = contract_instance.config.token.max_funding - 100
 
@@ -123,13 +123,13 @@ class TestContract:
             "gas_limit": contract_instance.config.gas_limit,
             "amount": expected_amount,
             "target_address": "the_address",
-            "contract_address": "my_address",
+            "contract_address": to_checksum_address("0x12ae66cdc592e10b60f9097a7b0d3c59fce29876"),
         }
 
         with pytest.raises(Sentinel):
             contract_instance.mint("the_address")
 
-        mock_request.assert_called_once_with("spaas://rpc/token/mint", json=expected_params)
+        mock_request.assert_called_once_with("spaas://rpc/contract/mint", json=expected_params)
 
 
 @pytest.mark.dependency(name="TestClass")
@@ -441,7 +441,7 @@ class TestToken:
         assert token_instance.deployment_receipt == {"blockNumber": json_resp["deployment_block"]}
         assert token_instance.contract_data == json_resp["contract"]
 
-        mock_request.assert_called_once_with("spaas://rpc/token", json=expected_params)
+        mock_request.assert_called_once_with("spaas://rpc/contract", json=expected_params)
 
     @pytest.mark.parametrize("reuse_token", argvalues=[True, False])
     @patch(f"{token_import_path}.ServiceInterface.request")
