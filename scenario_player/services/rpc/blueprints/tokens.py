@@ -197,14 +197,35 @@ def transact_call(key, data):
 
     action, contract = TRANSACT_ACTIONS[key]
 
-    log.info("Fetching ABI..", contract=contract)
-    token_abi = contract_manager.get_contract_abi(contract)
-    token_proxy = rpc_client.new_contract_proxy(token_abi, data["contract_address"])
+    log.debug("Fetching ABI..", contract=contract)
+    contract_abi = contract_manager.get_contract_abi(contract)
+    log.debug(
+        "Fetching contract proxy",
+        contract=contract,
+        abi=contract_abi,
+        contract_address=data["contract_address"],
+    )
+    contract_proxy = rpc_client.new_contract_proxy(contract_abi, data["contract_address"])
+
+    if key == "allowance":
+        # The allowance is set on the UDC's Token contract - so fetch it here.
+        log.debug("Allowance must be set on UDC token contract, updating contract proxy..")
+        ud_token_address = contract_proxy.contract.functions.token().call()
+        # FIXME: We assume the UD token is a CustomToken (supporting the `mint()` function)
+        log.debug("Fetching abi of UDToken contract", contract=ud_token_address)
+        custom_token_abi = contract_manager.get_contract_abi(CONTRACT_CUSTOM_TOKEN)
+        log.debug(
+            "Fetching UDToken contract proxy",
+            abi=custom_token_abi,
+            contract_address=ud_token_address,
+        )
+        contract_proxy = rpc_client.new_contract_proxy(custom_token_abi, ud_token_address)
+
     log.debug("Transacting..", **data)
 
     args = data["amount"], data["target_address"]
-    if action == "deposit":
+    if action != "mintFor":
         # The deposit function expects the address first, amount second.
         args = (data["target_address"], data["amount"])
 
-    return token_proxy.transact(action, data["gas_limit"], *args)
+    return contract_proxy.transact(action, data["gas_limit"], *args)
