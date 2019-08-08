@@ -14,11 +14,10 @@ The following endpoints are supplied by this blueprint:
         Mint a number of tokens for a given address. `token_address` determines
         what token contract is used to do this.aa
 """
-import json
 
 import structlog
 from eth_utils.address import to_checksum_address
-from flask import Blueprint, Response, jsonify, make_response, request
+from flask import Blueprint, Response, jsonify, request
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
 
@@ -29,7 +28,7 @@ tokens_blueprint = Blueprint("tokens_blueprint", __name__)
 
 
 token_create_schema = TokenCreateSchema()
-token_mint_schema = ContractTransactSchema()
+token_transact_schema = ContractTransactSchema()
 
 #: Valid actions to pass when calling `POST /rpc/contract/<action>`.
 TRANSACT_ACTIONS = {
@@ -129,8 +128,8 @@ def deploy_token():
 
 
 @tokens_blueprint.route("/rpc/contract/<action>", methods=["POST"])
-def mint_contract(action):
-    """Mint new tokens at the given token contract for the given target address.
+def call_contract(action):
+    """Execute an action for the given token contract and the given target address.
 
     `action` may be one of :var:`.TRANSACT_ACTIONS` keys.
     ---
@@ -142,7 +141,8 @@ def mint_contract(action):
           type: string
 
     post:
-      description": "Mint a token at `contract_address` for the given `target_address`",
+      description": >
+        Execute an action for a contract at `contract_address` for the given `target_address`
       parameters:
         - name: contract_address
           in: query
@@ -172,7 +172,7 @@ def mint_contract(action):
 
       responses:
         200:
-          description: "Transaction hash of the contract trasnact request."
+          description: "Transaction hash of the contract transact request."
           content:
             application/json:
               schema: {$ref: '#/components/schemas/ContractTransactSchema'}
@@ -183,11 +183,11 @@ def mint_contract(action):
             return Response(
                 status=400, response=f"'action' must be one of {TRANSACT_ACTIONS.keys()}"
             )
-        data = token_mint_schema.validate_and_deserialize(request.get_json())
+        data = token_transact_schema.validate_and_deserialize(request.get_json())
 
         tx_hash = transact_call(action, data)
 
-        dumped = token_mint_schema.dump({"tx_hash": tx_hash})
+        dumped = token_transact_schema.dump({"tx_hash": tx_hash})
         return jsonify(dumped)
 
 
