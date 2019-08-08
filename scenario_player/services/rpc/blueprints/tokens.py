@@ -32,7 +32,7 @@ token_transact_schema = ContractTransactSchema()
 
 #: Valid actions to pass when calling `POST /rpc/contract/<action>`.
 TRANSACT_ACTIONS = {
-    "allowance": ("approve", CONTRACT_USER_DEPOSIT),
+    "allowance": ("approve", CONTRACT_CUSTOM_TOKEN),
     "mint": ("mintFor", CONTRACT_CUSTOM_TOKEN),
     "deposit": ("deposit", CONTRACT_USER_DEPOSIT),
 }
@@ -205,21 +205,8 @@ def transact_call(key, data):
         abi=contract_abi,
         contract_address=data["contract_address"],
     )
-    contract_proxy = rpc_client.new_contract_proxy(contract_abi, data["contract_address"])
 
-    if key == "allowance":
-        # The allowance is set on the UDC's Token contract - so fetch it here.
-        log.debug("Allowance must be set on UDC token contract, updating contract proxy..")
-        ud_token_address = contract_proxy.contract.functions.token().call()
-        # FIXME: We assume the UD token is a CustomToken (supporting the `mint()` function)
-        log.debug("Fetching abi of UDToken contract", contract=ud_token_address)
-        custom_token_abi = contract_manager.get_contract_abi(CONTRACT_CUSTOM_TOKEN)
-        log.debug(
-            "Fetching UDToken contract proxy",
-            abi=custom_token_abi,
-            contract_address=ud_token_address,
-        )
-        contract_proxy = rpc_client.new_contract_proxy(custom_token_abi, ud_token_address)
+    contract_proxy = rpc_client.new_contract_proxy(contract_abi, data["contract_address"])
 
     log.debug("Transacting..", **data)
 
