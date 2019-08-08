@@ -367,7 +367,7 @@ class UserDepositContract(Contract):
 
         log.debug("allowance update call required - insufficient allowance")
         allow_amount = (self.config.token.max_funding * 10 * node_count) - udt_allowance
-        params = {"amount": allow_amount, "target_address": self.address}
+        params = {"amount": allow_amount, "target_address": self.checksum_address}
         return self.transact("allowance", params)
 
     def deposit(self, target_address) -> Union[str, None]:
