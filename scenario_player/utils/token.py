@@ -61,7 +61,7 @@ class Contract:
         log.info(f"'{action}' call succeeded", tx_hash=tx_hash)
         return decode_hex(tx_hash)
 
-    def mint(self, target_address) -> Union[str, None]:
+    def mint(self, target_address, **kwargs) -> Union[str, None]:
         """Mint new tokens for the given `target_address`.
 
         The amount of tokens depends on the scenario yaml's settings, and defaults to
@@ -82,6 +82,7 @@ class Contract:
         mint_amount = self.config.token.max_funding - balance
         log.debug("Minting required - insufficient funds.")
         params = {"amount": mint_amount, "target_address": target_address}
+        params.update(kwargs)
         return self.transact("mint", params)
 
 
@@ -331,25 +332,33 @@ class UserDepositContract(Contract):
 
     def __init__(self, scenario_runner, contract_proxy, token_proxy):
         super(UserDepositContract, self).__init__(
-            scenario_runner, address=token_proxy.contract_address
+            scenario_runner, address=contract_proxy.contract_address
         )
         self.contract_proxy = contract_proxy
         self.token_proxy = token_proxy
         self.tx_hashes = set()
 
-    def init(self):
-        self.update_allowance()
+    @property
+    def ud_token_address(self):
+        return to_checksum_address(self.token_proxy.contract_address)
 
     @property
     def allowance(self):
+        """Return the currently configured allowance of the UDToken Contract."""
         return self.token_proxy.contract.functions.allowance(
             self._local_rpc_client.address, self.address
         ).call()
 
-    def update_allowance(self) -> Union[str, None]:
-        """Update the UDC allowance depending on the number of configured nodes.
+    def mint(self, target_address) -> Union[str, None]:
+        """The mint function isn't present on the UDC, pass the UDTC address instead."""
+        return super(UserDepositContract, self).mint(
+            target_address, contract_address=self.ud_token_address
+        )
 
-        If the UDC's allowance is sufficient, this is a no-op.
+    def update_allowance(self) -> Union[str, None]:
+        """Update the UD Token Contract allowance depending on the number of configured nodes.
+
+        If the UD Token Contract's allowance is sufficient, this is a no-op.
         """
         node_count = self.config.nodes.count
         udt_allowance = self.allowance
@@ -367,7 +376,11 @@ class UserDepositContract(Contract):
 
         log.debug("allowance update call required - insufficient allowance")
         allow_amount = (self.config.token.max_funding * 10 * node_count) - udt_allowance
-        params = {"amount": allow_amount, "target_address": self.checksum_address}
+        params = {
+            "amount": allow_amount,
+            "target_address": self.checksum_address,
+            "contract_address": self.ud_token_address,
+        }
         return self.transact("allowance", params)
 
     def deposit(self, target_address) -> Union[str, None]:

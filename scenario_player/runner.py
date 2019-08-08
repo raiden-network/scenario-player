@@ -315,15 +315,14 @@ class ScenarioRunner:
         self.udc = UserDepositContract(self, udc_ctr, ud_token_ctr)
 
         should_deposit_ud_token = udc_enabled and udc_settings.token["deposit"]
-
+        allowance_tx = self.udc.update_allowance()
+        if allowance_tx:
+            ud_token_tx.add(allowance_tx)
         if should_deposit_ud_token:
+
             tx = self.udc.mint(our_address)
             if tx:
                 ud_token_tx.add(tx)
-
-            allowance_tx = self.udc.update_allowance()
-            if allowance_tx:
-                ud_token_tx.add(allowance_tx)
 
         return ud_token_tx, udc_ctr, should_deposit_ud_token
 
