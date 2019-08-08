@@ -11,7 +11,6 @@ The following endpoints are supplied by this blueprint:
         form data.
 
 """
-from eth_utils import encode_hex
 from flask import Blueprint, request
 
 from scenario_player.services.common.metrics import REDMetricsTracker

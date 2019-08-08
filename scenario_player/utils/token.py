@@ -1,9 +1,9 @@
 import json
 import pathlib
-from typing import Dict, Tuple, Union
+from typing import Tuple, Union
 
 import structlog
-from eth_utils import decode_hex, encode_hex, to_checksum_address
+from eth_utils import decode_hex, to_checksum_address
 
 from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import AddressWithoutCode, check_address_has_code

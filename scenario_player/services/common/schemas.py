@@ -4,7 +4,6 @@ import flask
 from eth_utils import decode_hex, encode_hex
 from flask_marshmallow.schema import Schema
 from marshmallow.fields import String
-from werkzeug.datastructures import ImmutableMultiDict
 
 try:
     from marshmallow import MarshalResult, UnmarshalResult

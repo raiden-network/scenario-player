@@ -22,8 +22,6 @@ from raiden.utils.typing import TransactionHash
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
     API_URL_TOKENS,
-    DEFAULT_TOKEN_BALANCE_FUND,
-    DEFAULT_TOKEN_BALANCE_MIN,
     NODE_ACCOUNT_BALANCE_FUND,
     NODE_ACCOUNT_BALANCE_MIN,
     OWN_ACCOUNT_BALANCE_MIN,
@@ -33,12 +31,7 @@ from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
 from scenario_player.scenario import ScenarioYAML
 from scenario_player.services.rpc.utils import assign_rpc_instance_id
 from scenario_player.services.utils.interface import ServiceInterface
-from scenario_player.utils import (
-    TimeOutHTTPAdapter,
-    get_udc_and_token,
-    mint_token_if_balance_low,
-    wait_for_txs,
-)
+from scenario_player.utils import TimeOutHTTPAdapter, get_udc_and_token, wait_for_txs
 from scenario_player.utils.token import Token, UserDepositContract
 
 if TYPE_CHECKING:
