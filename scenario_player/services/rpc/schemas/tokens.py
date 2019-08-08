@@ -49,8 +49,8 @@ class TokenCreateSchema(RPCCreateResourceSchema):
     deployment_block = Integer(required=True, dump_only=True)
 
 
-class TokenMintSchema(RPCCreateResourceSchema):
-    """Validator for POST /rpc/token/mint requests.
+class ContractTransactSchema(RPCCreateResourceSchema):
+    """Validator for POST /rpc/contract/mint requests.
 
     Load-only parameters:
 

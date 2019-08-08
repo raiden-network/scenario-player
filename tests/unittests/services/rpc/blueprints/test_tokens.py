@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import flask
 import pytest
 
-from scenario_player.services.rpc.blueprints.tokens import tokens_blueprint
-from scenario_player.services.rpc.schemas.tokens import TokenCreateSchema, TokenMintSchema
+from scenario_player.services.rpc.blueprints.tokens import TRANSACT_ACTIONS, tokens_blueprint
+from scenario_player.services.rpc.schemas.tokens import ContractTransactSchema, TokenCreateSchema
 from scenario_player.services.rpc.utils import RPCClient, RPCRegistry
 
 rpc_blueprints_module_path = "scenario_player.services.rpc.blueprints"
@@ -98,7 +98,7 @@ class TestDeployTokenEndpoint:
     def test_endpoint_calls_validate_and_deserialize_of_its_schema(self, mock_schema, _, __):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
         with self.app.test_client() as c:
-            c.post("/rpc/token", json=self.request_params)
+            c.post("/rpc/contract", json=self.request_params)
         mock_schema.validate_and_deserialize.assert_called_once_with(self.request_params)
 
     def test_endpoint_returns_jsonified_data(self, mock_schema, _, __):
@@ -106,7 +106,7 @@ class TestDeployTokenEndpoint:
 
         mock_schema.dump.return_value = {"data": "ok"}
         with self.app.test_client() as c:
-            resp = c.post("/rpc/token", json=self.request_params)
+            resp = c.post("/rpc/contract", json=self.request_params)
             assert mock_schema.dump.called
             assert resp.data == b'{"data":"ok"}\n'
 
@@ -127,7 +127,7 @@ class TestDeployTokenEndpoint:
         mock_schema.dump.side_effect = return_input
 
         with self.app.test_client() as c:
-            resp = c.post("/rpc/token", json=self.request_params)
+            resp = c.post("/rpc/contract", json=self.request_params)
             assert resp.status == "200 OK", resp.data
             assert json.loads(resp.data) == expected
 
@@ -141,7 +141,7 @@ class TestDeployTokenEndpoint:
 
         with self.app.test_client() as c:
             print(self.request_params)
-            resp = c.post("/rpc/token", json=self.request_params)
+            resp = c.post("/rpc/contract", json=self.request_params)
             assert resp.status == "200 OK"
 
         expected_args = self.deserialized_params["constructor_args"]
@@ -158,19 +158,16 @@ class TestDeployTokenEndpoint:
         )
 
 
-@pytest.mark.parametrize(
-    "method_endpoint_tuple",
-    argvalues=[("post", "/rpc/token/mint"), ("put", "/rpc/token/allowance")],
-)
+@pytest.mark.parametrize("action", argvalues=["mint", "allowance", "deposit"])
 @pytest.mark.dependency(name="tokens_blueprint_loaded")
-@patch(f"{rpc_blueprints_module_path}.tokens.token_mint_schema", spec=TokenMintSchema)
+@patch(f"{rpc_blueprints_module_path}.tokens.token_transact_schema", spec=ContractTransactSchema)
 @patch(
     f"{rpc_blueprints_module_path}.tokens.ContractManager.get_contract_abi",
     return_value="token_abi",
 )
 class TestTokenEndpoint:
 
-    ENDPOINT_TO_ACTION = {"/rpc/token/mint": "mintFor", "/rpc/token/allowance": "approve"}
+    ENDPOINT_TO_ACTION = {"/rpc/contract/mint": "mintFor", "/rpc/contract/allowance": "approve"}
 
     @pytest.fixture(autouse=True)
     def setup_mint_token_tests(
@@ -186,22 +183,22 @@ class TestTokenEndpoint:
         ].new_contract_proxy.return_value = self.mock_contract_proxy
 
     def test_the_endpoint_calls_validate_and_deserialize_of_its_schema(
-        self, _, mock_schema, method_endpoint_tuple
+        self, _, mock_schema, action
     ):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
-        method, endpoint = method_endpoint_tuple
         with self.app.test_client() as c:
-            getattr(c, method)(endpoint, json=self.request_params)
+            c.post(f"/rpc/contract/{action}", json=self.request_params)
+
         mock_schema.validate_and_deserialize.assert_called_once_with(self.request_params)
 
     def test_endpoint_fetches_proxy_using_the_contract_address_provided(
-        self, _, mock_schema, method_endpoint_tuple
+        self, _, mock_schema, action
     ):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
-        method, endpoint = method_endpoint_tuple
 
         with self.app.test_client() as c:
-            getattr(c, method)(endpoint, json=self.request_params)
+            c.post(f"/rpc/contract/{action}", json=self.request_params)
+
         self.app.config["rpc-client"].dict[
             self.client_id
         ].new_contract_proxy.assert_called_once_with(
@@ -209,28 +206,29 @@ class TestTokenEndpoint:
         )
 
     def test_endpoint_calls_proxy_contract_transact_with_passed_request_parameters(
-        self, _, mock_schema, method_endpoint_tuple
+        self, _, mock_schema, action
     ):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
 
-        method, endpoint = method_endpoint_tuple
-        expected_action = self.ENDPOINT_TO_ACTION[endpoint]
+        expected_action, contract = TRANSACT_ACTIONS[action]
 
         with self.app.test_client() as c:
-            getattr(c, method)(endpoint, json=self.request_params)
+            c.post(f"/rpc/contract/{action}", json=self.request_params)
 
         gas_limit = self.deserialized_params["gas_limit"]
         amount = self.deserialized_params["amount"]
         target = self.deserialized_params["target_address"]
+        args = target, amount
+        if action == "mint":
+            args = amount, target
         self.mock_contract_proxy.transact.assert_called_once_with(
-            expected_action, gas_limit, amount, target
+            expected_action, gas_limit, *args
         )
 
-    def test_endpoint_returns_jsonified_data(self, _, mock_schema, method_endpoint_tuple):
+    def test_endpoint_returns_jsonified_data(self, _, mock_schema, action):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
         mock_schema.dump.side_effect = lambda x: x
 
-        method, endpoint = method_endpoint_tuple
         with self.app.test_client() as c:
-            resp = getattr(c, method)(endpoint, json=self.request_params)
+            resp = c.post(f"/rpc/contract/{action}", json=self.request_params)
             assert resp.data == b'{"tx_hash":"tx_hash"}\n'

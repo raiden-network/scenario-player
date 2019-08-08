@@ -62,12 +62,7 @@ def deserialized_create_rpc_instance_request_parameters(
 @pytest.fixture
 def default_send_tx_request_parameters(rpc_client_id, serialized_address):
     """Default required request parameters for a POST request to /transactions."""
-    parameters = {
-        "client_id": rpc_client_id,
-        "to": serialized_address,
-        "value": 123.0,
-        "startgas": 2.0,
-    }
+    parameters = {"client_id": rpc_client_id, "to": "the_address", "value": 123, "startgas": 2}
     return parameters
 
 
@@ -76,7 +71,6 @@ def deserialized_send_tx_request_parameters(
     default_send_tx_request_parameters, rpc_service_app, deserialized_address
 ):
     deserialized = dict(default_send_tx_request_parameters)
-    deserialized["to"] = deserialized_address
     deserialized["client"] = rpc_service_app.config["rpc-client"][
         default_send_tx_request_parameters["client_id"]
     ]

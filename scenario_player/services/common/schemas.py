@@ -1,13 +1,10 @@
 import base64
 
 import flask
+from eth_utils import decode_hex, encode_hex
 from flask_marshmallow.schema import Schema
 from marshmallow.fields import String
-from werkzeug.datastructures import ImmutableMultiDict
 
-# FIXME: This is a compatibility hack for new versions of marshmallow and
-#  our currently pinned 2.x verison. It automatically returns the data
-#  attribute by default, if load returns an UnmarshalResult object.
 try:
     from marshmallow import MarshalResult, UnmarshalResult
 except ImportError:
@@ -34,42 +31,12 @@ class SPSchema(Schema):
             flask.abort(400, str(errors))
         return self.load(data_obj)
 
-    def load(self, data: ImmutableMultiDict, data_only=True, **kwargs):
-        # FIXME: This is a compatibility hack for new versions of marshmallow and
-        #  our currently pinned 2.x verison. It automatically returns the data
-        #  attribute by default, if load returns an UnmarshalResult object.
-        result = super(SPSchema, self).load(data, **kwargs)
-
-        if not UnmarshalResult or not isinstance(result, UnmarshalResult):
-            # marshmallow-3.x no longer returns namedtuples, so we can safely
-            # return the loaded object.
-            return result
-        elif data_only:
-            # Return the data attribute only.
-            # `.data` is a regular :class:`dict` instance.
-            return result.data
-        return result
-
-    def dumps(self, data, data_only=True, **kwargs):
-        # FIXME: This is a compatibility hack for new versions of marshmallow and
-        #  our currently pinned 2.x verison. It automatically returns the data
-        #  attribute by default, if load returns an UnmarshalResult object.
-        result = super(SPSchema, self).dumps(data, **kwargs)
-
-        if not MarshalResult or not isinstance(result, MarshalResult):
-            # marshmallow-3.x no longer returns namedtuples, so we can safely
-            # return the dumped object.
-            return result
-        elif data_only:
-            return result.data
-        return result
-
 
 class BytesField(String):
     """A field for (de)serializing :class:`bytes` from and to :class:`str` dict values."""
 
     default_error_messages = {
-        "not_b64": "Must be a base64 encoded string!",
+        "not_hex": "Must be a hex encoded string!",
         "not_bytes": "Must be decodable to bytes!",
         "empty": "Must not be empty!",
     }
@@ -95,17 +62,14 @@ class BytesField(String):
 
         deserialized_string = super(BytesField, self)._deserialize(value, attr, data, **kwargs)
 
-        to_bytes = deserialized_string.encode("ascii")
         try:
-            return base64.decodebytes(to_bytes)
+            return decode_hex(deserialized_string)
         except base64.binascii.Error:
-            self.fail("not_b64")
+            self.fail("not_hex")
 
-    def _serialize(self, value: bytes, attr, obj) -> str:
+    def _serialize(self, value: bytes, attr, obj, **kwargs) -> str:
         """Prepare :class:`bytes` object for JSON-encoding.
 
-        This decodes the :class:`bytes` object using base64.
+        This decodes the :class:`bytes` object using :func:`eth_utils.encode_hex`.
         """
-
-        encoded = base64.encodebytes(value)
-        return encoded.decode("ascii")
+        return super(BytesField, self)._serialize(encode_hex(value), attr, obj, **kwargs)

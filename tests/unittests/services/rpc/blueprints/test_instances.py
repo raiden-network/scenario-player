@@ -17,7 +17,7 @@ class TestCreateRPCInstanceEndpoint:
         default_create_rpc_instance_request_parameters,
         deserialized_create_rpc_instance_request_parameters,
     ):
-        """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.validate_and_deserialize`
+        """The :meth:`scenario_player.services.rpc.blueprints.SendTransactionSchema.validate_and_deserialize`
         must be called when processing a request.
 
         Since the parameters are passed as a :class:`werkzeug.datastructures.ImmutableMultiDict`, which cannot
@@ -52,7 +52,7 @@ class TestCreateRPCInstanceEndpoint:
         default_create_rpc_instance_request_parameters,
         rpc_client_id,
     ):
-        """The :meth:`scenario_player.services.rpc.blueprints.TransactionSendRequest.dump`
+        """The :meth:`scenario_player.services.rpc.blueprints.SendTransactionSchema.dump`
         must be called when processing a request and its result returned by the function.
         """
         mock_schema.configure_mock(

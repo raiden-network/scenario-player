@@ -50,8 +50,8 @@ Deploying a Token will looks like this::
 
 Minting tokens and setting the allowance for an UDC looks like this::
 
-    POST /rpc/token/mint
-    POST /rpc/token/allowance
+    POST /rpc/contract/mint
+    POST /rpc/contract/allowance
 
         {
             "client_id": <str>,

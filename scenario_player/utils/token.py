@@ -1,9 +1,9 @@
 import json
 import pathlib
-from typing import Dict, Tuple, Union
+from typing import Tuple, Union
 
 import structlog
-from eth_utils import to_checksum_address
+from eth_utils import decode_hex, to_checksum_address
 
 from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import AddressWithoutCode, check_address_has_code
@@ -44,7 +44,24 @@ class Contract:
         """Checksum'd address of the deployed contract."""
         return to_checksum_address(self.address)
 
-    def mint(self, target_address):
+    def transact(self, action: str, parameters: dict) -> str:
+        """Send a transact request to `/rpc/contract/<action>` and return the resulting tx hash."""
+        payload = {
+            "client_id": self.client_id,
+            "gas_limit": self.config.gas_limit,
+            "contract_address": self.checksum_address,
+        }
+        payload.update(parameters)
+
+        log.info(f"Requesting '{action}' call", **payload)
+        resp = self.interface.post(f"spaas://rpc/contract/{action}", json=payload)
+        resp.raise_for_status()
+        resp_data = resp.json()
+        tx_hash = resp_data["tx_hash"]
+        log.info(f"'{action}' call succeeded", tx_hash=tx_hash)
+        return decode_hex(tx_hash)
+
+    def mint(self, target_address, **kwargs) -> Union[str, None]:
         """Mint new tokens for the given `target_address`.
 
         The amount of tokens depends on the scenario yaml's settings, and defaults to
@@ -52,18 +69,21 @@ class Contract:
         if those settings are absent.
         """
         balance = self.balance
-        if balance < self.config.token.min_balance:
-            mint_amount = self.config.token.max_funding - balance
-            params = {
-                "client_id": self.client_id,
-                "gas_limit": self.config.gas_limit,
-                "amount": mint_amount,
-                "contract_address": self.address,
-                "target_address": target_address,
-            }
-            resp = self.interface.post("spaas://rpc/token/mint", json=params)
-            resp.raise_for_status()
-            return resp.json()
+        required_balance = self.config.token.min_balance
+        log.debug(
+            "Checking necessity of mint request",
+            required_balance=required_balance,
+            actual_balance=balance,
+        )
+        if not balance < required_balance:
+            log.debug("Mint call not required - sufficient funds")
+            return
+
+        mint_amount = self.config.token.max_funding - balance
+        log.debug("Minting required - insufficient funds.")
+        params = {"amount": mint_amount, "target_address": target_address}
+        params.update(kwargs)
+        return self.transact("mint", params)
 
 
 class Token(Contract):
@@ -143,7 +163,7 @@ class Token(Contract):
         else:
             raise TokenNotDeployed
 
-    def load_from_file(self) -> Dict[str, Union[str, int]]:
+    def load_from_file(self) -> dict:
         """Load token configuration from disk.
 
         Stored information consists of:
@@ -268,7 +288,7 @@ class Token(Contract):
         log.debug("Deploying token", name=self.name, symbol=self.symbol, decimals=self.decimals)
 
         resp = self.interface.post(
-            "spaas://rpc/token",
+            "spaas://rpc/contract",
             json={
                 "client_id": self.client_id,
                 "constructor_args": {
@@ -318,29 +338,72 @@ class UserDepositContract(Contract):
         self.token_proxy = token_proxy
         self.tx_hashes = set()
 
-    def init(self):
-        self.update_allowance()
+    @property
+    def ud_token_address(self):
+        return to_checksum_address(self.token_proxy.contract_address)
 
     @property
     def allowance(self):
+        """Return the currently configured allowance of the UDToken Contract."""
         return self.token_proxy.contract.functions.allowance(
             self._local_rpc_client.address, self.address
         ).call()
 
-    def update_allowance(self):
+    def mint(self, target_address) -> Union[str, None]:
+        """The mint function isn't present on the UDC, pass the UDTC address instead."""
+        return super(UserDepositContract, self).mint(
+            target_address, contract_address=self.ud_token_address
+        )
+
+    def update_allowance(self) -> Union[str, None]:
+        """Update the UD Token Contract allowance depending on the number of configured nodes.
+
+        If the UD Token Contract's allowance is sufficient, this is a no-op.
+        """
         node_count = self.config.nodes.count
         udt_allowance = self.allowance
+        required_allowance = self.config.token.min_balance * node_count
 
-        if udt_allowance < self.config.token.min_balance * node_count:
-            allow_amount = (self.config.token.max_funding * 10 * node_count) - udt_allowance
-            log.debug("Updating UD token allowance", allowance=allow_amount)
-            params = {
-                "client_id": self.client_id,
-                "constructor_args": {
-                    "gas_limit": self.gas_limit,
-                    "udc_address": self.address,
-                    "allowance_amount": allow_amount,
-                },
-            }
-            resp = self.interface.put(f"spaas://rpc/token/allowance", json=params)
-            self.tx_hashes.add(resp.json()["tx_hash"])
+        log.debug(
+            "Checking necessity of deposit request",
+            required_balance=required_allowance,
+            actual_balance=udt_allowance,
+        )
+
+        if not udt_allowance < required_allowance:
+            log.debug("allowance update call not required - sufficient allowance")
+            return
+
+        log.debug("allowance update call required - insufficient allowance")
+        allow_amount = (self.config.token.max_funding * 10 * node_count) - udt_allowance
+        params = {
+            "amount": allow_amount,
+            "target_address": self.checksum_address,
+            "contract_address": self.ud_token_address,
+        }
+        return self.transact("allowance", params)
+
+    def deposit(self, target_address) -> Union[str, None]:
+        """Make a deposit at the given `target_address`.
+
+        The amount of tokens depends on the scenario yaml's settings.
+
+        If the target address has a sufficient deposit, this is a no-op.
+
+        TODO: Allow setting max funding parameter, similar to the token `funding_min` setting.
+        """
+        balance = self.contract_proxy.contract.functions.effectiveBalance(target_address).call()
+        min_deposit = self.config.token.min_balance // 2
+        log.debug(
+            "Checking necessity of deposit request",
+            required_balance=min_deposit,
+            actual_balance=balance,
+        )
+        if not balance < min_deposit:
+            log.debug("deposit call not required - sufficient funds")
+            return
+
+        log.debug("deposit call required - insufficient funds")
+        deposit_amount = min_deposit - balance
+        params = {"amount": deposit_amount, "target_address": target_address}
+        return self.transact("deposit", params)

@@ -22,8 +22,6 @@ from raiden.utils.typing import TransactionHash
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
     API_URL_TOKENS,
-    DEFAULT_TOKEN_BALANCE_FUND,
-    DEFAULT_TOKEN_BALANCE_MIN,
     NODE_ACCOUNT_BALANCE_FUND,
     NODE_ACCOUNT_BALANCE_MIN,
     OWN_ACCOUNT_BALANCE_MIN,
@@ -33,13 +31,8 @@ from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
 from scenario_player.scenario import ScenarioYAML
 from scenario_player.services.rpc.utils import assign_rpc_instance_id
 from scenario_player.services.utils.interface import ServiceInterface
-from scenario_player.utils import (
-    TimeOutHTTPAdapter,
-    get_udc_and_token,
-    mint_token_if_balance_low,
-    wait_for_txs,
-)
-from scenario_player.utils.token import Token
+from scenario_player.utils import TimeOutHTTPAdapter, get_udc_and_token, wait_for_txs
+from scenario_player.utils.token import Token, UserDepositContract
 
 if TYPE_CHECKING:
     from scenario_player.tasks.base import Task, TaskState
@@ -116,6 +109,7 @@ class ScenarioRunner:
         assign_rpc_instance_id(self, chain_urls[0], account.privkey, self.yaml.settings.gas_price)
 
         self.token = Token(self, data_path)
+        self.udc = None
 
         self.token_network_address = None
 
@@ -286,15 +280,10 @@ class ScenarioRunner:
 
             if not should_deposit_ud_token:
                 continue
-            ud_deposit_balance = udc_ctr.contract.functions.effectiveBalance(address).call()
-            if ud_deposit_balance < DEFAULT_TOKEN_BALANCE_MIN // 2:
-                deposit_amount = (DEFAULT_TOKEN_BALANCE_FUND // 2) - ud_deposit_balance
-                log.debug("Depositing into UDC", address=address, amount=deposit_amount)
-                mint_tx.add(
-                    udc_ctr.transact(
-                        "deposit", gas_limit, address, DEFAULT_TOKEN_BALANCE_FUND // 2
-                    )
-                )
+            deposit_tx = self.udc.deposit(address)
+            if deposit_tx:
+                mint_tx.add(deposit_tx)
+
         return mint_tx
 
     def _initialize_udc(
@@ -316,32 +305,18 @@ class ScenarioRunner:
 
         log.info("UDC enabled", contract_address=udc_address, token_address=ud_token_address)
 
-        should_deposit_ud_token = udc_enabled and udc_settings.token["deposit"]
+        self.udc = UserDepositContract(self, udc_ctr, ud_token_ctr)
 
+        should_deposit_ud_token = udc_enabled and udc_settings.token["deposit"]
+        allowance_tx = self.udc.update_allowance()
+        if allowance_tx:
+            ud_token_tx.add(allowance_tx)
         if should_deposit_ud_token:
-            tx = mint_token_if_balance_low(
-                token_contract=ud_token_ctr,
-                target_address=our_address,
-                min_balance=DEFAULT_TOKEN_BALANCE_FUND * node_count,
-                fund_amount=DEFAULT_TOKEN_BALANCE_FUND * 10 * node_count,
-                gas_limit=gas_limit,
-                mint_msg="Minting UD tokens",
-                no_action_msg="UD token balance sufficient",
-            )
+
+            tx = self.udc.mint(our_address)
             if tx:
                 ud_token_tx.add(tx)
 
-            udt_allowance = ud_token_ctr.contract.functions.allowance(
-                our_address, udc_address
-            ).call()
-            if udt_allowance < DEFAULT_TOKEN_BALANCE_FUND * node_count:
-                allow_amount = (DEFAULT_TOKEN_BALANCE_FUND * 10 * node_count) - udt_allowance
-                log.debug("Updating UD token allowance", allowance=allow_amount)
-                ud_token_tx.add(
-                    ud_token_ctr.transact("approve", gas_limit, udc_address, allow_amount)
-                )
-            else:
-                log.debug("UD token allowance sufficient", allowance=udt_allowance)
         return ud_token_tx, udc_ctr, should_deposit_ud_token
 
     def _initialize_nodes(
@@ -360,12 +335,18 @@ class ScenarioRunner:
         }
         if low_balances:
             log.info("Funding nodes", nodes=low_balances.keys())
-            fund_tx = {
-                self.client.send_transaction(
-                    to=address, startgas=21_000, value=NODE_ACCOUNT_BALANCE_FUND - balance
-                )
-                for address, balance in low_balances.items()
-            }
+            fund_tx = set()
+            for address, balance in low_balances.items():
+                params = {
+                    "client_id": self.yaml.spaas.rpc.client_id,
+                    "to": address,
+                    "value": NODE_ACCOUNT_BALANCE_FUND - balance,
+                    "startgas": 21_000,
+                }
+                resp = self.service_session.post("spaas://rpc/transactions", json=params)
+                tx_hash = resp.json()["tx_hash"]
+                fund_tx.add(tx_hash)
+
         node_starter = self.node_controller.start(wait=False)
 
         return fund_tx, node_starter, node_addresses, node_count

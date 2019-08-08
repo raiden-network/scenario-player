@@ -5,7 +5,7 @@ as tracking one or more transactions by their hashes.
 
 The following endpoints are supplied by this blueprint:
 
-    * [POST, GET] /transactions
+    * [POST] /transactions
         Request the status of one or more transactions using their hashes, or
         create a new transaction. The parameters for the latter must be supplied as
         form data.
@@ -14,12 +14,12 @@ The following endpoints are supplied by this blueprint:
 from flask import Blueprint, request
 
 from scenario_player.services.common.metrics import REDMetricsTracker
-from scenario_player.services.rpc.schemas.transactions import TransactionSendRequest
+from scenario_player.services.rpc.schemas.transactions import SendTransactionSchema
 
 transactions_blueprint = Blueprint("transactions_view", __name__)
 
 
-transaction_send_schema = TransactionSendRequest()
+transaction_send_schema = SendTransactionSchema()
 
 
 @transactions_blueprint.route("/rpc/transactions", methods=["POST"])
@@ -66,7 +66,7 @@ def transactions_route():
           description: "Address and deployment block of the deployed contract."
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/TransactionSendRequest'}
+              schema: {$ref: '#/components/schemas/SendTransactionSchema'}
     """
     handlers = {"POST": new_transaction}
     with REDMetricsTracker():
@@ -74,7 +74,7 @@ def transactions_route():
 
 
 def new_transaction():
-    data = transaction_send_schema.validate_and_deserialize(request.form)
+    data = transaction_send_schema.validate_and_deserialize(request.get_json())
     rpc_client, _ = data.pop("client"), data.pop("client_id")
 
     result = rpc_client.send_transaction(**data)
