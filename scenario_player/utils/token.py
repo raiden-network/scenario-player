@@ -331,7 +331,7 @@ class UserDepositContract(Contract):
 
     def __init__(self, scenario_runner, contract_proxy, token_proxy):
         super(UserDepositContract, self).__init__(
-            scenario_runner, address=contract_proxy.contract_address
+            scenario_runner, address=token_proxy.contract_address
         )
         self.contract_proxy = contract_proxy
         self.token_proxy = token_proxy
