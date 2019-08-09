@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import tarfile
 import traceback
@@ -162,6 +163,13 @@ def main(ctx, chains, data_path):
     default=sys.stdout.isatty(),
     help="En-/disable console UI. [default: auto-detect]",
 )
+@click.option(
+    "--spaas-no-teardown",
+    "no_spaas_teardown",
+    default=False,
+    help="Do NOT tear down the spaas stack after scenario execution completes. "
+    "Allows runnign scenarios concurrently. [Default: False]",
+)
 @click.pass_context
 def run(
     ctx,
@@ -173,6 +181,7 @@ def run(
     notify_tasks,
     enable_ui,
     password_file,
+    no_spaas_teardown,
 ):
     scenario_file = Path(scenario_file.name).absolute()
     data_path = ctx.obj["data_path"]
@@ -203,10 +212,9 @@ def run(
     # Dynamically import valid Task classes from sceanrio_player.tasks package.
     collect_tasks(tasks)
 
-    # Start our Services
-    service_process = ServiceProcess()
-
-    service_process.start()
+    # Start the SPaaS Service stack.
+    # This is a no-op if it's already running.
+    subprocess.run("spaas-stack start")
 
     # Run the scenario using the configurations passed.
     try:
@@ -268,14 +276,14 @@ def run(
                 log.warning("Press q to exit")
                 while not ui_greenlet.dead:
                     gevent.sleep(1)
-            service_process.stop()
-        except ServiceProcessException:
-            service_process.kill()
+
         finally:
             runner.node_controller.stop()
             if ui_greenlet is not None and not ui_greenlet.dead:
                 ui_greenlet.kill(ExitMainLoop)
                 ui_greenlet.join()
+            if not no_spaas_teardown:
+                subprocess.run("spaas-stack stop")
 
 
 @main.command(name="reclaim-eth")

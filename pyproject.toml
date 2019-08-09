@@ -88,6 +88,8 @@ common-service = "scenario_player.services.common.blueprints"
 [tool.flit.scripts]
 # CLI commands installed along with out package.
 scenario_player = "scenario_player.__main__:main"
+spaas-rpc = "scenario_player.services.rpc.app:service_daemon"
+spaas-stack = "scenario_player.services.common.app:service_daemon"
 
 #######################
 # ISORT CONFIGURATION #
