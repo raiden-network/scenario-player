@@ -29,7 +29,7 @@ from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.runner import ScenarioRunner
 from scenario_player.services.common.app import ServiceProcess
 from scenario_player.tasks.base import collect_tasks
-from scenario_player.ui import ScenarioUI, enable_gui_formatting
+from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import (
     ChainConfigType,
     DummyStream,
@@ -153,7 +153,7 @@ def run(
 
     # If the output is a terminal, beautify our output.
     if enable_ui:
-        enable_gui_formatting()
+        log_buffer = attach_urwid_logbuffer()
 
     # Dynamically import valid Task classes from sceanrio_player.tasks package.
     collect_tasks(tasks)
