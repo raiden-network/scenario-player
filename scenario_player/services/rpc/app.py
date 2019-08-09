@@ -4,7 +4,6 @@ TODO: Actually make use of the `--log-service` argument and configure
       logging accordingly, if given.
 """
 import logging
-import pathlib
 
 import flask
 import structlog
@@ -28,7 +27,7 @@ def rpc_app():
     """Create a :mod:`flask` app using only the RPC blueprints."""
     from scenario_player import __version__
 
-    log = logging.getLogger()
+    log = structlog.getLogger()
     NAME = "SPaaS-RPC-Service"
 
     log.info("Creating RPC Flask App", version=__version__, name=NAME)
