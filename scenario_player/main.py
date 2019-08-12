@@ -26,6 +26,7 @@ from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.utils.cli import EnumChoiceType
 from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.runner import ScenarioRunner
 from scenario_player.services.common.app import ServiceProcess
@@ -158,7 +159,11 @@ def run(
         password = open(password_file, "r").read().strip()
     if password == password_file is None:
         password = getpass(prompt="Please enter your password: ", stream=None)
-    account = load_account_obj(keystore_file, password)
+
+    try:
+        account = load_account_obj(keystore_file, password)
+    except ValueError:
+        raise WrongPassword
 
     notify_tasks_callable = None
     if notify_tasks is TaskNotifyType.ROCKETCHAT:
