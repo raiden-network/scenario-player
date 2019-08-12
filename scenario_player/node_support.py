@@ -143,7 +143,8 @@ class RaidenReleaseKeeper:
             return release_file_path
 
         url = RAIDEN_RELEASES_URL + release_file_name
-        with requests.get(url, stream=True) as resp, release_file_path.open("wb") as release_file:
+        release_file_path.parent.mkdir(exist_ok=True, parents=True)
+        with requests.get(url, stream=True) as resp, release_file_path.open("wb+") as release_file:
             log.debug("Downloading Raiden release", release_file_name=release_file_name)
             if not 199 < resp.status_code < 300:
                 raise ValueError(
