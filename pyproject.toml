@@ -20,9 +20,12 @@ requires-python = ">3.6"
 requires = [
     'click',
     'eth-utils',
-    'flasgger',
     'flask',
+    'flask_marshmallow',
     'gevent',
+    'marshmallow>=3.0.0rc0',
+    'pluggy',
+    'prometheus_client',
     'pyyaml',
     'requests',
     'redis',
@@ -50,14 +53,22 @@ classifiers = [
 ]
 keywords = "raiden, raiden-network"
 
-[tools.flit.metadata.requires-extra]
-# Extended dependencies required for development and testing. Flit installs these automatically.
-test = ["pytest", "tox"]
+[tool.flit.metadata.requires-extra]
+# Extended dependencies required for development and testing. Flit installs
+# these automatically.
+test = ["pytest==4.5.0", "tox"]
 dev = [
-  "black",
-  "flake8",
-  "isort",
-  "mypy",
+    "black==19.3b0",
+    "flake8-bugbear==18.8.0",
+    "flake8-tuple==0.2.13",
+    "flake8==3.7.5",
+    "isort==4.3.16",
+    "pytest==4.5.0",
+    "pytest-cov",
+    "pytest-dependency==0.4.0",
+    "tox",
+    "coverage",
+    "codecov",
 ]
 
 [tool.flit.metadata.urls]
@@ -67,26 +78,35 @@ GitHub = "https://github.com/raiden-network/scenario-player"
 "Raiden Homepage" = "https://raiden.network"
 "Raiden Developer Portal" = "https://dev.raiden.network"
 
+[tool.flit.entrypoints."scenario_player"]
+transactions-service = "scenario_player.services.rpc.blueprints"
+common-service = "scenario_player.services.common.blueprints"
+
 [tool.flit.scripts]
 # CLI commands installed along with out package.
 scenario_player = "scenario_player.__main__:main"
 
 
 #######################
-# TOOL CONFIGURATIONS #
+# ISORT CONFIGURATION #
 #######################
 
 [tool.isort]
 line_length = 99
 known_future_library = "future"
-known_first_party = "scenario_player"
+known_first_party = "scenario_player, raiden"
 default_section = "THIRDPARTY"
-combine_as_imports = 1
+combine_as_imports = true
 # black compatibility
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
+
+
+#######################
+# BLACK CONFIGURATION #
+#######################
 
 [tool.black]
 line-length = 99

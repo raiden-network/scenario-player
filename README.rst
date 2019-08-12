@@ -1,3 +1,6 @@
+.. image:: https://codecov.io/gh/raiden-network/scenario-player/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/raiden-network/scenario-player
+
 Raiden Scenario Player
 ======================
 The Raiden Scneario Player is an integration testing tool written in Python 3. It allows testing of various test scenarios, and is
@@ -14,15 +17,15 @@ Using  ``git`` & ``pip``::
     # Clone the scenario player repo, and install on the Raiden dev version.
     git clone http://github.com/raiden-network/scenario-player
     cd scenario-player
-    pip install .
+    pip install ".[dev]"
 
 Usage
 -----
 
 Using a ``pip`` installation::
 
-    $ scenario-player --help
-    Usage: scenario-player [OPTIONS] COMMAND [ARGS]...
+    $ scenario_player --help
+    Usage: scenario_player [OPTIONS] COMMAND [ARGS]...
 
     Options:
       --data-path DIRECTORY           [default: $HOME/.raiden/scenario-player]
@@ -38,13 +41,14 @@ Using a ``pip`` installation::
 
 Running a scenario::
 
-    $ scenario-player --chain=goerli:http:geth.goerli.ethnodes.brainbot.com:8545 \
+    $ scenario-player --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
+
         run --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW} \
         /path/to/scenario.yaml
 
 Reclaiming spent test ether::
 
-    $ scenario-player --chain=goerli:http:geth.goerli.ethnodes.brainbot.com:8545 \
+    $ scenario-player --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
         reclaim-eth --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW}
 
 Scenario Examples

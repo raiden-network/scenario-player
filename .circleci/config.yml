@@ -1,38 +1,330 @@
-version: 2
-jobs:
-  build:
+version: 2.1
+
+################################################################################
+#                                                                              #
+# YAML Aliases for our Circle-CI configuration.                                #
+#                                                                              #
+################################################################################
+
+# Define the cache key to save and restore our dependencies.
+python_deps_cache_key: &python_deps_cache_key
+  key: python-deps-{{ checksum "pyproject.toml" }}
+
+# Short-cut to define a main-branches only filter.
+master_dev_release_only: &master_dev_release_only
+  filters:
+    branches:
+      only:
+        - master
+        - dev
+        - release
+
+# Short-cut to define a tags-only filter.
+tags_only: &tags_only
+  filters:
+    branches:
+      ignore: /.*/
+    tags:
+      only: /^\d+\.\d+.*/
+
+# Short-cut to define a PR-branches only filter.
+PR_branches_only: &PR_branches_only
+  filters:
+    branches:
+      ignore:
+        - master
+        - dev
+        - release
+    tags:
+      ignore:
+        - /^\d+\.\d+.*/
+
+
+################################################################################
+#                                                                              #
+# Custom Executor definitions.                                                 #
+#                                                                              #
+################################################################################
+
+executors:
+  default-executor:
+    working_directory: /home/circleci/ci/scenario-player
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.7.3
+    environment:
+      PROJECT_ROOT: /home/circleci/ci/scenario-player
+      CI_CONFIG_DIR: /home/circleci/ci/scenario-player/.circleci
+      CI_SCRIPTS_DIR: /home/circleci/ci/scenario-player/.circleci/scripts
+      BUMPVERSION_CFG: /home/circleci/ci/scenario-player/.bumpversion.cfg
+      PYPROJECT_TOML: /home/circleci/ci/scenario-player/pyproject.toml
+
+
+################################################################################
+#                                                                              #
+# Custom Command definitions.                                                  #
+#                                                                              #
+################################################################################
+
+commands:
+  # ================= #
+  # CI Setup Commands #
+  # ================= #
+
+  export_env_vars:
+    description: Export ENV variables used by our script.
     steps:
-      - checkout
+      - run:
+          name: Add Environment variables to bash env.
+          command: |
+            echo 'export PATH=/home/circleci/ci/venv/bin:$PATH' >> ${BASH_ENV}
+      - run:
+          name: Setup git config.
+          command: |
+            git config --global user.email "contact@brainbot.li"
+            git config --global user.name "DevOpsBot"
+
+  install_tools_for_ci:
+    description: Install packages needed to run our scripts. These may not be included in SP's dependencies.
+    steps:
+      - run:
+          name: Install additional packages for CI tools
+          command: |
+            pip install bumpversion
+            pip install flit
+            pip install tomlkit
+
+  prep_venv:
+    description: Restore cache and virtualenv, and install dependencies.
+    steps:
       - restore_cache:
           key: pip-cache
+
       - run:
           name: Create virtualenv
           command: |
-            python -m venv ~/venv
-            echo 'export PATH=~/venv/bin:$PATH' >> ${BASH_ENV}
+            python -m venv /home/circleci/ci/venv
+            echo 'export PATH=/home/circleci/ci/venv/bin:$PATH' >> ${BASH_ENV}
+
       - restore_cache:
-          keys:
-          - python-deps-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
-          - python-deps-
+          <<: *python_deps_cache_key
+
+      - install_tools_for_ci
+
       - run:
-          name: Install lint requirements
-          command: pip install -r requirements-dev.txt
+          name: Install the project.
+          command: |
+            pip install .
+            pip install ".[dev]"
+
+
+  validate_commit_format:
+    description: Validate the first line of the commit message against a REGEX.
+    steps:
       - run:
-          name: Run linters
-          command: tox -e lint
+          name: Validate the commit's title description.
+          command: python3 ${CI_SCRIPTS_DIR}/validate-commit-message.py
+
+  # ================================== #
+  # Linter and test execution commands #
+  # ================================== #
+  lint_codebase:
+    description: Run linters against our code base.
+    steps:
       - run:
-          name: Install project
-          command: pip install -e .
+          name: Set PATH to venv.
+          command: |
+            echo 'export PATH=/home/circleci/ci/venv/bin:$PATH' >> ${BASH_ENV}
       - run:
-          name: Run Unit-tests
-          command: tox
+          name: Run Linters
+          command: |
+            make lint
+
+  run_test_harness:
+    description: Run unit and integration tests of our package.
+    steps:
+      - run:
+          name: Run test harness.
+          command: make test-harness
+      - run:
+          name: Upload coverage report
+          command: codecov
+
+  # ===================== #
+  # CI Tear-down commands #
+  # ===================== #
+
+  store_env:
+    description: Store our dependencies in the cache.
+    steps:
       - save_cache:
-          key: python-deps-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          <<: *python_deps_cache_key
           paths:
-          - "~/venv"
+            - "/home/circleci/ci/venv"
+
       - save_cache:
           key: pip-cache
           paths:
-          - "~/.cache/pip"
+            - "/home/circleci/.cache/pip"
+
+################################################################################
+#                                                                              #
+# Circle-CI Job definitions.                                                   #
+#                                                                              #
+################################################################################
+
+jobs:
+
+  validate-commit-message:
+    executor: default-executor
+    steps:
+      - attach_workspace:
+          at: "/home/circleci"
+      - export_env_vars
+      - validate_commit_format
+
+  prep-system:
+    executor: default-executor
+    steps:
+      - checkout
+      - prep_venv
+      - export_env_vars
+      - persist_to_workspace:
+          paths:
+            - ci
+          root: "/home/circleci"
+
+  # Run all test suites (aka the test harness) of the repository and lint-check
+  # our code base.
+  lint-and-test:
+    executor: default-executor
+    steps:
+      - attach_workspace:
+          at: "/home/circleci"
+      - lint_codebase
+      - run_test_harness
+
+  # Bump the iteration of the current branch. This will always add the dev
+  # release type to the version.
+  bump-versions:
+    executor: default-executor
+    steps:
+      - attach_workspace:
+          at: "/home/circleci"
+      - export_env_vars
+      - run:
+          name: Add Github to known hosts.
+          command: |
+            mkdir /home/circleci/.ssh
+            ssh-keyscan -H github.com >> /home/circleci/.ssh/known_hosts
+      - run:
+          name: install project.
+          command: pip install ${PROJECT_ROOT}
+
+      - run:
+          name: Bump part on commits.
+          command: |
+            python3 ${CI_SCRIPTS_DIR}/bump-part.py
+
+      - run:
+          name: Update Changelog entries
+          command: |
+            python3 ${CI_SCRIPTS_DIR}/update-changelog.py
+
+  # Publish a wheel and tarball of the Scenario Player to pypi.
+  deploy-to-pypi:
+    executor: default-executor
+    steps:
+      - checkout
+      - run:
+          name: Publish to pypi using flit.
+          command: |
+            pip install .
+            flit publish
+
+  tear-down:
+    executor: default-executor
+    steps:
+      - store_env
+
+  finalize:
+    executor: default-executor
+    steps:
+      - run: echo "done".
+
+################################################################################
+#                                                                              #
+# Circle-CI Workflow definitions.                                              #
+#                                                                              #
+################################################################################
+
+workflows:
+  version: 2
+
+  PR-Review-Workflow:
+    jobs:
+      - prep-system:
+          <<: *PR_branches_only
+
+      - lint-and-test:
+          context: Raiden-SP-Context
+          requires:
+            - prep-system
+
+      - finalize:
+          requires:
+            - prep-system
+            - lint-and-test
+
+  Merge-Commit-Workflow:
+    jobs:
+      - prep-system:
+          <<: *master_dev_release_only
+
+      - validate-commit-message:
+          context: Raiden-SP-Context
+          requires:
+            - prep-system
+
+      # Run linters and test harnesses against PR branches.
+      - lint-and-test:
+          context: Raiden-SP-Context
+          requires:
+            - validate-commit-message
+
+      # Bump the minor or patch for `master` on each merge commit.
+      - bump-versions:
+          context: Raiden-SP-Context
+          requires:
+            - lint-and-test
+
+      # ======== #
+      # Clean-up #
+      # ======== #
+
+      # Save our packages to the cache.
+      - tear-down:
+          requires:
+            - lint-and-test
+
+      - finalize:
+          requires:
+            - prep-system
+            - validate-commit-message
+            - lint-and-test
+            - bump-versions
+            - tear-down
+
+  Deploy-Release-Workflow:
+    jobs:
+      - prep-system:
+          <<: *tags_only
+
+      # Package a new release from the latest tag.
+      - deploy-to-pypi:
+          requires:
+            - prep-system
+
+      - finalize:
+          requires:
+            - prep-system
+            - deploy-to-pypi

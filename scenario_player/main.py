@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import os
 import sys
 import tarfile
@@ -18,26 +17,22 @@ import gevent
 import requests
 import structlog
 from eth_utils import to_checksum_address
-from raiden.accounts import Account
-from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
-from raiden.utils.cli import EnumChoiceType
 from urwid import ExitMainLoop
 from web3.utils.transactions import TRANSACTION_DEFAULTS
 
+from raiden.accounts import Account
+from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
+from raiden.utils.cli import EnumChoiceType
 from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.runner import ScenarioRunner
+from scenario_player.services.common.app import ServiceProcess
+from scenario_player.services.utils.factories import construct_flask_app
 from scenario_player.tasks.base import collect_tasks
-from scenario_player.ui import (
-    LOGGING_PROCESSORS,
-    NonStringifyingProcessorFormatter,
-    ScenarioUI,
-    UrwidLogRenderer,
-    UrwidLogWalker,
-)
+from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import (
     ChainConfigType,
-    ConcatenableNone,
     DummyStream,
     post_task_state_to_rc,
     send_notification_mail,
@@ -159,18 +154,16 @@ def run(
 
     # If the output is a terminal, beautify our output.
     if enable_ui:
-        log_buffer = UrwidLogWalker([])
-        for handler in logging.getLogger("").handlers:
-            if isinstance(handler, logging.StreamHandler):
-                handler.terminator = ConcatenableNone()
-                handler.formatter = NonStringifyingProcessorFormatter(
-                    UrwidLogRenderer(), foreign_pre_chain=LOGGING_PROCESSORS
-                )
-                handler.stream = log_buffer
-                break
+        log_buffer = attach_urwid_logbuffer()
 
     # Dynamically import valid Task classes from sceanrio_player.tasks package.
     collect_tasks(tasks)
+
+    # Start our Services
+    service = construct_flask_app()
+    service_process = ServiceProcess(service)
+
+    service_process.start()
 
     # Run the scenario using the configurations passed.
     runner = ScenarioRunner(
@@ -226,6 +219,9 @@ def run(
                 log.warning("Press q to exit")
                 while not ui_greenlet.dead:
                     gevent.sleep(1)
+            service_process.start()
+        except ServiceProcessException:
+            service_process.kill()
         finally:
             if runner.is_managed:
                 runner.node_controller.stop()
@@ -321,8 +317,7 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
         rc_message = {"msg": None, "description": None}
         if pack_n_latest == 1:
             # Index 0 will always return the latest log file for the scenario.
-            scenario_log_file = files[0]
-            rc_message["msg"] = construct_rc_message(scenario_log_file)
+            rc_message["text"] = construct_rc_message(target_dir, archive_fpath, files[0])
             rc_message["description"] = f"Log files for scenario {scenario_name}"
         post_to_rocket_chat(archive_fpath, **rc_message)
 
@@ -352,7 +347,7 @@ def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path
     return history[:num_of_packable_iterations]
 
 
-def construct_rc_message(log_fpath) -> str:
+def construct_rc_message(base_dir, packed_log, log_fpath) -> str:
     """Check the result of the log file at the given `log_fpath`."""
     result = None
     exc = None
@@ -370,6 +365,10 @@ def construct_rc_message(log_fpath) -> str:
         message = f":x: Error while running scenario: {result}!"
         if exc:
             message += "\n```\n" + exc + "\n```"
+    message += (
+        f"\nLog can be downloaded from:\n"
+        f"http://scenario-player.ci.raiden.network/{packed_log.relative_to(base_dir)}"
+    )
     return message
 
 
@@ -378,6 +377,8 @@ def post_to_rocket_chat(fpath, **rc_payload_fields):
         user = os.environ["RC_USER"]
         pw = os.environ["RC_PW"]
         room_id = os.environ["RC_ROOM_ID"]
+        room_name = "#" + os.environ["RC_ROOM_NAME"]
+
     except KeyError as e:
         raise RuntimeError("Missing Rocket Char Env variables!") from e
 
@@ -385,18 +386,18 @@ def post_to_rocket_chat(fpath, **rc_payload_fields):
         "https://chat.brainbot.com/api/v1/login", data={"username": user, "password": pw}
     )
 
+    rc_payload_fields["room_id"] = room_id
+    rc_payload_fields["channel"] = room_name
     token = resp.json()["data"]["authToken"]
     user_id = resp.json()["data"]["userId"]
     headers = {"X-Auth-Token": token, "X-User-Id": user_id}
 
-    with fpath.open("rb") as f:
-        resp = requests.post(
-            f"https://chat.brainbot.com/api/v1/rooms.upload/{room_id}",
-            files={"file": f},
-            headers=headers,
-            data=rc_payload_fields,
-        )
-        resp.raise_for_status()
+    resp = requests.post(
+        f"https://chat.brainbot.com/api/v1/chat.postMessage",
+        headers=headers,
+        data=rc_payload_fields,
+    )
+    resp.raise_for_status()
 
 
 if __name__ == "__main__":
