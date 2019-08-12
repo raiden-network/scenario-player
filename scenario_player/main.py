@@ -8,6 +8,7 @@ import traceback
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
+from getpass import getpass
 from itertools import chain
 from pathlib import Path
 from typing import List
@@ -117,13 +118,15 @@ def main(ctx, chains, data_path):
     "--password-file",
     type=click.Path(exists=True, dir_okay=False),
     cls=MutuallyExclusiveOption,
-    mutually_exclusive=["password-file"]
+    mutually_exclusive=["password-file"],
+    default=None
 )
 @click.option(
     "--password",
     envvar="ACCOUNT_PASSWORD",
     cls=MutuallyExclusiveOption,
-    mutually_exclusive=["password"]
+    mutually_exclusive=["password"],
+    default=None
 )
 @click.option("--auth", default="")
 @click.option("--mailgun-api-key")
@@ -153,6 +156,8 @@ def run(
 
     if password_file:
         password = open(password_file, "r").read().strip()
+    if password == password_file is None:
+        password = getpass(prompt="Please enter your password: ", stream=None)
     account = load_account_obj(keystore_file, password)
 
     notify_tasks_callable = None
