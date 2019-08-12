@@ -38,7 +38,7 @@ log = structlog.get_logger(__name__)
 
 
 RAIDEN_RELEASES_URL = "https://raiden-nightlies.ams3.digitaloceanspaces.com/"
-RAIDEN_RELEASES_LATEST_FILE_TEMPLATE = "_LATEST-{platform}-{arch}.txt"
+RAIDEN_RELEASES_LATEST_FILE_TEMPLATE = "_LATEST-NIGHTLY-{platform}-{arch}.txt"
 RAIDEN_RELEASES_VERSIONED_NAME_TEMPLATE = "raiden-v{version}-{platform}-{arch}.zip"
 
 
@@ -143,7 +143,8 @@ class RaidenReleaseKeeper:
             return release_file_path
 
         url = RAIDEN_RELEASES_URL + release_file_name
-        with requests.get(url, stream=True) as resp, release_file_path.open("wb") as release_file:
+        release_file_path.parent.mkdir(exist_ok=True, parents=True)
+        with requests.get(url, stream=True) as resp, release_file_path.open("wb+") as release_file:
             log.debug("Downloading Raiden release", release_file_name=release_file_name)
             if not 199 < resp.status_code < 300:
                 raise ValueError(
@@ -355,7 +356,7 @@ class NodeRunner:
             log.debug("Initializing keystore", node=self._index)
             gevent.sleep()
             privkey = hashlib.sha256(
-                f"{self._runner.scenario_name}-{self._runner.run_number}-{self._index}".encode()
+                f"{self._runner.yaml.name}-{self._runner.run_number}-{self._index}".encode()
             ).digest()
             keystore_file.write_text(json.dumps(create_keyfile_json(privkey, b"")))
         return keystore_file
@@ -393,7 +394,7 @@ class NodeRunner:
     @property
     def _pfs_address(self):
         local_pfs = self._options.get("pathfinding-service-address")
-        global_pfs = self._runner.scenario.services.get("pfs", {}).get("url")
+        global_pfs = self._runner.yaml.settings.services.pfs.url
         if local_pfs:
             if global_pfs:
                 log.warning(
@@ -430,22 +431,20 @@ class NodeRunner:
 
 
 class NodeController:
-    def __init__(
-        self, runner: ScenarioRunner, raiden_version, node_count, global_options, node_options
-    ):
+    def __init__(self, runner: ScenarioRunner, config):
         self._runner = runner
-        self._global_options = global_options
-        self._node_options = node_options
+        self._global_options = config.default_options
+        self._node_options = config.node_options
         self._node_runners = [
             NodeRunner(
                 runner,
                 index,
-                raiden_version,
+                config.raiden_version,
                 {**self._global_options, **self._node_options.get(index, {})},
             )
-            for index in range(node_count)
+            for index in range(config.count)
         ]
-        log.info("Using Raiden version", version=raiden_version)
+        log.info("Using Raiden version", version=config.raiden_version)
 
     def __getitem__(self, item):
         return self._node_runners[item]

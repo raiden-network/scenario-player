@@ -6,4 +6,4 @@ metrics_blueprint = Blueprint("metrics_view", __name__)
 
 @metrics_blueprint.route("/metrics", methods=["GET"])
 def metrics_route() -> Response:
-    return Response(generate_latest, mimetype=CONTENT_TYPE_LATEST)
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)

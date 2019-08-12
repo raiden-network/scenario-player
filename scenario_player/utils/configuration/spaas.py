@@ -34,11 +34,11 @@ class SPaaSServiceConfig(ConfigMapping):
 
     @property
     def scheme(self):
-        return self.get("scheme", "https")
+        return self.get("scheme", "http")
 
     @property
     def host(self):
-        return self.get("host", "localhost")
+        return self.get("host", "127.0.0.1")
 
     @property
     def port(self):
@@ -51,8 +51,11 @@ class SPaaSServiceConfig(ConfigMapping):
 
 class SPaaSConfig(ConfigMapping):
     def __init__(self, loaded_yaml: dict):
-        super(SPaaSConfig, self).__init__(loaded_yaml.get("spaas", {}))
+        super(SPaaSConfig, self).__init__(loaded_yaml.get("spaas") or {})
+        self.rpc = RPCServiceConfig(self.dict)
 
-    @property
-    def rpc(self) -> SPaaSServiceConfig:
-        return SPaaSServiceConfig(self.get("rpc", {}))
+
+class RPCServiceConfig(SPaaSServiceConfig):
+    def __init__(self, spaas_config: dict):
+        super(RPCServiceConfig, self).__init__(spaas_config.get("rpc") or {})
+        self.client_id = None

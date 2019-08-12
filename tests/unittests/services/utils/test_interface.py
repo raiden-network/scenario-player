@@ -13,12 +13,14 @@ from scenario_player.services.utils.interface import ServiceInterface, SPaaSAdap
 from scenario_player.utils.configuration.spaas import SPaaSConfig
 
 
+@pytest.mark.depends(name="spaas_adapter_mounted")
 def test_adapter_is_auto_mounted_in_interface_class():
     iface = ServiceInterface(SPaaSConfig({}))
     assert "spaas" in iface.adapters
     assert isinstance(iface.adapters["spaas"], SPaaSAdapter)
 
 
+@pytest.mark.depends(depends=["spaas_adapter_mounted"])
 @patch("scenario_player.services.utils.interface.HTTPAdapter.send")
 class TestSPaaSAdapter:
     @pytest.mark.parametrize("service", ["rpc"])
@@ -29,7 +31,9 @@ class TestSPaaSAdapter:
         """If a host and port key have **not** been given in the SPAAS config section,
         SPaaSAdapter.prep_service_request should default to sensible values."""
 
-        expected_url = f"{scheme or 'https'}://{host or 'localhost'}:{port or '5000'}/my-endpoint"
+        expected_url = (
+            f"{scheme or 'http'}://{host or '127.0.0.1'}:{port or '5000'}/{service}/my-endpoint"
+        )
 
         input_config = {}
         if host:
@@ -51,6 +55,7 @@ class TestSPaaSAdapter:
     def test_send_method_monkeypatches_metadata_onto_request(self, mock_adapter_send):
         def return_modded_request(request, *_):
             request.raise_for_status = lambda: True
+            request.json = lambda: True
             return request
 
         mock_adapter_send.side_effect = return_modded_request
@@ -96,5 +101,5 @@ class TestSPaaSAdapter:
         with pytest.raises(expected_err):
             config = SPaaSConfig({"spaas": {}})
             adapter = SPaaSAdapter(config)
-            req = requests.Request(url="https://localhost:5000").prepare()
+            req = requests.Request(url="http://127.0.0.1:5000").prepare()
             adapter.send(req)

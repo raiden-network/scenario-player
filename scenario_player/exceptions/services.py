@@ -33,7 +33,7 @@ class ServiceError(ConnectionError):
                 message = f"Error communicating with '{service}' at '{service_path}'! {reason}"
                 super(ServiceError, self).__init__(message)
         else:
-            message = "Error communicating with a desired service! {reason}"
+            message = f"Error communicating with a desired service! {reason}"
             super(ServiceError, self).__init__(message)
 
     @property
