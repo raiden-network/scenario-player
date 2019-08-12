@@ -1,55 +1,44 @@
 import hashlib
 import hmac
 from collections.abc import Mapping
-from typing import Tuple, Union
+from typing import Callable, Tuple, Union
 
-from flask import abort, current_app
-from web3 import Web3
-from werkzeug.routing import BaseConverter
+import structlog
+from eth_utils import encode_hex
+from web3 import HTTPProvider, Web3
 
 from raiden.network.rpc.client import JSONRPCClient
 
-
-class RPCClientLoader(BaseConverter):
-    """Url Variable converter to automatically load rpc client instances using their ids.
-
-    This converter must first be registered with the app before it can be used::
+log = structlog.getLogger(__name__)
 
 
-        from flask import Flask
+def assign_rpc_instance_id(runner, chain_url, privkey, gas_price):
+    params = {"chain_url": chain_url, "privkey": encode_hex(privkey), "gas_price": gas_price}
+    resp = runner.service_session.post("spaas://rpc/client", json=params)
+    client_id = resp.json()["client_id"]
+    runner.yaml.spaas.rpc.client_id = client_id
 
-        app = Flask(__name__)
 
-        from .util import ListConverter
+def generate_hash_key(chain_url: str, privkey: bytes, strategy: Callable):
+    """Generate a hash key to use as `client_id`, using the :mod:`hmac` library.
 
-        app.url_map.converters['rpc-client'] = RPCClientLoader
+    The message is the concatenation of `chain_url` plus the `__name__` attribute of the
+    `strategy`.
 
-    You can then use it as follows in route decorators::
+    The `privkey` is used to sign it using `sha256`.
 
-        from raiden.network.rpc.client import JSONRPCClient
-
-        @app.route('/rpc/client/<client_id:rpc-client>')
-        def converter_demo(client):
-            assert isinstance(client, JSONRPCClient)
-            return "Converted"
+    The result is hexdigested before we return it.
     """
-
-    def to_python(self, value):
-        try:
-            return current_app.config["rpc-client"][value]
-        except KeyError:
-            abort(400, description=value)
-
-    def to_url(self, value):
-        for k, v in current_app.config["rpc-client"].items():
-            if value == v:
-                return k
-
-
-def generate_hash_key(chain_url: str, privkey: bytes):
-    """Generate a key using the `chain_url` and `privkey` args and the :mod:`hmac` library."""
-    k = hmac.new(privkey, chain_url.encode("UTF-8"), hashlib.sha256)
+    k = hmac.new(privkey, (chain_url + strategy.__name__).encode("UTF-8"), hashlib.sha256)
     return k.hexdigest()
+
+
+class RPCClient(JSONRPCClient):
+    def __init__(self, chain_url, privkey, strategy):
+        super(RPCClient, self).__init__(
+            Web3(HTTPProvider(chain_url)), privkey=privkey, gas_price_strategy=strategy
+        )
+        self.client_id = generate_hash_key(chain_url, privkey, strategy)
 
 
 class RPCRegistry(Mapping):
@@ -62,33 +51,40 @@ class RPCRegistry(Mapping):
     def __init__(self):
         self.dict = {}
 
-    def __getitem__(
-        self, item: Union[str, Tuple[str, str], Tuple[str, str, str]]
-    ) -> Tuple[JSONRPCClient, str]:
+    def __getitem__(self, item: Union[str, Tuple[str, str, Callable]]) -> RPCClient:
         try:
-            return self.dict[item], item
+            return self.dict[item]
         except KeyError:
-            if isinstance(item, tuple) and len(item) in range(2, 4):
-                url, privkey, *strategy = item
-                # Strategy may be an empty list if the tuple was only 2 items long.
-                strategy = strategy or "fast"
+            if not self.is_valid_tuple(item):
+                raise
 
-                key = generate_hash_key(url, privkey)
-                if key not in self.dict:
-                    try:
-                        self.dict[key] = JSONRPCClient(
-                            Web3(url), privkey=privkey, gas_price_strategy=strategy
-                        )
-                    except ValueError as e:
-                        abort(400, description=str(e))
-                return self.dict[key], key
-            abort(404, description=f"No JSONRPCClient instance with id {item} found!")
+            chain_url, privkey, strategy = item
+            client_id = generate_hash_key(chain_url, privkey, strategy)
+
+            if client_id not in self.dict:
+                log.debug(
+                    "Creating new RPC instance", chain_url=chain_url, strategy=strategy.__name__
+                )
+                self.dict[client_id] = RPCClient(chain_url, privkey, strategy)
+
+            return self.dict[client_id]
 
     def __len__(self):
         return len(self.dict)
 
     def __iter__(self):
         return iter(self.dict)
+
+    def is_valid_tuple(self, t) -> bool:
+        """check if the given tuple can be used to instantiate a new RPC class."""
+        try:
+            chain_url, privkey, strategy = t
+        except (ValueError, TypeError):
+            return False
+        else:
+            if isinstance(chain_url, str) and isinstance(privkey, bytes) and callable(strategy):
+                return True
+            return False
 
     def pop(self, key, default=None):
         return self.dict.pop(key, default)

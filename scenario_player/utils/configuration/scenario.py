@@ -29,7 +29,7 @@ class ScenarioConfig(ConfigMapping):
     CONFIGURATION_ERROR = ScenarioConfigurationError
 
     def __init__(self, config: dict) -> None:
-        super(ScenarioConfig, self).__init__(config.get("scenario", {}))
+        super(ScenarioConfig, self).__init__(config.get("scenario") or {})
         self.validate()
 
     def validate(self):

@@ -18,6 +18,11 @@ class TokenConfigurationError(ConfigurationError):
     """
 
 
+class TokenNotDeployed(TokenConfigurationError):
+    """We tried accessing a property requiring a deployed token, of a token which
+    has not been deployed yet."""
+
+
 class TokenSourceCodeDoesNotExist(TokenConfigurationError):
     """The requested address does not contain source code."""
 
