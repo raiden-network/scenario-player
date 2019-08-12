@@ -36,6 +36,7 @@ from scenario_player.utils import (
     post_task_state_to_rc,
     send_notification_mail,
 )
+from scenario_player.utils.legacy import MutuallyExclusiveOption
 
 log = structlog.get_logger(__name__)
 
@@ -112,7 +113,18 @@ def main(ctx, chains, data_path):
 @main.command(name="run")
 @click.argument("scenario-file", type=click.File(), required=False)
 @click.option("--keystore-file", required=True, type=click.Path(exists=True, dir_okay=False))
-@click.password_option("--password", envvar="ACCOUNT_PASSWORD", required=True)
+@click.option(
+    "--password-file",
+    type=click.Path(exists=True, dir_okay=False),
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password-file"]
+)
+@click.option(
+    "--password",
+    envvar="ACCOUNT_PASSWORD",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password"]
+)
 @click.option("--auth", default="")
 @click.option("--mailgun-api-key")
 @click.option(
@@ -129,7 +141,8 @@ def main(ctx, chains, data_path):
 )
 @click.pass_context
 def run(
-    ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, notify_tasks, enable_ui
+        ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, notify_tasks,
+        enable_ui, password_file
 ):
     scenario_file = Path(scenario_file.name).absolute()
     data_path = ctx.obj["data_path"]
@@ -138,6 +151,8 @@ def run(
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
 
+    if password_file:
+        password = open(password_file, "r").read().strip()
     account = load_account_obj(keystore_file, password)
 
     notify_tasks_callable = None
@@ -262,7 +277,7 @@ def reclaim_eth(ctx, min_age, password, keystore_file):
     "--pack-n-latest",
     default=1,
     help="Specify the max num of log history you would like to pack. Defaults to 1."
-    "Specifying 0 will pack all available logs for a scenario.",
+         "Specifying 0 will pack all available logs for a scenario.",
 )
 @click.option("--post-to-rocket/--no-post-to-rocket", default=True)
 @click.argument("scenario-file", type=click.File(), required=True)
