@@ -38,7 +38,7 @@ class TokenConfig(ConfigMapping):
     CONFIGURATION_ERROR = TokenConfigurationError
 
     def __init__(self, loaded_yaml: dict, token_info_fpath: pathlib.Path):
-        super(TokenConfig, self).__init__(loaded_yaml.get("token", {}))
+        super(TokenConfig, self).__init__(loaded_yaml.get("token") or {})
         self._token_id = uuid.uuid4()
         self._name = None
         self._token_file = token_info_fpath

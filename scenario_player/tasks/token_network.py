@@ -10,7 +10,7 @@ class JoinTokenNetwork(RaidenAPIActionTask):
 
     @property
     def _url_params(self):
-        params = dict(token_address=self._runner.token_address)
+        params = dict(token_address=self._runner.token.checksum_address)
         return params
 
     @property
@@ -34,4 +34,4 @@ class LeaveTokenNetwork(RaidenAPIActionTask):
 
     @property
     def _url_params(self):
-        return dict(token_address=self._runner.token_address)
+        return dict(token_address=self._runner.token.checksum_address)

@@ -127,7 +127,7 @@ class AssertBlockchainEventsTask(Task):
             contract_address=self.contract_address,
             contract_name=self.contract_name,
             topics=[],
-            from_block=BlockNumber(self._runner.token_deployment_block),
+            from_block=BlockNumber(self._runner.token.deployment_block),
             to_block=BlockNumber(self.web3.eth.blockNumber),
         )
 
@@ -202,7 +202,7 @@ class AssertMSClaimTask(Task):
             contract_address=self.contract_address,
             contract_name=self.contract_name,
             topics=[],
-            from_block=BlockNumber(self._runner.token_deployment_block),
+            from_block=BlockNumber(self._runner.token.deployment_block),
             to_block=BlockNumber(self.web3.eth.blockNumber),
         )
 

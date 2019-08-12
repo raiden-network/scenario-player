@@ -10,7 +10,10 @@ log = structlog.get_logger(__name__)
 
 class RaidenAPIActionTask(RESTAPIActionTask):
     def _handle_timeout(self, ex: Exception):
-        raise TransferFailed(f"Transfer didn't complete within timeout of {self._timeout}") from ex
+        raise TransferFailed(
+            f"{self._name.replace('_', ' ').title()} didn't complete within "
+            f"timeout of {self._timeout}"
+        ) from ex
 
     @property
     def _target_host(self):

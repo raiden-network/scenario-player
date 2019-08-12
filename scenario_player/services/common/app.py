@@ -1,9 +1,13 @@
 import multiprocessing as mp
 
-import flask
 import requests
+import structlog
+import waitress
 
 from scenario_player.exceptions.services import ServiceProcessException
+from scenario_player.services.utils.factories import construct_flask_app
+
+log = structlog.getLogger(__name__)
 
 
 class ServiceProcess(mp.Process):
@@ -24,20 +28,18 @@ class ServiceProcess(mp.Process):
     code does not matter) and `False` if a connection error or timeout occurred.
     """
 
-    def __init__(
-        self, app: flask.Flask, *args, host: str = "http://localhost", port: int = 5000, **kwargs
-    ):
+    def __init__(self, *args, host: str = "127.0.0.1", port: int = 5000, **kwargs):
         if "target" in kwargs:
             raise ValueError("'target' is not supported by this class!")
         super(ServiceProcess, self).__init__(*args, **kwargs)
         self.daemon = True
-        self.app = app
-        self.app_url = f"{host}:{port}"
+        self.host = host
+        self.port = port
 
     @property
     def is_reachable(self) -> bool:
         try:
-            requests.get(f"{self.app_url}/status")
+            requests.get(f"http://{self.host}:{self.port}/status")
         except (requests.ConnectionError, requests.Timeout):
             # The service does not appear to be reachable.
             return False
@@ -66,18 +68,29 @@ class ServiceProcess(mp.Process):
 
         :raises ServiceProcessException: if we failed to shut down the service.
         """
+        shutdown_type = "werkzeug.server.shutdown"
         try:
-            resp = requests.post(f"{self.app_url}/shutdown")
+            resp = requests.post(f"http://{self.host}:{self.port}/shutdown")
         except (requests.ConnectionError, requests.Timeout):
             # The server is not responding. Kill it with a hammer.
+            shutdown_type = "SIGKILL"
             return self.kill()
         else:
             try:
                 resp.raise_for_status()
             except requests.HTTPError:
                 if self.is_reachable:
-                    raise ServiceProcessException("Shutdown sequence could not be initialized!")
+                    # The server doesn't want to play ball - "gently" terminate its ass.
+                    shutdown_type = "SIGTERM"
+                    self.terminate()
+        finally:
+            if self.is_reachable:
+                # The server still exists.Notify a human about its insubordinantion.
+                raise ServiceProcessException("Shutdown sequence could not be initialized!")
+
+            log.info("SPaaS Server shutdown", shutdown_type=shutdown_type)
 
     def run(self):
         """Run the Service."""
-        self.app.run()
+        app = construct_flask_app()
+        waitress.serve(app, host=self.host, port=self.port)

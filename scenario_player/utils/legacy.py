@@ -9,7 +9,7 @@ from collections import defaultdict, deque
 from datetime import datetime
 from itertools import islice
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import click
 import mirakuru
@@ -23,7 +23,6 @@ from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPO
 from raiden_contracts.contract_manager import get_contracts_deployment_info
 from requests.adapters import HTTPAdapter
 from web3 import HTTPProvider, Web3
-from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
 from raiden.accounts import Account
 from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
@@ -204,7 +203,7 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
     """ Deploy or reuse  """
     token_contract = runner.contract_manager.get_contract(CONTRACT_CUSTOM_TOKEN)
 
-    token_config = runner.scenario.get("token", {})
+    token_config = runner.yaml.token
     if not token_config:
         token_config = {}
     address = token_config.get("address")
@@ -261,12 +260,12 @@ def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[Contrac
 
     assert isinstance(runner, ScenarioRunner)
 
-    udc_config = runner.scenario.services.get("udc", {})
+    udc_config = runner.yaml.settings.services.udc
 
-    if not udc_config.get("enable", False):
+    if not udc_config.enable:
         return None, None
 
-    udc_address = udc_config.get("address")
+    udc_address = udc_config.address
     if udc_address is None:
         contracts = get_contracts_deployment_info(
             chain_id=runner.chain_id, version=DEVELOPMENT_CONTRACT_VERSION
@@ -324,21 +323,6 @@ def send_notification_mail(target_mail, subject, message, api_key):
         },
     )
     log.debug("Notification mail result", code=res.status_code, text=res.text)
-
-
-def get_gas_price_strategy(gas_price: Union[int, str]) -> Callable:
-    if isinstance(gas_price, int):
-
-        def fixed_gas_price(_web3, _tx):
-            return gas_price
-
-        return fixed_gas_price
-    elif gas_price == "fast":
-        return fast_gas_price_strategy
-    elif gas_price == "medium":
-        return medium_gas_price_strategy
-    else:
-        raise ValueError(f'Invalid gas_price value: "{gas_price}"')
 
 
 def reclaim_eth(
