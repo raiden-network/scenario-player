@@ -349,6 +349,10 @@ class UserDepositContract(Contract):
             self._local_rpc_client.address, self.address
         ).call()
 
+    def effective_balance(self, at_target):
+        """Get the effective balance of the target address."""
+        return self.contract_proxy.contract.functions.effectiveBalance(at_target).call()
+
     def mint(self, target_address) -> Union[str, None]:
         """The mint function isn't present on the UDC, pass the UDTC address instead."""
         return super(UserDepositContract, self).mint(
@@ -362,7 +366,7 @@ class UserDepositContract(Contract):
         """
         node_count = self.config.nodes.count
         udt_allowance = self.allowance
-        required_allowance = self.config.token.min_balance * node_count
+        required_allowance = self.config.settings.services.udc.token.node_balance * node_count
 
         log.debug(
             "Checking necessity of deposit request",
@@ -375,7 +379,7 @@ class UserDepositContract(Contract):
             return
 
         log.debug("allowance update call required - insufficient allowance")
-        allow_amount = (self.config.token.max_funding * 10 * node_count) - udt_allowance
+        allow_amount = required_allowance - udt_allowance
         params = {
             "amount": allow_amount,
             "target_address": self.checksum_address,
@@ -392,8 +396,8 @@ class UserDepositContract(Contract):
 
         TODO: Allow setting max funding parameter, similar to the token `funding_min` setting.
         """
-        balance = self.contract_proxy.contract.functions.effectiveBalance(target_address).call()
-        min_deposit = self.config.token.min_balance // 2
+        balance = self.effective_balance
+        min_deposit = self.config.settings.services.udc.token.node_balance
         log.debug(
             "Checking necessity of deposit request",
             required_balance=min_deposit,

@@ -49,7 +49,7 @@ class UDCTokenSettings(ConfigMapping):
 
     @property
     def node_balance(self):
-        return self.get("node_balance", 5000)
+        return int(self.get("node_balance", 5000))
 
 
 class UDCSettingsConfig(ConfigMapping):

@@ -1,5 +1,6 @@
 import json
-from unittest.mock import PropertyMock, patch
+import pathlib
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from eth_utils.address import to_checksum_address
@@ -22,9 +23,10 @@ from scenario_player.exceptions.config import (
     TokenNotDeployed,
     TokenSourceCodeDoesNotExist,
 )
+from scenario_player.scenario import ScenarioYAML
 from scenario_player.utils.configuration.spaas import SPaaSConfig
 from scenario_player.utils.configuration.token import TokenConfig
-from scenario_player.utils.token import Contract, Token
+from scenario_player.utils.token import Contract, Token, UserDepositContract
 
 token_import_path = "scenario_player.utils.token"
 token_config_import_path = "scenario_player.utils.configuration.token"
@@ -37,7 +39,10 @@ class Sentinel(Exception):
 @pytest.fixture
 def runner(dummy_scenario_runner, minimal_yaml_dict, token_info_path, tmp_path):
     token_config = TokenConfig(minimal_yaml_dict, token_info_path)
-    dummy_scenario_runner.yaml.spaas = SPaaSConfig(minimal_yaml_dict)
+    with patch("yaml.safe_load", return_value=minimal_yaml_dict):
+        tmp_file = tmp_path.joinpath("tmp.yaml")
+        tmp_file.touch()
+        dummy_scenario_runner.yaml = ScenarioYAML(tmp_file, tmp_path)
     dummy_scenario_runner.yaml.spaas.rpc.client_id = "the_client_id"
     dummy_scenario_runner.yaml.token = token_config
 
@@ -468,3 +473,82 @@ class TestToken:
             if reuse_token:
                 return
             pytest.fail(f"save_token called, but reuse_token is {reuse_token}")
+
+
+class TestUserDepositContract:
+    # TODO: Write tests to assert correctness of allowance and effective_balance properties
+    @pytest.fixture(autouse=True)
+    def set_up_udc_test_class(self, runner):
+        with patch(
+            "scenario_player.utils.token.UserDepositContract.effective_balance",
+            new_callable=PropertyMock,
+        ) as mock_eb, patch(
+            "scenario_player.utils.token.UserDepositContract.allowance", new_callable=PropertyMock
+        ) as mock_allowance, patch(
+            "scenario_player.utils.token.UserDepositContract.ud_token_address",
+            new_callable=PropertyMock,
+        ) as mock_ud_token_addr:
+            # We'll mock the properties accessing the contract proxies for now
+            # TODO: Properly mock them instead.
+            self.instance = UserDepositContract(runner, MagicMock(), MagicMock())
+            self.mock_allowance = mock_allowance
+            self.mock_effective_balance = mock_eb
+            self.mock_ud_token_address = mock_ud_token_addr
+            yield
+
+    @patch("scenario_player.utils.token.Contract.transact")
+    def test_update_allowance_is_noop_if_allowance_is_sufficient(self, mock_transact):
+        self.instance.config.nodes.dict["count"] = 2
+        self.instance.config.settings.services.udc.token.dict["node_balance"] = 5_000
+        self.mock_allowance.return_value = 10_000
+
+        self.instance.update_allowance()
+
+        assert mock_transact.called is False
+
+    @patch(
+        "scenario_player.utils.token.Contract.checksum_address",
+        new_callable=PropertyMock(return_value="ud_contract_addr"),
+    )
+    @patch("scenario_player.utils.token.Contract.transact")
+    def test_update_allowance_updates_allowance_according_to_udc_token_node_balance_yaml_setting(
+        self, mock_transact, _
+    ):
+        self.instance.config.nodes.dict["count"] = 2
+        self.instance.config.settings.services.udc.token.dict["node_balance"] = 15_000
+        self.mock_allowance.return_value = 5_000
+        self.mock_ud_token_address.return_value = "ud_token_addr"
+
+        # Expect an allowance transact request to be invoked, with its amount equal to:
+        #   (node_balance * node_count) - current_allowance
+        # Targeting the UD Contract address, calling from the UD Token address.
+        expected_params = {
+            "amount": 25_000,
+            "target_address": "ud_contract_addr",
+            "contract_address": "ud_token_addr",
+        }
+
+        self.instance.update_allowance()
+
+        mock_transact.assert_called_once_with("allowance", expected_params)
+
+    @patch("scenario_player.utils.token.Contract.transact")
+    def test_deposit_method_issues_deposit_request_if_node_funding_is_insufficient(
+        self, mock_transact
+    ):
+        self.instance.config.settings.services.udc.token.dict["node_balance"] = 5_000
+        self.mock_effective_balance.return_value = 1000
+        expected_params = {"amount": 4_000, "target_address": "some_address"}
+
+        self.instance.deposit("some_address")
+
+        mock_transact.assert_called_once_with("deposit", expected_params)
+
+    @patch("scenario_player.utils.token.Contract.transact")
+    def test_deposit_methpd_is_noop_if_node_funding_is_sufficient(self, mock_transact):
+        self.instance.config.settings.services.udc.token.dict["node_balance"] = 5_000
+        self.mock_effective_balance.return_value = 10_000
+
+        self.instance.deposit("some_address")
+
+        assert mock_transact.called is False
