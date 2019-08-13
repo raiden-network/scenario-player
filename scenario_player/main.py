@@ -88,6 +88,14 @@ def load_account_obj(keystore_file, password):
         return account
 
 
+def get_password(password, password_file):
+    if password_file:
+        password = open(password_file, "r").read().strip()
+    if password == password_file is None:
+        password = getpass(prompt="Please enter your password: ", stream=None)
+    return password
+
+
 @click.group(invoke_without_command=True, context_settings={"max_content_width": 120})
 @click.option(
     "--data-path",
@@ -119,14 +127,14 @@ def main(ctx, chains, data_path):
     "--password-file",
     type=click.Path(exists=True, dir_okay=False),
     cls=MutuallyExclusiveOption,
-    mutually_exclusive=["password-file"],
+    mutually_exclusive=["password"],
     default=None
 )
 @click.option(
     "--password",
     envvar="ACCOUNT_PASSWORD",
     cls=MutuallyExclusiveOption,
-    mutually_exclusive=["password"],
+    mutually_exclusive=["password-file"],
     default=None
 )
 @click.option("--auth", default="")
@@ -155,10 +163,7 @@ def run(
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
 
-    if password_file:
-        password = open(password_file, "r").read().strip()
-    if password == password_file is None:
-        password = getpass(prompt="Please enter your password: ", stream=None)
+    password = get_password(password, password_file)
 
     try:
         account = load_account_obj(keystore_file, password)
