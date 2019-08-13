@@ -100,8 +100,8 @@ class MutuallyExclusiveOption(click.Option):
         if self.mutually_exclusive:
             ex_str = ', '.join(self.mutually_exclusive)
             kwargs['help'] = help + (
-                    ' NOTE: This argument is mutually exclusive with '
-                    ' arguments: [' + ex_str + '].'
+                ' NOTE: This argument is mutually exclusive with '
+                ' arguments: [' + ex_str + '].'
             )
         super(MutuallyExclusiveOption, self).__init__(*args, **kwargs)
 
