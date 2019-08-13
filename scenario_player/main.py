@@ -8,7 +8,6 @@ import traceback
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
-from getpass import getpass
 from itertools import chain
 from pathlib import Path
 from typing import List
@@ -18,12 +17,12 @@ import gevent
 import requests
 import structlog
 from eth_utils import to_checksum_address
-from urwid import ExitMainLoop
-from web3.utils.transactions import TRANSACTION_DEFAULTS
-
 from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.utils.cli import EnumChoiceType
+from urwid import ExitMainLoop
+from web3.utils.transactions import TRANSACTION_DEFAULTS
+
 from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
