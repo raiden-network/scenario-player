@@ -2,7 +2,7 @@
 name: Service Implementation Epic
 about: Template for creating Service implementation Epics.
 title: ''
-labels: Feature request, Epic
+labels: Epic, Feature request
 assignees: ''
 
 ---
