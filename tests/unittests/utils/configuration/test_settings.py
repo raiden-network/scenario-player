@@ -10,6 +10,7 @@ from scenario_player.utils.configuration.settings import (
     ServiceSettingsConfig,
     SettingsConfig,
     UDCSettingsConfig,
+    UDCTokenSettings,
 )
 
 
@@ -109,10 +110,10 @@ class TestUDCSettingsConfig:
         """The class is a subclass of :class:`ConfigMapping`."""
         assert isinstance(UDCSettingsConfig(minimal_yaml_dict), ConfigMapping)
 
-    @pytest.mark.parametrize(
-        "key, expected",
-        argvalues=[("enable", False), ("address", None), ("token", {"deposit": False})],
-    )
+    def test_token_attribute_is_an_instance_of_udctokenconfig(self, minimal_yaml_dict):
+        assert isinstance(UDCSettingsConfig(minimal_yaml_dict).token, UDCTokenSettings)
+
+    @pytest.mark.parametrize("key, expected", argvalues=[("enable", False), ("address", None)])
     def test_attributes_whose_key_is_absent_return_expected_default(
         self, key, expected, minimal_yaml_dict
     ):
@@ -120,14 +121,38 @@ class TestUDCSettingsConfig:
         MISSING = object()
         assert getattr(config, key, MISSING) == expected
 
-    @pytest.mark.parametrize(
-        "key, expected",
-        argvalues=[("enable", True), ("address", "walahoo"), ("token", {"deposit": True})],
-    )
+    @pytest.mark.parametrize("key, expected", argvalues=[("enable", True), ("address", "walahoo")])
     def test_attributes_return_for_key_value_if_key_present(
         self, key, expected, minimal_yaml_dict
     ):
         minimal_yaml_dict["settings"] = {"services": {"udc": {key: expected}}}
         config = UDCSettingsConfig(minimal_yaml_dict)
+        MISSING = object()
+        assert getattr(config, key, MISSING) == expected
+
+
+class TestUDCTokenConfig:
+    def test_is_subclass_of_config_mapping(self, minimal_yaml_dict):
+        """The class is a subclass of :class:`ConfigMapping`."""
+        assert isinstance(UDCTokenSettings(minimal_yaml_dict), ConfigMapping)
+
+    @pytest.mark.parametrize(
+        "key, expected", argvalues=[("deposit", True), ("node_balance", 1000)]
+    )
+    def test_attributes_return_for_key_value_if_key_present(
+        self, key, expected, minimal_yaml_dict
+    ):
+        minimal_yaml_dict["settings"] = {"services": {"udc": {"token": {key: expected}}}}
+        config = UDCTokenSettings(minimal_yaml_dict)
+        MISSING = object()
+        assert getattr(config, key, MISSING) == expected
+
+    @pytest.mark.parametrize(
+        "key, expected", argvalues=[("deposit", False), ("node_balance", 5000)]
+    )
+    def test_attributes_whose_key_is_absent_return_expected_default(
+        self, key, expected, minimal_yaml_dict
+    ):
+        config = UDCTokenSettings(minimal_yaml_dict)
         MISSING = object()
         assert getattr(config, key, MISSING) == expected
