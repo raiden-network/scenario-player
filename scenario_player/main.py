@@ -92,7 +92,7 @@ def get_password(password, password_file):
     if password_file:
         password = open(password_file, "r").read().strip()
     if password == password_file is None:
-        password = getpass(prompt="Please enter your password: ", stream=None)
+        password = click.prompt(text="Please enter your password: ", hide_input=True)
     return password
 
 
