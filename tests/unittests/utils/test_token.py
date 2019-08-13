@@ -480,8 +480,7 @@ class TestUserDepositContract:
     @pytest.fixture(autouse=True)
     def set_up_udc_test_class(self, runner):
         with patch(
-            "scenario_player.utils.token.UserDepositContract.effective_balance",
-            new_callable=PropertyMock,
+            "scenario_player.utils.token.UserDepositContract.effective_balance"
         ) as mock_eb, patch(
             "scenario_player.utils.token.UserDepositContract.allowance", new_callable=PropertyMock
         ) as mock_allowance, patch(
@@ -499,7 +498,7 @@ class TestUserDepositContract:
     @patch("scenario_player.utils.token.Contract.transact")
     def test_update_allowance_is_noop_if_allowance_is_sufficient(self, mock_transact):
         self.instance.config.nodes.dict["count"] = 2
-        self.instance.config.settings.services.udc.token.dict["node_balance"] = 5_000
+        self.instance.config.settings.services.udc.token.dict["balance_per_node"] = 5_000
         self.mock_allowance.return_value = 10_000
 
         self.instance.update_allowance()
@@ -511,16 +510,16 @@ class TestUserDepositContract:
         new_callable=PropertyMock(return_value="ud_contract_addr"),
     )
     @patch("scenario_player.utils.token.Contract.transact")
-    def test_update_allowance_updates_allowance_according_to_udc_token_node_balance_yaml_setting(
+    def test_update_allowance_updates_allowance_according_to_udc_token_balance_per_node_yaml_setting(
         self, mock_transact, _
     ):
         self.instance.config.nodes.dict["count"] = 2
-        self.instance.config.settings.services.udc.token.dict["node_balance"] = 15_000
+        self.instance.config.settings.services.udc.token.dict["balance_per_node"] = 15_000
         self.mock_allowance.return_value = 5_000
         self.mock_ud_token_address.return_value = "ud_token_addr"
 
         # Expect an allowance transact request to be invoked, with its amount equal to:
-        #   (node_balance * node_count) - current_allowance
+        #   (balance_per_node * node_count) - current_allowance
         # Targeting the UD Contract address, calling from the UD Token address.
         expected_params = {
             "amount": 25_000,
@@ -536,9 +535,16 @@ class TestUserDepositContract:
     def test_deposit_method_issues_deposit_request_if_node_funding_is_insufficient(
         self, mock_transact
     ):
-        self.instance.config.settings.services.udc.token.dict["node_balance"] = 5_000
+        """deposit() deposits the correct amount of UDC Tokens at the target node's address.
+
+        amount = yaml.settings.services.udc.token.max_funding - target_node.effective_balance
+        """
+        self.instance.config.settings.services.udc.token.dict["balance_per_node"] = 5_000
+        self.instance.config.settings.services.udc.token.dict["max_funding"] = 10_000
         self.mock_effective_balance.return_value = 1000
-        expected_params = {"amount": 4_000, "target_address": "some_address"}
+
+        # amount = max_funding - effective_balance
+        expected_params = {"amount": 9_000, "target_address": "some_address"}
 
         self.instance.deposit("some_address")
 
@@ -546,7 +552,7 @@ class TestUserDepositContract:
 
     @patch("scenario_player.utils.token.Contract.transact")
     def test_deposit_methpd_is_noop_if_node_funding_is_sufficient(self, mock_transact):
-        self.instance.config.settings.services.udc.token.dict["node_balance"] = 5_000
+        self.instance.config.settings.services.udc.token.dict["balance_per_node"] = 5_000
         self.mock_effective_balance.return_value = 10_000
 
         self.instance.deposit("some_address")

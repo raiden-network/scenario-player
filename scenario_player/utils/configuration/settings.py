@@ -48,8 +48,17 @@ class UDCTokenSettings(ConfigMapping):
         return self.get("deposit", False)
 
     @property
-    def node_balance(self):
-        return int(self.get("node_balance", 5000))
+    def balance_per_node(self):
+        """The required amount of UDC/RDN tokens required by each node."""
+        return int(self.get("balance_per_node", 5000))
+
+    @property
+    def max_funding(self):
+        """The maximum amount to fund when depositing RDN tokens at a target.
+
+        It defaults to :attr:`.balance_per_node`'s value.
+        """
+        return int(self.get("max_funding", self.balance_per_node))
 
 
 class UDCSettingsConfig(ConfigMapping):
@@ -69,7 +78,7 @@ class UDCSettingsConfig(ConfigMapping):
               address: 0x1000001
               token:
                 deposit: True
-                node_balance: 5000
+                balance_per_node: 5000
             ...
     """
 

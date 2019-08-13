@@ -366,7 +366,7 @@ class UserDepositContract(Contract):
         """
         node_count = self.config.nodes.count
         udt_allowance = self.allowance
-        required_allowance = self.config.settings.services.udc.token.node_balance * node_count
+        required_allowance = self.config.settings.services.udc.token.balance_per_node * node_count
 
         log.debug(
             "Checking necessity of deposit request",
@@ -396,8 +396,9 @@ class UserDepositContract(Contract):
 
         TODO: Allow setting max funding parameter, similar to the token `funding_min` setting.
         """
-        balance = self.effective_balance
-        min_deposit = self.config.settings.services.udc.token.node_balance
+        balance = self.effective_balance(target_address)
+        min_deposit = self.config.settings.services.udc.token.balance_per_node
+        max_funding = self.config.settings.services.udc.token.max_funding
         log.debug(
             "Checking necessity of deposit request",
             required_balance=min_deposit,
@@ -408,6 +409,6 @@ class UserDepositContract(Contract):
             return
 
         log.debug("deposit call required - insufficient funds")
-        deposit_amount = min_deposit - balance
+        deposit_amount = max_funding - balance
         params = {"amount": deposit_amount, "target_address": target_address}
         return self.transact("deposit", params)
