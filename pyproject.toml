@@ -19,6 +19,7 @@ description-file = "README.rst"
 requires-python = ">3.6"
 requires = [
     'click',
+    "daemonize",
     'eth-utils',
     'flask',
     'flask_marshmallow',
