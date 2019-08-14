@@ -95,13 +95,12 @@ class ChainConfigType(click.ParamType):
 
 class MutuallyExclusiveOption(click.Option):
     def __init__(self, *args, **kwargs):
-        self.mutually_exclusive = set(kwargs.pop('mutually_exclusive', []))
-        help = kwargs.get('help', '')
+        self.mutually_exclusive = set(kwargs.pop("mutually_exclusive", []))
+        help = kwargs.get("help", "")
         if self.mutually_exclusive:
-            ex_str = ', '.join(self.mutually_exclusive)
-            kwargs['help'] = help + (
-                ' NOTE: This argument is mutually exclusive with '
-                ' arguments: [' + ex_str + '].'
+            ex_str = ", ".join(self.mutually_exclusive)
+            kwargs["help"] = help + (
+                " NOTE: This argument is mutually exclusive with " " arguments: [" + ex_str + "]."
             )
         super(MutuallyExclusiveOption, self).__init__(*args, **kwargs)
 
@@ -112,11 +111,7 @@ class MutuallyExclusiveOption(click.Option):
                 f"arguments {', '.join(self.mutually_exclusive)}."
             )
 
-        return super(MutuallyExclusiveOption, self).handle_parse_result(
-            ctx,
-            opts,
-            args
-        )
+        return super(MutuallyExclusiveOption, self).handle_parse_result(ctx, opts, args)
 
 
 class HTTPExecutor(mirakuru.HTTPExecutor):

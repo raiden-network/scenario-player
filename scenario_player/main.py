@@ -17,12 +17,12 @@ import gevent
 import requests
 import structlog
 from eth_utils import to_checksum_address
-from raiden.accounts import Account
-from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
-from raiden.utils.cli import EnumChoiceType
 from urwid import ExitMainLoop
 from web3.utils.transactions import TRANSACTION_DEFAULTS
 
+from raiden.accounts import Account
+from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
+from raiden.utils.cli import EnumChoiceType
 from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
@@ -127,14 +127,14 @@ def main(ctx, chains, data_path):
     type=click.Path(exists=True, dir_okay=False),
     cls=MutuallyExclusiveOption,
     mutually_exclusive=["password"],
-    default=None
+    default=None,
 )
 @click.option(
     "--password",
     envvar="ACCOUNT_PASSWORD",
     cls=MutuallyExclusiveOption,
     mutually_exclusive=["password-file"],
-    default=None
+    default=None,
 )
 @click.option("--auth", default="")
 @click.option("--mailgun-api-key")
@@ -152,8 +152,15 @@ def main(ctx, chains, data_path):
 )
 @click.pass_context
 def run(
-        ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, notify_tasks,
-        enable_ui, password_file
+    ctx,
+    mailgun_api_key,
+    auth,
+    password,
+    keystore_file,
+    scenario_file,
+    notify_tasks,
+    enable_ui,
+    password_file,
 ):
     scenario_file = Path(scenario_file.name).absolute()
     data_path = ctx.obj["data_path"]
@@ -291,7 +298,7 @@ def reclaim_eth(ctx, min_age, password, keystore_file):
     "--pack-n-latest",
     default=1,
     help="Specify the max num of log history you would like to pack. Defaults to 1."
-         "Specifying 0 will pack all available logs for a scenario.",
+    "Specifying 0 will pack all available logs for a scenario.",
 )
 @click.option("--post-to-rocket/--no-post-to-rocket", default=True)
 @click.argument("scenario-file", type=click.File(), required=True)
