@@ -213,7 +213,7 @@ def run(
 
     # Start the SPaaS Service stack.
     # This is a no-op if it's already running.
-    subprocess.run("spaas-stack start")
+    subprocess.run(["spaas-stack", "start"])
 
     # Run the scenario using the configurations passed.
     try:
@@ -282,7 +282,7 @@ def run(
                 ui_greenlet.kill(ExitMainLoop)
                 ui_greenlet.join()
             if not no_spaas_teardown:
-                subprocess.run("spaas-stack stop")
+                subprocess.run(["spaas-stack", "stop"])
 
 
 @main.command(name="reclaim-eth")
