@@ -8,6 +8,7 @@ import logging
 import flask
 import structlog
 import waitress
+from daemonize import Daemonize
 
 from scenario_player.services.common.blueprints import admin_blueprint, metrics_blueprint
 from scenario_player.services.rpc.blueprints import (
@@ -16,11 +17,7 @@ from scenario_player.services.rpc.blueprints import (
     transactions_blueprint,
 )
 from scenario_player.services.rpc.utils import RPCRegistry
-from scenario_player.services.utils.factories import (
-    default_service_daemon_cli,
-    start_daemon,
-    stop_daemon,
-)
+from scenario_player.services.utils.factories import default_service_daemon_cli
 
 
 def rpc_app():
@@ -50,17 +47,6 @@ def rpc_app():
     return app
 
 
-def serve_rpc(logfile_path, host, port):
-    """Run an RPC flask app as a daemonized process."""
-    logging.basicConfig(filename=logfile_path, filemode="a+", level=logging.DEBUG)
-    log = structlog.getLogger()
-
-    app = rpc_app()
-
-    log.info("Starting RPC Service", host=host, port=port)
-    waitress.serve(app, host=host, port=port)
-
-
 def service_daemon():
     parser = default_service_daemon_cli()
 
@@ -71,17 +57,22 @@ def service_daemon():
     logfile_path = logfile_path.joinpath("SPaaS-RPC.log")
     logfile_path.touch()
 
+    host, port = args.host, args.port
+
+    def serve_rpc():
+        """Run an RPC flask app as a daemonized process."""
+        logging.basicConfig(filename=logfile_path, filemode="a+", level=logging.DEBUG)
+        log = structlog.getLogger()
+
+        app = rpc_app()
+
+        log.info("Starting RPC Service", host=host, port=port)
+        waitress.serve(app, host=host, port=port)
+
     PIDFILE = args.raiden_dir.joinpath("spaas", "rpc-service.pid")
 
+    daemon = Daemonize("SPaaS-RPC", PIDFILE, serve_rpc)
     if args.command == "start":
-        start_daemon(
-            PIDFILE,
-            serve_rpc,
-            logfile_path,
-            args.host,
-            args.port,
-            stdout=logfile_path,
-            stderr=logfile_path,
-        )
+        daemon.start()
     elif args.command == "stop":
-        stop_daemon(PIDFILE)
+        daemon.exit()

@@ -2,26 +2,14 @@ import logging
 
 import structlog
 import waitress
+from daemonize import Daemonize
 
 from scenario_player.services.utils.factories import (
     construct_flask_app,
     default_service_daemon_cli,
-    start_daemon,
-    stop_daemon,
 )
 
 log = structlog.getLogger(__name__)
-
-
-def serve_spaas_stack(logfile_path, host, port):
-    """Run an RPC flask app as a daemonized process."""
-    logging.basicConfig(filename=logfile_path, filemode="a+", level=logging.DEBUG)
-    log = structlog.getLogger()
-
-    app = construct_flask_app()
-
-    log.info("Starting SPaaS Service Stack", host=host, port=port)
-    waitress.serve(app, host=host, port=port)
 
 
 def service_daemon():
@@ -36,15 +24,21 @@ def service_daemon():
 
     PIDFILE = args.raiden_dir.joinpath("spaas", "service-stack.pid")
 
+    host, port = args.host, args.port
+
+    def serve_spaas_stack():
+        """Run an RPC flask app as a daemonized process."""
+        logging.basicConfig(filename=logfile_path, filemode="a+", level=logging.DEBUG)
+        log = structlog.getLogger()
+
+        app = construct_flask_app()
+
+        log.info("Starting SPaaS Service Stack", host=host, port=port)
+        waitress.serve(app, host=host, port=port)
+
+    daemon = Daemonize("SPaaS-RPC", PIDFILE, serve_rpc)
+
     if args.command == "start":
-        start_daemon(
-            PIDFILE,
-            serve_spaas_stack,
-            logfile_path,
-            args.host,
-            args.port,
-            stdout=logfile_path,
-            stderr=logfile_path,
-        )
+        daemon.start()
     elif args.command == "stop":
-        stop_daemon(PIDFILE)
+        daemon.exit()
