@@ -327,10 +327,10 @@ class ScenarioRunner:
         self.node_controller.initialize_nodes()
         node_addresses = self.node_controller.addresses
         node_count = len(self.node_controller)
-        balance_per_nodes = {address: self.client.balance(address) for address in node_addresses}
+        balance_per_node = {address: self.client.balance(address) for address in node_addresses}
         low_balances = {
             address: balance
-            for address, balance in balance_per_nodes.items()
+            for address, balance in balance_per_node.items()
             if balance < NODE_ACCOUNT_BALANCE_MIN
         }
         if low_balances:
