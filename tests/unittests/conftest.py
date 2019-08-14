@@ -15,7 +15,7 @@ from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 def minimal_yaml_dict():
     """A dictionary with the minimum required keys for instantiating any ConfigMapping."""
     return {
-        "scenario": {"serial": {"runner": None, "config": "salami"}},
+        "scenario": {"serial": {"tasks": {"wait_blocks": {"blocks": 5}}}},
         "settings": {},
         "token": {},
         "nodes": {"count": 1},

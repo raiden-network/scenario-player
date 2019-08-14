@@ -37,6 +37,30 @@ class PFSSettingsConfig(ConfigMapping):
         return self.get("url")
 
 
+class UDCTokenSettings(ConfigMapping):
+    def __init__(self, loaded_yaml: dict):
+        udc_settings = ((loaded_yaml.get("settings") or {}).get("services") or {}).get("udc") or {}
+        super(UDCTokenSettings, self).__init__(udc_settings.get("token"))
+        print(self.dict)
+
+    @property
+    def deposit(self):
+        return self.get("deposit", False)
+
+    @property
+    def balance_per_node(self):
+        """The required amount of UDC/RDN tokens required by each node."""
+        return int(self.get("balance_per_node", 5000))
+
+    @property
+    def max_funding(self):
+        """The maximum amount to fund when depositing RDN tokens at a target.
+
+        It defaults to :attr:`.balance_per_node`'s value.
+        """
+        return int(self.get("max_funding", self.balance_per_node))
+
+
 class UDCSettingsConfig(ConfigMapping):
     """UDC Service Settings interface.
 
@@ -54,6 +78,7 @@ class UDCSettingsConfig(ConfigMapping):
               address: 0x1000001
               token:
                 deposit: True
+                balance_per_node: 5000
             ...
     """
 
@@ -61,6 +86,7 @@ class UDCSettingsConfig(ConfigMapping):
         services_dict = (loaded_yaml.get("settings") or {}).get("services") or {}
         super(UDCSettingsConfig, self).__init__(services_dict.get("udc", {}))
         self.validate()
+        self.token = UDCTokenSettings(loaded_yaml)
 
     @property
     def enable(self):
@@ -69,10 +95,6 @@ class UDCSettingsConfig(ConfigMapping):
     @property
     def address(self):
         return self.get("address")
-
-    @property
-    def token(self):
-        return self.get("token", {"deposit": False})
 
 
 class ServiceSettingsConfig(ConfigMapping):
