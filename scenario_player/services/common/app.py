@@ -36,7 +36,7 @@ def service_daemon():
         log.info("Starting SPaaS Service Stack", host=host, port=port)
         waitress.serve(app, host=host, port=port)
 
-    daemon = Daemonize("SPaaS-RPC", PIDFILE, serve_rpc)
+    daemon = Daemonize("SPaaS-RPC", PIDFILE, serve_spaas_stack)
 
     if args.command == "start":
         daemon.start()

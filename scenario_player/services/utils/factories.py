@@ -1,9 +1,5 @@
 import argparse
-import atexit
-import os
 import pathlib
-import signal
-import sys
 from typing import Mapping
 
 import flask
