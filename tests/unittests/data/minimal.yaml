@@ -1,0 +1,9 @@
+scenario:
+  - serial:
+    - tasks: None
+      - wait_block: {"blocks": 5}
+  settings:
+  token:
+  nodes":
+    - count: 1
+  spaas:

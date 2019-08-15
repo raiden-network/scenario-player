@@ -31,6 +31,7 @@ requires = [
     'redis',
     'raiden',
     'structlog',
+    'simplejson',
     'urwid',
     'waitress',
 ]
