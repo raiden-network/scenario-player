@@ -20,7 +20,6 @@ style: isort black
 lint: flake8 black-check isort-check
 
 install-dev:
-	pip install -r https://raw.githubusercontent.com/raiden-network/raiden/develop/requirements/requirements-dev.txt
 	pip install ".[dev]"
 
 unit-tests:
