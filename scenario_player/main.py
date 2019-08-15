@@ -285,9 +285,8 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
         print(f"No log directory found for scenario {scenario_name} at {scenario_log_dir}")
         return
 
-    # List all folders
-    folders = [path for path in scenario_log_dir.iterdir() if path.is_dir()]
-
+    # List all node folders which fall into the range of pack_n_latest
+    folders = pack_n_latest_node_logs_in_dir(scenario_log_dir, pack_n_latest)
     # List all files that match the filters `scenario_name` and the `pack_n_latest` counter.
     files = pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir, pack_n_latest)
 
