@@ -99,4 +99,4 @@ if CURRENT_BRANCH == "master":
     # on the next merge commit to it.
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} checkout dev".split(" "), check=True)
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} merge master".split(" "), check=True)
-    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} git push".split(" "), check=True)
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} push".split(" "), check=True)
