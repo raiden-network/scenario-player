@@ -166,8 +166,9 @@ def main(ctx, chains, data_path):
     "--spaas-no-teardown",
     "no_spaas_teardown",
     default=False,
+    is_flag=True,
     help="Do NOT tear down the spaas stack after scenario execution completes. "
-    "Allows runnign scenarios concurrently. [Default: False]",
+    "Allows running scenarios concurrently. [Default: False]",
 )
 @click.pass_context
 def run(
