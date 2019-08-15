@@ -44,13 +44,13 @@ class TestScenarioRunner:
         mock_request.return_value = response
 
         with pytest.raises(TokenNetworkDiscoveryTimeout):
-            runner.wait_for_token_network_discovery("test_node")
+            runner.wait_for_token_network_discovery(["test_node1", "test_node2"])
 
     def test_wait_for_token_network_discovery_returns_checksum_when_network_is_discovered(
         self, mock_request, response, runner
     ):
         mock_request.return_value = response
-        actual = runner.wait_for_token_network_discovery("test_node")
+        actual = runner.wait_for_token_network_discovery(["test_node1", "test_node2"])
         assert actual == response.payload
 
     @pytest.mark.token_network_discovery
@@ -68,7 +68,7 @@ class TestScenarioRunner:
         mock_request.side_effect = (response, sentinel_response)
 
         try:
-            runner.wait_for_token_network_discovery("test_node")
+            runner.wait_for_token_network_discovery(["test_node1", "test_node2"])
         except requests.HTTPError:
             if should_raise_http_error:
                 return
@@ -90,7 +90,7 @@ class TestScenarioRunner:
 
         # Somehow, wrapping a pytest.raises() block instead always raised a false positive.
         try:
-            runner.wait_for_token_network_discovery("test_node")
+            runner.wait_for_token_network_discovery(["test_node1", "test_node2"])
         except TypeError as e:
             if not is_checksum:
                 # Should have raised the TypeError, all good.

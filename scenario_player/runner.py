@@ -157,8 +157,8 @@ class ScenarioRunner:
                 f'The scenario requested chain "{chain_name}" for which no RPC-URL is known.'
             )
 
-    def wait_for_token_network_discovery(self, node):
-        """Check for token network discovery with the given `node`.
+    def wait_for_token_network_discovery(self, node_urls):
+        """Check for token network discovery for all `nodes`.
 
         By default exit the wait if the token has not been discovered after `n` seconds,
         where `n` is the value of :attr:`.timeout`.
@@ -167,43 +167,50 @@ class ScenarioRunner:
             If we waited a set time for the token network to be discovered, but it wasn't.
         """
         log.info("Waiting till new network is found by nodes")
-        node_endpoint = API_URL_TOKEN_NETWORK_ADDRESS.format(
-            protocol=self.protocol, target_host=node, token_address=self.token.address
-        )
 
-        started = time.monotonic()
-        elapsed = 0
-        while elapsed < self.yaml.settings.timeout:
-            try:
-                resp = self.session.get(node_endpoint)
-                resp.raise_for_status()
+        token_network_address = None
+        for node_url in node_urls:
+            node_endpoint = API_URL_TOKEN_NETWORK_ADDRESS.format(
+                protocol=self.protocol, target_host=node_url, token_address=self.token.address
+            )
 
-            except HTTPError as e:
-                # We explicitly handle 404 Not Found responses only - anything else is none
-                # of our business.
-                if e.response.status_code != 404:
-                    raise
+            started = time.monotonic()
+            elapsed = 0
+            while elapsed < self.yaml.settings.timeout:
+                try:
+                    resp = self.session.get(node_endpoint)
+                    resp.raise_for_status()
 
-                # Wait before continuing, no sense in spamming the node.
-                gevent.sleep(1)
+                except HTTPError as e:
+                    # We explicitly handle 404 Not Found responses only - anything else is none
+                    # of our business.
+                    if e.response.status_code != 404:
+                        raise
 
-                # Update our elapsed time tracker.
-                elapsed = time.monotonic() - started
-                continue
+                    # Wait before continuing, no sense in spamming the node.
+                    gevent.sleep(1)
 
-            else:
-                # The node appears to have discovered our token network.
-                data = resp.json()
+                    # Update our elapsed time tracker.
+                    elapsed = time.monotonic() - started
+                    continue
 
-                if not is_checksum_address(data):
-                    # Something's amiss about this response. Notify a human.
-                    raise TypeError(f"Unexpected response type from API: {data!r}")
+                else:
+                    # The node appears to have discovered our token network.
+                    token_network_address = resp.json()
 
-                return data
+                    if not is_checksum_address(token_network_address):
+                        # Something's amiss about this response. Notify a human.
+                        raise TypeError(
+                            f"Unexpected response type from API: {token_network_address!r}"
+                        )
+                    break
 
-        # We could not assert that our token network was registered within an
-        # acceptable time frame.
-        raise TokenNetworkDiscoveryTimeout
+            # We could not assert that our token network was registered within an
+            # acceptable time frame.
+            if elapsed >= self.yaml.settings.timeout:
+                raise TokenNetworkDiscoveryTimeout
+
+        return token_network_address
 
     def run_scenario(self):
         mint_gas = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
@@ -244,8 +251,8 @@ class ScenarioRunner:
                 log.error("Couldn't register token with network", code=code, message=msg)
                 raise TokenRegistrationError(msg)
 
-        last_node = self.node_controller[-1].base_url
-        self.token_network_address = self.wait_for_token_network_discovery(last_node)
+        node_urls = [node.base_url for node in self.node_controller]
+        self.token_network_address = self.wait_for_token_network_discovery(node_urls)
 
         log.info(
             "Received token network address", token_network_address=self.token_network_address
