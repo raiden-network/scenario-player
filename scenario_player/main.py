@@ -95,6 +95,14 @@ def get_password(password, password_file):
     return password
 
 
+def get_acocunt(keystore_file, password):
+    try:
+        account = load_account_obj(keystore_file, password)
+    except ValueError:
+        raise WrongPassword
+    return account
+
+
 @click.group(invoke_without_command=True, context_settings={"max_content_width": 120})
 @click.option(
     "--data-path",
@@ -171,10 +179,7 @@ def run(
 
     password = get_password(password, password_file)
 
-    try:
-        account = load_account_obj(keystore_file, password)
-    except ValueError:
-        raise WrongPassword
+    account = get_acocunt(keystore_file, password)
 
     notify_tasks_callable = None
     if notify_tasks is TaskNotifyType.ROCKETCHAT:
@@ -265,7 +270,20 @@ def run(
 
 @main.command(name="reclaim-eth")
 @click.option("--keystore-file", required=True, type=click.Path(exists=True, dir_okay=False))
-@click.password_option("--password", envvar="ACCOUNT_PASSWORD", required=True)
+@click.option(
+    "--password-file",
+    type=click.Path(exists=True, dir_okay=False),
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password"],
+    default=None,
+)
+@click.option(
+    "--password",
+    envvar="ACCOUNT_PASSWORD",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password-file"],
+    default=None,
+)
 @click.option(
     "--min-age",
     default=72,
@@ -273,12 +291,13 @@ def run(
     help="Minimum account non-usage age before reclaiming eth. In hours.",
 )
 @click.pass_context
-def reclaim_eth(ctx, min_age, password, keystore_file):
+def reclaim_eth(ctx, min_age, password, password_file, keystore_file):
     from scenario_player.utils import reclaim_eth
 
     data_path = ctx.obj["data_path"]
     chain_rpc_urls = ctx.obj["chain_rpc_urls"]
-    account = load_account_obj(keystore_file, password)
+    password = get_password(password, password_file)
+    account = get_acocunt(keystore_file, password)
 
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
 
