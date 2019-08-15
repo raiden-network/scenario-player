@@ -4,6 +4,8 @@ from typing import List
 
 def pack_n_latest_node_logs_in_dir(scenario_dir: Path, n: int) -> List[Path]:
     """Return the node log folder paths for the `n` last runs."""
+    if n == 0:
+        return []
     # Get the number of runs that have been conducted
     run_num_file = scenario_dir.joinpath("run_number.txt")
     latest_run = 0
@@ -29,6 +31,8 @@ def pack_n_latest_node_logs_in_dir(scenario_dir: Path, n: int) -> List[Path]:
 
 def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path, n) -> List[Path]:
     """ List the `n` newest scenario log files in the given `scenario_log_dir`."""
+    if n == 0:
+        return []
     # Get all scenario run logs, sort and reverse them (newest first)
     scenario_logs = [
         path for path in scenario_log_dir.iterdir() if (path.is_file() and "-run_" in path.name)
