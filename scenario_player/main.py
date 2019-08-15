@@ -95,7 +95,7 @@ def get_password(password, password_file):
     return password
 
 
-def get_acocunt(keystore_file, password):
+def get_account(keystore_file, password):
     try:
         account = load_account_obj(keystore_file, password)
     except ValueError:
@@ -179,7 +179,7 @@ def run(
 
     password = get_password(password, password_file)
 
-    account = get_acocunt(keystore_file, password)
+    account = get_account(keystore_file, password)
 
     notify_tasks_callable = None
     if notify_tasks is TaskNotifyType.ROCKETCHAT:
@@ -297,7 +297,7 @@ def reclaim_eth(ctx, min_age, password, password_file, keystore_file):
     data_path = ctx.obj["data_path"]
     chain_rpc_urls = ctx.obj["chain_rpc_urls"]
     password = get_password(password, password_file)
-    account = get_acocunt(keystore_file, password)
+    account = get_account(keystore_file, password)
 
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
 
