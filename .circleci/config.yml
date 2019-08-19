@@ -37,6 +37,10 @@ PR_branches_only: &PR_branches_only
       ignore:
         - /^\d+\.\d+.*/
 
+steps_for_valid_commits: &steps_for_valid_commits
+  steps:
+    - run:
+        command: skip_bad_commit_format
 
 ################################################################################
 #                                                                              #
@@ -114,7 +118,7 @@ commands:
             make install-dev
 
 
-  validate_commit_format:
+  skip_bad_commit_format:
     description: Validate the first line of the commit message against a REGEX.
     steps:
       - run:
@@ -173,15 +177,15 @@ jobs:
 
   validate-commit-message:
     executor: default-executor
-    steps:
+    *steps_for_valid_commits:
       - attach_workspace:
           at: "/home/circleci"
       - export_env_vars
-      - validate_commit_format
+      - skip_bad_commit_format
 
   prep-system:
     executor: default-executor
-    steps:
+    *steps_for_valid_commits:
       - checkout
       - prep_venv
       - export_env_vars
@@ -192,9 +196,16 @@ jobs:
 
   # Run all test suites (aka the test harness) of the repository and lint-check
   # our code base.
-  lint-and-test:
+  test-harness:
     executor: default-executor
-    steps:
+    *steps_for_valid_commits:
+      - attach_workspace:
+          at: "/home/circleci"
+      - run_test_harness
+
+  syle-check-and-lint:
+    executor: default-executor
+    *steps_for_valid_commits:
       - attach_workspace:
           at: "/home/circleci"
       - lint_codebase
@@ -204,7 +215,7 @@ jobs:
   # release type to the version.
   bump-versions:
     executor: default-executor
-    steps:
+    *steps_for_valid_commits:
       - attach_workspace:
           at: "/home/circleci"
       - export_env_vars
@@ -230,7 +241,7 @@ jobs:
   # Publish a wheel and tarball of the Scenario Player to pypi.
   deploy-to-pypi:
     executor: default-executor
-    steps:
+    *steps_for_valid_commits:
       - checkout
       - run:
           name: Publish to pypi using flit.
@@ -241,12 +252,12 @@ jobs:
 
   tear-down:
     executor: default-executor
-    steps:
+    *steps_for_valid_commits:
       - store_env
 
   finalize:
     executor: default-executor
-    steps:
+    *steps_for_valid_commits:
       - run: echo "done".
 
 ################################################################################
@@ -263,7 +274,12 @@ workflows:
       - prep-system:
           <<: *PR_branches_only
 
-      - lint-and-test:
+      - test-harness:
+          context: Raiden-SP-Context
+          requires:
+            - prep-system
+
+      - syle-check-and-lint:
           context: Raiden-SP-Context
           requires:
             - prep-system
@@ -271,23 +287,19 @@ workflows:
       - finalize:
           requires:
             - prep-system
-            - lint-and-test
+            - syle-check-and-lint
+            - test-harness
 
   Merge-Commit-Workflow:
     jobs:
       - prep-system:
           <<: *master_dev_only
 
-      - validate-commit-message:
-          context: Raiden-SP-Context
-          requires:
-            - prep-system
-
       # Run linters and test harnesses against PR branches.
       - lint-and-test:
           context: Raiden-SP-Context
           requires:
-            - validate-commit-message
+            - prep-system
 
       # Bump the minor or patch for `master` on each merge commit.
       - bump-versions:
