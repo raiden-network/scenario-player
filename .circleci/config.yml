@@ -118,7 +118,7 @@ commands:
     steps:
       - run:
           name: Validate the commit's title description.
-          command: python3 ${CI_SCRIPTS_DIR}/validate-commit-message.py
+          command: python3 ${CI_SCRIPTS_DIR}/skip-on-bad-commit-message.py
 
   # ================================== #
   # Linter and test execution commands #
