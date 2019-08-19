@@ -98,5 +98,6 @@ if CURRENT_BRANCH == "master":
     # Sync up our versions between dev and master. The actual bump to dev's tag will be done
     # on the next merge commit to it.
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} checkout dev".split(" "), check=True)
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} pull".split(" "), check=True)
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} merge master".split(" "), check=True)
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} push".split(" "), check=True)
