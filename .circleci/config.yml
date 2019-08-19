@@ -187,7 +187,6 @@ jobs:
       - checkout
       - prep_venv
       - export_env_vars
-      - skip_bad_commit_format
       - persist_to_workspace:
           paths:
             - ci
