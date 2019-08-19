@@ -4,6 +4,13 @@
 .. image:: https://circleci.com/gh/raiden-network/scenario-player.svg?style=shield
     :target: https://circleci.com/gh/raiden-network/scenario-player
 
+.. image:: https://img.shields.io/docker/cloud/build/raidennetwork/scenario-player
+    :alt: Docker Cloud Build Status
+    :target: https://cloud.docker.com/u/raidennetwork/repository/docker/raidennetwork/scenario-player/general
+
+.. image:: https://img.shields.io/github/tag-date/raiden-network/scenario-player?label=STABLE
+    :target: https://github.com/raiden-network/scenario-player/releases
+
 .. image:: https://img.shields.io/github/license/raiden-network/scenario-player
     :target: https>//github.com/raiden-network/scenario-player
 
@@ -13,9 +20,6 @@
 .. image:: https://img.shields.io/github/issues-raw/raiden-network/scenario-player/Feature request?color=orange&label=Open%20Feature%20Requests
     :target: https://github.com/raiden-network/scenario-player/issues?q=is%3Aissue+is%3Aopen+label%3A%22Feature+request%22
 
-.. image:: https://img.shields.io/github/tag-date/raiden-network/scenario-player?label=STABLE
-
-.. image:: https://img.shields.io/github/tag/raiden-network/scenario-player?label=LATEST
 
 Raiden Scenario Player
 ######################
