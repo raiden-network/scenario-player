@@ -15,7 +15,6 @@ def pack_n_latest_node_logs_in_dir(scenario_dir: Path, n: int) -> List[Path]:
     # Run count starts at 0
     num_of_runs = latest_run + 1
 
-
     # Avoid negative indices.
     earliest_run_to_pack = max(num_of_runs - n, 0)
 
@@ -63,7 +62,9 @@ def verify_scenario_log_dir(scenario_name, data_path: Path):
     scenarios_dir = data_path.joinpath("scenarios")
     scenario_log_dir = scenarios_dir.joinpath(scenario_name)
     if not scenario_log_dir.exists():
-        raise FileNotFoundError(f"No log directory found for scenario {scenario_name} at {scenario_log_dir}")
+        raise FileNotFoundError(
+            f"No log directory found for scenario {scenario_name} at {scenario_log_dir}"
+        )
     if not scenario_log_dir.is_dir():
         raise NotADirectoryError(f"Scenario Log path {scenario_log_dir} is not a directory!")
     return scenarios_dir, scenario_log_dir

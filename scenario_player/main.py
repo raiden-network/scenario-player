@@ -36,7 +36,9 @@ from scenario_player.utils import (
     send_notification_mail,
 )
 from scenario_player.utils.logs import (
-    pack_n_latest_logs_for_scenario_in_dir, pack_n_latest_node_logs_in_dir, verify_scenario_log_dir,
+    pack_n_latest_logs_for_scenario_in_dir,
+    pack_n_latest_node_logs_in_dir,
+    verify_scenario_log_dir,
 )
 
 log = structlog.get_logger(__name__)
