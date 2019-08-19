@@ -99,5 +99,7 @@ if CURRENT_BRANCH == "master":
     # on the next merge commit to it.
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} checkout dev".split(" "), check=True)
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} pull".split(" "), check=True)
-    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} merge master".split(" "), check=True)
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} git checkout master .bumpversion.cfg".split(" "), check=True)
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} git checkout master scenario_player/__init__.py".split(" "), check=True)
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} git commit .bumpversion.cfg scenario_player/__init__.py -m 'Sync Branch Versions.'".split(" "), check=True)
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} push".split(" "), check=True)
