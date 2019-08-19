@@ -201,7 +201,7 @@ jobs:
       - setup-job
       - run_test_harness
 
-  syle-check-and-lint:
+  style-check-and-lint:
     executor: default-executor
     steps:
       - setup-job
@@ -282,7 +282,7 @@ workflows:
           requires:
             - prep-system
 
-      - syle-check-and-lint:
+      - style-check-and-lint:
           context: Raiden-SP-Context
           requires:
             - prep-system
@@ -290,7 +290,7 @@ workflows:
       - finalize:
           requires:
             - prep-system
-            - syle-check-and-lint
+            - style-check-and-lint
             - test-harness
 
   Merge-Commit-Workflow:
