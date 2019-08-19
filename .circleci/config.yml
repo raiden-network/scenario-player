@@ -37,11 +37,6 @@ PR_branches_only: &PR_branches_only
       ignore:
         - /^\d+\.\d+.*/
 
-steps_for_valid_commits: &steps_for_valid_commits
-  steps:
-    - run:
-        command: skip_bad_commit_format
-
 ################################################################################
 #                                                                              #
 # Custom Executor definitions.                                                 #
@@ -175,17 +170,10 @@ commands:
 
 jobs:
 
-  validate-commit-message:
-    executor: default-executor
-    *steps_for_valid_commits:
-      - attach_workspace:
-          at: "/home/circleci"
-      - export_env_vars
-      - skip_bad_commit_format
-
   prep-system:
     executor: default-executor
-    *steps_for_valid_commits:
+    steps:
+      - skip_bad_commit_format
       - checkout
       - prep_venv
       - export_env_vars
@@ -198,14 +186,24 @@ jobs:
   # our code base.
   test-harness:
     executor: default-executor
-    *steps_for_valid_commits:
+    steps:
+      - skip_bad_commit_format
       - attach_workspace:
           at: "/home/circleci"
       - run_test_harness
 
   syle-check-and-lint:
     executor: default-executor
-    *steps_for_valid_commits:
+    steps:
+      - skip_bad_commit_format
+      - attach_workspace:
+          at: "/home/circleci"
+      - lint_codebase
+
+  lint-and-test:
+    executor: default-executor
+    steps:
+      - skip_bad_commit_format
       - attach_workspace:
           at: "/home/circleci"
       - lint_codebase
@@ -215,7 +213,8 @@ jobs:
   # release type to the version.
   bump-versions:
     executor: default-executor
-    *steps_for_valid_commits:
+    steps:
+      - skip_bad_commit_format
       - attach_workspace:
           at: "/home/circleci"
       - export_env_vars
@@ -241,7 +240,8 @@ jobs:
   # Publish a wheel and tarball of the Scenario Player to pypi.
   deploy-to-pypi:
     executor: default-executor
-    *steps_for_valid_commits:
+    steps:
+      - skip_bad_commit_format
       - checkout
       - run:
           name: Publish to pypi using flit.
@@ -252,12 +252,14 @@ jobs:
 
   tear-down:
     executor: default-executor
-    *steps_for_valid_commits:
+    steps:
+      - skip_bad_commit_format
       - store_env
 
   finalize:
     executor: default-executor
-    *steps_for_valid_commits:
+    steps:
+      - skip_bad_commit_format
       - run: echo "done".
 
 ################################################################################
@@ -319,7 +321,6 @@ workflows:
       - finalize:
           requires:
             - prep-system
-            - validate-commit-message
             - lint-and-test
             - bump-versions
             - tear-down
