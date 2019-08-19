@@ -7,7 +7,7 @@ def pack_n_latest_node_logs_in_dir(scenario_dir: Path, n: int) -> List[Path]:
     if n == 0:
         return []
     # Get the number of runs that have been conducted
-    run_num_file = scenario_dir.joinpath("run_number.txt")
+    run_num_file = scenario_dir.joinpath("run_num.txt")
     latest_run = 0
     if run_num_file.exists():
         latest_run = int(run_num_file.read_text())
@@ -15,12 +15,12 @@ def pack_n_latest_node_logs_in_dir(scenario_dir: Path, n: int) -> List[Path]:
     # Run count starts at 0
     num_of_runs = latest_run + 1
 
+
     # Avoid negative indices.
     earliest_run_to_pack = max(num_of_runs - n, 0)
 
     folders = []
     for run_num in range(earliest_run_to_pack, num_of_runs):
-        print("Collecting")
         for path in scenario_dir.iterdir():
             if not path.is_dir() or not path.name.startswith(f"node_{run_num}_"):
                 continue
@@ -40,7 +40,9 @@ def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path
     history = sorted(scenario_logs, reverse=True)
 
     # Can't pack more than the number of available logs.
-    num_of_packable_iterations = max(n, len(scenario_logs))
+    num_of_packable_iterations = min(n, len(scenario_logs))
+    print(scenario_logs)
+    print(n, len(scenario_logs), num_of_packable_iterations)
 
     if not history:
         raise RuntimeError(f"No Scenario logs found in {scenario_log_dir}")
