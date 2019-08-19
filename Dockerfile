@@ -4,15 +4,7 @@
 ARG PY_VERSION=3.7
 FROM python:$PY_VERSION AS cache
 
-# Clone raiden repo and switch to its `develop` branch
-RUN git clone https://github.com/raiden-network/raiden /raiden
-RUN git --git-dir /raiden/.git checkout develop
-
-# Install raiden's development dependencies.
-RUN pip install -r /raiden/requirements/requirements-dev.txt
-
-# Install the raiden package
-RUN pip install ./raiden
+RUN pip install raiden
 
 FROM python:${PY_VERSION}
 
