@@ -1,24 +1,30 @@
 .. image:: https://codecov.io/gh/raiden-network/scenario-player/branch/master/graph/badge.svg
+    :alt: Code Coverage
     :target: https://codecov.io/gh/raiden-network/scenario-player
 
 .. image:: https://circleci.com/gh/raiden-network/scenario-player.svg?style=shield
+    :alt: CI Status
     :target: https://circleci.com/gh/raiden-network/scenario-player
 
 .. image:: https://img.shields.io/docker/cloud/build/raidennetwork/scenario-player
-    :alt: Docker Cloud Build Status
+    :alt: Docker Cloud
     :target: https://cloud.docker.com/u/raidennetwork/repository/docker/raidennetwork/scenario-player/general
 
 .. image:: https://img.shields.io/github/tag-date/raiden-network/scenario-player?label=STABLE
+    :alt: Releases
     :target: https://github.com/raiden-network/scenario-player/releases
 
 .. image:: https://img.shields.io/github/license/raiden-network/scenario-player
+    :alt: License
     :target: https>//github.com/raiden-network/scenario-player
 
 .. image:: https://img.shields.io/github/issues-raw/raiden-network/scenario-player/bug?color=red&label=Open%20Bugs
+    :alt: Open Bugs
     :target: https://github.com/raiden-network/scenario-player/issues?q=is%3Aissue+is%3Aopen+label%3Abug
 
 .. image:: https://img.shields.io/github/issues-raw/raiden-network/scenario-player/Feature request?label=Open%20Feature%20Requests
     :alt: Open Feature Requests
+    :target: https://github.com/raiden-network/scenario-player/issues?q=is%3Aissue+is%3Aopen+label%3A%22Feature+request%22
 
 Raiden Scenario Player
 ######################
