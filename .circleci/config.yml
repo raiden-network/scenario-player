@@ -173,8 +173,8 @@ jobs:
   prep-system:
     executor: default-executor
     steps:
-      - skip_bad_commit_format
       - checkout
+      - skip_bad_commit_format
       - prep_venv
       - export_env_vars
       - persist_to_workspace:
@@ -187,25 +187,25 @@ jobs:
   test-harness:
     executor: default-executor
     steps:
-      - skip_bad_commit_format
       - attach_workspace:
           at: "/home/circleci"
+      - skip_bad_commit_format
       - run_test_harness
 
   syle-check-and-lint:
     executor: default-executor
     steps:
-      - skip_bad_commit_format
       - attach_workspace:
           at: "/home/circleci"
+      - skip_bad_commit_format
       - lint_codebase
 
   lint-and-test:
     executor: default-executor
     steps:
-      - skip_bad_commit_format
       - attach_workspace:
           at: "/home/circleci"
+      - skip_bad_commit_format
       - lint_codebase
       - run_test_harness
 
@@ -214,9 +214,9 @@ jobs:
   bump-versions:
     executor: default-executor
     steps:
-      - skip_bad_commit_format
       - attach_workspace:
           at: "/home/circleci"
+      - skip_bad_commit_format
       - export_env_vars
       - run:
           name: Add Github to known hosts.
@@ -241,8 +241,8 @@ jobs:
   deploy-to-pypi:
     executor: default-executor
     steps:
-      - skip_bad_commit_format
       - checkout
+      - skip_bad_commit_format
       - run:
           name: Publish to pypi using flit.
           command: |
@@ -253,13 +253,11 @@ jobs:
   tear-down:
     executor: default-executor
     steps:
-      - skip_bad_commit_format
       - store_env
 
   finalize:
     executor: default-executor
     steps:
-      - skip_bad_commit_format
       - run: echo "done".
 
 ################################################################################
