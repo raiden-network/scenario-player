@@ -67,6 +67,17 @@ commands:
   # CI Setup Commands #
   # ================= #
 
+  setup-job:
+    description: |
+      Attach the workspace and load ENV variables.
+      Additionally skips the job this is used in, if the commit message is invalid
+      (unless the workflow executing the job is running on "master" or "dev").
+    steps:
+      - attach_workspace:
+          at: "/home/circleci"
+      - export_env_vars
+      - skip_bad_commit_format
+
   export_env_vars:
     description: Export ENV variables used by our script.
     steps:
@@ -174,9 +185,9 @@ jobs:
     executor: default-executor
     steps:
       - checkout
-      - skip_bad_commit_format
       - prep_venv
       - export_env_vars
+      - skip_bad_commit_format
       - persist_to_workspace:
           paths:
             - ci
@@ -187,25 +198,19 @@ jobs:
   test-harness:
     executor: default-executor
     steps:
-      - attach_workspace:
-          at: "/home/circleci"
-      - skip_bad_commit_format
+      - setup-job
       - run_test_harness
 
   syle-check-and-lint:
     executor: default-executor
     steps:
-      - attach_workspace:
-          at: "/home/circleci"
-      - skip_bad_commit_format
+      - setup-job
       - lint_codebase
 
   lint-and-test:
     executor: default-executor
     steps:
-      - attach_workspace:
-          at: "/home/circleci"
-      - skip_bad_commit_format
+      - setup-job
       - lint_codebase
       - run_test_harness
 
@@ -214,10 +219,7 @@ jobs:
   bump-versions:
     executor: default-executor
     steps:
-      - attach_workspace:
-          at: "/home/circleci"
-      - skip_bad_commit_format
-      - export_env_vars
+      - setup-job
       - run:
           name: Add Github to known hosts.
           command: |
@@ -242,6 +244,7 @@ jobs:
     executor: default-executor
     steps:
       - checkout
+      - export_env_vars
       - skip_bad_commit_format
       - run:
           name: Publish to pypi using flit.
