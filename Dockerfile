@@ -11,7 +11,6 @@ FROM python:${PY_VERSION}
 ARG PY_VERSION
 
 # Copy raiden repository and site-packages from build cache
-COPY --from=cache /raiden /raiden
 COPY --from=cache /usr/local/lib/python${PY_VERSION}/dist-packages /usr/local/lib/python${PY_VERSION}/dist-packages
 
 #  Copy SP folder and install.
