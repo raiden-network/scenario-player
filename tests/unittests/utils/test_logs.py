@@ -3,7 +3,9 @@ import pytest
 from scenario_player.utils.logs import (
     pack_n_latest_logs_for_scenario_in_dir,
     pack_n_latest_node_logs_in_dir,
+    verify_scenario_log_dir,
 )
+
 
 
 @pytest.fixture
@@ -76,3 +78,24 @@ class TestPackNLatestLogsForScenarioInDir:
 
         with pytest.raises(RuntimeError):
             pack_n_latest_logs_for_scenario_in_dir(scenario_dir.name, scenario_dir, 1)
+
+
+class TestVerifyScenarioLogDir:
+    def test_func_raises_not_a_directory_if_scenario_log_dir_is_not_a_directory(self, tmp_path):
+        f = tmp_path.joinpath("scenarios")
+        f.mkdir(parents=True)
+        f= f.joinpath("wolohoo")
+        f.write_text("something")
+        with pytest.raises(NotADirectoryError):
+            verify_scenario_log_dir("wolohoo", tmp_path)
+
+    def test_func_raises_file_not_found_if_log_dir_does_not_exist(self, tmp_path):
+        with pytest.raises(FileNotFoundError):
+            verify_scenario_log_dir("wolohoo", tmp_path)
+
+    def test_func_returns_exepcted_paths(self, tmp_path):
+        f = tmp_path.joinpath("scenarios", "test_scenario")
+        f.mkdir(parents=True)
+        scenarios_dir, log_dir = verify_scenario_log_dir("test_scenario", tmp_path)
+        assert scenarios_dir == tmp_path.joinpath("scenarios")
+        assert log_dir == tmp_path.joinpath("scenarios", "test_scenario")
