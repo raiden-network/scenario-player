@@ -17,9 +17,8 @@
 .. image:: https://img.shields.io/github/issues-raw/raiden-network/scenario-player/bug?color=red&label=Open%20Bugs
     :target: https://github.com/raiden-network/scenario-player/issues?q=is%3Aissue+is%3Aopen+label%3Abug
 
-.. image:: https://img.shields.io/github/issues-raw/raiden-network/scenario-player/Feature request?color=orange&label=Open%20Feature%20Requests
-    :target: https://github.com/raiden-network/scenario-player/issues?q=is%3Aissue+is%3Aopen+label%3A%22Feature+request%22
-
+.. image:: https://img.shields.io/github/issues-raw/raiden-network/scenario-player/Feature request?label=Open%20Feature%20Requests
+    :alt: Open Feature Requests
 
 Raiden Scenario Player
 ######################
