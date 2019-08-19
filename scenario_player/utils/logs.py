@@ -55,3 +55,15 @@ def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path
         )
 
     return history[:num_of_packable_iterations]
+
+
+def verify_scenario_log_dir(scenario_name, data_path: Path):
+    # The logs are located at .raiden/scenario-player/scenarios/<scenario-name>
+    # - make sure the path exists.
+    scenarios_dir = data_path.joinpath("scenarios")
+    scenario_log_dir = scenarios_dir.joinpath(scenario_name)
+    if not scenario_log_dir.exists():
+        raise FileNotFoundError(f"No log directory found for scenario {scenario_name} at {scenario_log_dir}")
+    if not scenario_log_dir.is_dir():
+        raise NotADirectoryError(f"Scenario Log path {scenario_log_dir} is not a directory!")
+    return scenarios_dir, scenario_log_dir

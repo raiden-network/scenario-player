@@ -10,7 +10,6 @@ from datetime import datetime
 from enum import Enum
 from itertools import chain
 from pathlib import Path
-from typing import List
 
 import click
 import gevent
@@ -35,6 +34,9 @@ from scenario_player.utils import (
     DummyStream,
     post_task_state_to_rc,
     send_notification_mail,
+)
+from scenario_player.utils.logs import (
+    pack_n_latest_logs_for_scenario_in_dir, pack_n_latest_node_logs_in_dir, verify_scenario_log_dir,
 )
 
 log = structlog.get_logger(__name__)
@@ -265,25 +267,19 @@ def reclaim_eth(ctx, min_age, password, keystore_file):
     "Specifying 0 will pack all available logs for a scenario.",
 )
 @click.option("--post-to-rocket/--no-post-to-rocket", default=True)
-@click.argument("scenario-file", type=click.File(), required=True)
+@click.argument("scenario-file", type=click.Path(exists=True, dir_okay=False), required=True)
 @click.pass_context
 def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
     data_path: Path = ctx.obj["data_path"].absolute()
     scenario_file = Path(scenario_file.name).absolute()
     scenario_name = Path(scenario_file.name).stem
+
     log_file_name = construct_log_file_name("pack-logs", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
 
-    target_dir = Path(target_dir)
-    target_dir.mkdir(exist_ok=True)
-
     # The logs are located at .raiden/scenario-player/scenarios/<scenario-name>
     # - make sure the path exists.
-    scenarios_path = data_path.joinpath("scenarios")
-    scenario_log_dir = scenarios_path.joinpath(scenario_name)
-    if not scenario_log_dir.exists():
-        print(f"No log directory found for scenario {scenario_name} at {scenario_log_dir}")
-        return
+    scenarios_path, scenario_log_dir = verify_scenario_log_dir(scenario_name, data_path)
 
     # List all node folders which fall into the range of pack_n_latest
     folders = pack_n_latest_node_logs_in_dir(scenario_log_dir, pack_n_latest)
