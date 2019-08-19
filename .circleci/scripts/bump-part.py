@@ -101,5 +101,5 @@ if CURRENT_BRANCH == "master":
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} pull".split(" "), check=True)
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} checkout master .bumpversion.cfg".split(" "), check=True)
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} checkout master scenario_player/__init__.py".split(" "), check=True)
-    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} commit .bumpversion.cfg scenario_player/__init__.py -m 'Sync Branch Versions.'".split(" "), check=True)
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} commit .bumpversion.cfg scenario_player/__init__.py -m".split(" ") + ["'Sync Branch Versions.'"], check=True)
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} push".split(" "), check=True)
