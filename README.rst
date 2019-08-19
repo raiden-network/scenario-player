@@ -22,10 +22,8 @@
     :alt: Open Bugs
     :target: https://github.com/raiden-network/scenario-player/issues?q=is%3Aissue+is%3Aopen+label%3Abug
 
-.. image:: https://img.shields.io/github/issues-raw/raiden-network/scenario-player/Feature request?label=Open%20Feature%20Requests
-    :alt: Open Feature Requests
-    :target: https://github.com/raiden-network/scenario-player/issues?q=is%3Aissue+is%3Aopen+label%3A%22Feature+request%22
 
+######################
 Raiden Scenario Player
 ######################
 
