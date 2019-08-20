@@ -13,7 +13,7 @@ from scenario_player.exceptions.config import (
     TokenNotDeployed,
     TokenSourceCodeDoesNotExist,
 )
-from scenario_player.services.utils.interface import ServiceInterface
+from scenario_player.utils.interface import ServiceInterface
 
 log = structlog.get_logger(__name__)
 

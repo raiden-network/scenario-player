@@ -30,7 +30,7 @@ from scenario_player.exceptions import ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
 from scenario_player.scenario import ScenarioYAML
 from scenario_player.services.rpc.utils import assign_rpc_instance_id
-from scenario_player.services.utils.interface import ServiceInterface
+from scenario_player.utils.interface import ServiceInterface
 from scenario_player.utils import TimeOutHTTPAdapter, get_udc_and_token, wait_for_txs
 from scenario_player.utils.token import Token, UserDepositContract
 

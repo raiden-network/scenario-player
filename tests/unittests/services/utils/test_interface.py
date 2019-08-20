@@ -9,7 +9,7 @@ from scenario_player.exceptions.services import (
     ServiceUnavailable,
     ServiceUnreachable,
 )
-from scenario_player.services.utils.interface import ServiceInterface, SPaaSAdapter
+from scenario_player.utils.interface import ServiceInterface, SPaaSAdapter
 from scenario_player.utils.configuration.spaas import SPaaSConfig
 
 
@@ -21,7 +21,7 @@ def test_adapter_is_auto_mounted_in_interface_class():
 
 
 @pytest.mark.depends(depends=["spaas_adapter_mounted"])
-@patch("scenario_player.services.utils.interface.HTTPAdapter.send")
+@patch("scenario_player.utils.interface.HTTPAdapter.send")
 class TestSPaaSAdapter:
     @pytest.mark.parametrize("service", ["rpc"])
     @pytest.mark.parametrize("port", ["1", None])
