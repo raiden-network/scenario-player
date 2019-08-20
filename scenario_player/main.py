@@ -20,7 +20,6 @@ from eth_utils import to_checksum_address
 from urwid import ExitMainLoop
 from web3.utils.transactions import TRANSACTION_DEFAULTS
 
-from raiden.exceptions import EthNodeInterfaceError
 from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.utils.cli import EnumChoiceType
