@@ -1,8 +1,7 @@
-from unittest.mock import patch
-
 import pytest
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
+from scenario_player.exceptions.config import ConfigurationError
 from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.settings import (
     PFSSettingsConfig,
@@ -158,3 +157,14 @@ class TestUDCTokenConfig:
         config = UDCTokenSettings(minimal_yaml_dict)
         MISSING = object()
         assert getattr(config, key, MISSING) == expected
+
+    def test_balance_per_node_bigger_than_max_funding(self, minimal_yaml_dict):
+        minimal_yaml_dict["max_funding"] = 5000
+        minimal_yaml_dict["balance_per_node"] = 5001
+        assert UDCTokenSettings(minimal_yaml_dict).CONFIGURATION_ERROR == ConfigurationError
+
+    # FIXME this test doesn't work for whatever reason
+    def test_insufficient_minting(self, minimal_yaml_dict):
+        minimal_yaml_dict["max_funding"] = 5000
+        minimal_yaml_dict["token"]["min_balance"] = 4999
+        assert UDCTokenSettings(minimal_yaml_dict).CONFIGURATION_ERROR == ConfigurationError
