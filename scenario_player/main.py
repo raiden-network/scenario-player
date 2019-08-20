@@ -20,6 +20,7 @@ from eth_utils import to_checksum_address
 from urwid import ExitMainLoop
 from web3.utils.transactions import TRANSACTION_DEFAULTS
 
+from raiden.exceptions import EthNodeInterfaceError
 from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.utils.cli import EnumChoiceType
@@ -164,9 +165,15 @@ def run(
     service_process.start()
 
     # Run the scenario using the configurations passed.
-    runner = ScenarioRunner(
-        account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
-    )
+    try:
+        runner = ScenarioRunner(
+            account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
+        )
+    except Exception as e:
+        # log anything that goes wrong during init of the runner and isnt handled.
+        log.exception(e)
+        raise
+
     ui = None
     ui_greenlet = None
     if enable_ui:
