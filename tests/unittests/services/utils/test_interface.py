@@ -20,11 +20,6 @@ def test_adapter_is_auto_mounted_in_interface_class():
     assert isinstance(iface.adapters["spaas"], SPaaSAdapter)
 
 
-def test_adapter_request_id_is_present_in_interface_automatically():
-    iface = ServiceInterface(SPaaSConfig({}))
-    assert iface.headers["SP-INSTANCE-ID"] == SPaaSAdapter.REQUEST_ID
-
-
 @pytest.mark.depends(depends=["spaas_adapter_mounted"])
 @patch("scenario_player.services.utils.interface.HTTPAdapter.send")
 class TestSPaaSAdapter:
@@ -108,9 +103,3 @@ class TestSPaaSAdapter:
             adapter = SPaaSAdapter(config)
             req = requests.Request(url="http://127.0.0.1:5000").prepare()
             adapter.send(req)
-
-    def test_request_id_is_class_attr(self, _):
-        config = SPaaSConfig({"spaas": {}})
-        adapter_a = SPaaSAdapter(config)
-        adapter_b = SPaaSAdapter(config)
-        assert adapter_a.REQUEST_ID == adapter_b.REQUEST_ID
