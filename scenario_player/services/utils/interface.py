@@ -1,4 +1,6 @@
 """Programmatic interface for requesting SP services."""
+import uuid
+
 from json import JSONDecodeError
 from urllib.parse import urlparse, urlunparse
 
@@ -25,6 +27,8 @@ class SPaaSAdapter(HTTPAdapter):
     service, if available. If no configuration for the service exists, we always
     assume it's available at localhost:5000 (the default flask port).
     """
+
+    REQUEST_ID = uuid.uuid4()
 
     def __init__(self, spaas_settings: SPaaSConfig):
         super(SPaaSAdapter, self).__init__()
@@ -123,6 +127,10 @@ class ServiceInterface(requests.Session):
         super(ServiceInterface, self).__init__()
         self.config = spaas_config
         self.mount("spaas", SPaaSAdapter(self.config))
+
+        # Always add a uuid to the requests we send, in order to track log entries
+        # on the services we use.
+        self.headers = {"SP-INSTANCE-ID": SPaaSAdapter.REQUEST_ID}
 
     def prepare_request(self, request):
         p = super(ServiceInterface, self).prepare_request(request)
