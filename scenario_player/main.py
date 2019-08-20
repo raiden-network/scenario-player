@@ -10,7 +10,6 @@ from datetime import datetime
 from enum import Enum
 from itertools import chain
 from pathlib import Path
-from typing import List
 
 import click
 import gevent
@@ -38,6 +37,11 @@ from scenario_player.utils import (
     send_notification_mail,
 )
 from scenario_player.utils.legacy import MutuallyExclusiveOption
+from scenario_player.utils.logs import (
+    pack_n_latest_logs_for_scenario_in_dir,
+    pack_n_latest_node_logs_in_dir,
+    verify_scenario_log_dir,
+)
 
 log = structlog.get_logger(__name__)
 
@@ -205,9 +209,15 @@ def run(
     service_process.start()
 
     # Run the scenario using the configurations passed.
-    runner = ScenarioRunner(
-        account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
-    )
+    try:
+        runner = ScenarioRunner(
+            account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
+        )
+    except Exception as e:
+        # log anything that goes wrong during init of the runner and isnt handled.
+        log.exception(e)
+        raise
+
     ui = None
     ui_greenlet = None
     if enable_ui:
@@ -320,29 +330,22 @@ def reclaim_eth(ctx, min_age, password, password_file, keystore_file):
     "Specifying 0 will pack all available logs for a scenario.",
 )
 @click.option("--post-to-rocket/--no-post-to-rocket", default=True)
-@click.argument("scenario-file", type=click.File(), required=True)
+@click.argument("scenario-file", type=click.Path(exists=True, dir_okay=False), required=True)
 @click.pass_context
 def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
     data_path: Path = ctx.obj["data_path"].absolute()
     scenario_file = Path(scenario_file.name).absolute()
     scenario_name = Path(scenario_file.name).stem
+
     log_file_name = construct_log_file_name("pack-logs", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
 
-    target_dir = Path(target_dir)
-    target_dir.mkdir(exist_ok=True)
-
     # The logs are located at .raiden/scenario-player/scenarios/<scenario-name>
     # - make sure the path exists.
-    scenarios_path = data_path.joinpath("scenarios")
-    scenario_log_dir = scenarios_path.joinpath(scenario_name)
-    if not scenario_log_dir.exists():
-        print(f"No log directory found for scenario {scenario_name} at {scenario_log_dir}")
-        return
+    scenarios_path, scenario_log_dir = verify_scenario_log_dir(scenario_name, data_path)
 
-    # List all folders
-    folders = [path for path in scenario_log_dir.iterdir() if path.is_dir()]
-
+    # List all node folders which fall into the range of pack_n_latest
+    folders = pack_n_latest_node_logs_in_dir(scenario_log_dir, pack_n_latest)
     # List all files that match the filters `scenario_name` and the `pack_n_latest` counter.
     files = pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir, pack_n_latest)
 
@@ -372,31 +375,6 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
             rc_message["text"] = construct_rc_message(target_dir, archive_fpath, files[0])
             rc_message["description"] = f"Log files for scenario {scenario_name}"
         post_to_rocket_chat(archive_fpath, **rc_message)
-
-
-def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path, n) -> List[Path]:
-    """ Add the `n` latest log files for ``scenario_name`` in ``scenario_dir`` to a :cls:``set``
-        and return it.
-    """
-    scenario_logs = [
-        path for path in scenario_log_dir.iterdir() if (path.is_file() and "-run_" in path.name)
-    ]
-    history = sorted(scenario_logs, key=lambda x: x.stat().st_mtime, reverse=True)
-
-    # Can't pack more than the number of available logs.
-    num_of_packable_iterations = n or len(scenario_logs)
-
-    if not history:
-        raise RuntimeError(f"No Scenario logs found in {scenario_log_dir}")
-
-    if num_of_packable_iterations < n:
-        # We ran out of scenario logs to add before reaching the requested number of n latest logs.
-        print(
-            f"Only packing {num_of_packable_iterations} logs of requested latest {n} "
-            f"- no more logs found for {scenario_name}!"
-        )
-
-    return history[:num_of_packable_iterations]
 
 
 def construct_rc_message(base_dir, packed_log, log_fpath) -> str:
