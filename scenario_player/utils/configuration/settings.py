@@ -2,7 +2,7 @@ from typing import Callable, Union
 
 import structlog
 
-from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
+from scenario_player.constants import DEFAULT_TOKEN_BALANCE_FUND, GAS_STRATEGIES, TIMEOUT
 from scenario_player.exceptions.config import ScenarioConfigurationError, ServiceConfigurationError
 from scenario_player.utils.configuration.base import ConfigMapping
 
@@ -41,7 +41,29 @@ class UDCTokenSettings(ConfigMapping):
     def __init__(self, loaded_yaml: dict):
         udc_settings = ((loaded_yaml.get("settings") or {}).get("services") or {}).get("udc") or {}
         super(UDCTokenSettings, self).__init__(udc_settings.get("token"))
+        self.validate(loaded_yaml)
         print(self.dict)
+
+    def validate(self, loaded_yaml):
+        self.assert_option(
+            self.max_funding >= self.balance_per_node,
+            "max_funding needs to be greater or equal to balance_per_node",
+        )
+
+        # Get the amount of tokens that will be minted (min_balance)
+        try:
+            min_balance = loaded_yaml["token"]["min_balance"]
+        except (KeyError, TypeError):
+            min_balance = DEFAULT_TOKEN_BALANCE_FUND
+        # The amount of Tokens minted need to be greater than the amount of tokens
+        # that will be deposited into the UDC
+        self.assert_option(
+            self.max_funding <= min_balance,
+            "Token.max_funding needs to be greater than the Deposit amount."
+            f"The Deposit amount is max({DEFAULT_TOKEN_BALANCE_FUND}, "
+            "settings.services.token.udc.balance_per_node, "
+            "settings.services.token.udc.max_funding",
+        )
 
     @property
     def deposit(self):

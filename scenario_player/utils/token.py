@@ -414,6 +414,6 @@ class UserDepositContract(Contract):
             return
 
         log.debug("deposit call required - insufficient funds")
-        deposit_amount = total_deposit + max(max_funding, min_deposit) - balance
+        deposit_amount = total_deposit + (max_funding - balance)
         params = {"amount": deposit_amount, "target_address": target_address}
         return self.transact("deposit", params)
