@@ -170,7 +170,7 @@ class TestUDCTokenConfig:
         MISSING = object()
         assert getattr(config, key, MISSING) == expected
 
-    def test_balance_per_node_bigger_than_max_funding(self, minimal_yaml_dict):
+    def test_balance_per_node_must_not_be_greater_than_max_funding(self, minimal_yaml_dict):
         minimal_yaml_dict["settings"] = {
             "services": {"udc": {"token": {"max_funding": 6000, "balance_per_node": 6001}}}
         }

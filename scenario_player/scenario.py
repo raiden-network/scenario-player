@@ -44,8 +44,13 @@ class ScenarioYAML:
         return self.path.stem
 
     def validate(self):
-        # The amount of Tokens minted need to be greater than the amount of tokens
-        # that will be deposited into the UDC
+        """Validate cross-config section requirements of the scenario.
+
+        :raises InsufficientMintingAmount:
+        If token.min_balance < settings.services.udc.token.max_funding
+        """
+
+        # Check that the amount of minted tokens is >= than the amount of deposited tokens
         try:
             assert self.token.min_balance >= self.settings.services.udc.token.max_funding
         except AssertionError:

@@ -49,7 +49,7 @@ class ConfigMapping(Mapping):
                 exception = err
             raise exception from e
 
-    def validate(self, **args):
+    def validate(self):
         """Validate the configuration.
 
         Assert that all required keys are present, and no mutually exclusive
