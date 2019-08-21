@@ -4,7 +4,7 @@ from unittest.mock import patch, call, Mock
 
 import pytest
 
-from scenario_player.services.utils.installer import (
+from scenario_player.services.utils.cli.installer import (
     reload_systemd,
     enable_and_start_service,
     stop_and_disable_service,
