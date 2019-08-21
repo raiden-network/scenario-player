@@ -1,11 +1,10 @@
 """Programmatic interface for requesting SP services."""
+import subprocess
 import uuid
-
 from json import JSONDecodeError
 from urllib.parse import urlparse, urlunparse
 
 import requests
-import subprocess
 import structlog
 from requests.sessions import HTTPAdapter
 from simplejson import JSONDecodeError as SimpleJSONDecodeError
@@ -32,7 +31,9 @@ def spaas_services_up(service="stack") -> bool:
     This runs `systemd --user is-active` under the hood.
     """
     try:
-        subprocess.run(f"systemctl --user is-active SPaaS-{service}.service".split(" "), check=True)
+        subprocess.run(
+            f"systemctl --user is-active SPaaS-{service}.service".split(" "), check=True
+        )
     except subprocess.CalledProcessError:
         return False
     return True

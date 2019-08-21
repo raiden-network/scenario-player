@@ -1,10 +1,8 @@
 import argparse
 import pathlib
-
 from typing import Tuple
 
 from scenario_player.services.utils.cli.constants import SERVICE_APPS
-
 
 target_service_parser = argparse.ArgumentParser(add_help=False)
 target_service_parser.add_argument(
@@ -24,25 +22,26 @@ raiden_dir_parser.add_argument(
 )
 
 netloc_parser = argparse.ArgumentParser(add_help=False)
-netloc_parser.add_argument(
-    "--port",
-    default=5100,
-    help="Service port. Defaults to 5100",
-    type=int,
-)
+netloc_parser.add_argument("--port", default=5100, help="Service port. Defaults to 5100", type=int)
 netloc_parser.add_argument(
     "--host", default="127.0.0.1", help="Service host. Defaults to '127.0.0.1'"
 )
 
 
-def attach_installer_cli(sub_parsers: argparse._SubParsersAction) -> Tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
-    remove_cmd = sub_parsers.add_parser("remove", parents=[raiden_dir_parser, target_service_parser])
-    install_cmd = sub_parsers.add_parser("install", parents=[raiden_dir_parser, target_service_parser, netloc_parser])
+def attach_installer_cli(
+    sub_parsers: argparse._SubParsersAction
+) -> Tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
+    remove_cmd = sub_parsers.add_parser(
+        "remove", parents=[raiden_dir_parser, target_service_parser]
+    )
+    install_cmd = sub_parsers.add_parser(
+        "install", parents=[raiden_dir_parser, target_service_parser, netloc_parser]
+    )
     return install_cmd, remove_cmd
 
 
 def attach_runner_cli(sub_parsers: argparse._SubParsersAction) -> argparse.ArgumentParser:
-    start_command = sub_parsers.add_parser("start",  parents=[target_service_parser, netloc_parser])
+    start_command = sub_parsers.add_parser("start", parents=[target_service_parser, netloc_parser])
     return start_command
 
 
@@ -52,4 +51,3 @@ def construct_parser() -> argparse.ArgumentParser:
     attach_installer_cli(sub_parsers)
     attach_runner_cli(sub_parsers)
     return parser
-

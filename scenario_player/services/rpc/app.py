@@ -20,6 +20,7 @@ from scenario_player.services.rpc.utils import RPCRegistry
 
 def serve(parsed):
     from scenario_player import __version__
+
     logging.basicConfig(filename=".raiden/spaas/rpc.log", filemode="a+", level=logging.DEBUG)
     log = structlog.getLogger()
 
@@ -44,4 +45,3 @@ def serve(parsed):
         app.register_blueprint(bp)
 
     waitress.serve(app, host=parsed.host, port=parsed.port)
-

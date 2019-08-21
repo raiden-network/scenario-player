@@ -3,8 +3,7 @@ import pathlib
 import shutil
 import subprocess
 
-
-from scenario_player.services.utils.cli.constants import SERVICE_TEMPLATE, SERVICE_APPS
+from scenario_player.services.utils.cli.constants import SERVICE_APPS, SERVICE_TEMPLATE
 
 
 def reload_systemd():
