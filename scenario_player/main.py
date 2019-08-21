@@ -24,6 +24,7 @@ from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.utils.cli import EnumChoiceType
 from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.runner import ScenarioRunner
 from scenario_player.services.common.app import ServiceProcess
@@ -35,6 +36,7 @@ from scenario_player.utils import (
     post_task_state_to_rc,
     send_notification_mail,
 )
+from scenario_player.utils.legacy import MutuallyExclusiveOption
 from scenario_player.utils.logs import (
     pack_n_latest_logs_for_scenario_in_dir,
     pack_n_latest_node_logs_in_dir,
@@ -89,6 +91,22 @@ def load_account_obj(keystore_file, password):
         return account
 
 
+def get_password(password, password_file):
+    if password_file:
+        password = open(password_file, "r").read().strip()
+    if password == password_file is None:
+        password = click.prompt(text="Please enter your password: ", hide_input=True)
+    return password
+
+
+def get_account(keystore_file, password):
+    try:
+        account = load_account_obj(keystore_file, password)
+    except ValueError:
+        raise WrongPassword
+    return account
+
+
 @click.group(invoke_without_command=True, context_settings={"max_content_width": 120})
 @click.option(
     "--data-path",
@@ -116,7 +134,20 @@ def main(ctx, chains, data_path):
 @main.command(name="run")
 @click.argument("scenario-file", type=click.File(), required=False)
 @click.option("--keystore-file", required=True, type=click.Path(exists=True, dir_okay=False))
-@click.password_option("--password", envvar="ACCOUNT_PASSWORD", required=True)
+@click.option(
+    "--password-file",
+    type=click.Path(exists=True, dir_okay=False),
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password"],
+    default=None,
+)
+@click.option(
+    "--password",
+    envvar="ACCOUNT_PASSWORD",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password-file"],
+    default=None,
+)
 @click.option("--auth", default="")
 @click.option("--mailgun-api-key")
 @click.option(
@@ -133,7 +164,15 @@ def main(ctx, chains, data_path):
 )
 @click.pass_context
 def run(
-    ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, notify_tasks, enable_ui
+    ctx,
+    mailgun_api_key,
+    auth,
+    password,
+    keystore_file,
+    scenario_file,
+    notify_tasks,
+    enable_ui,
+    password_file,
 ):
     scenario_file = Path(scenario_file.name).absolute()
     data_path = ctx.obj["data_path"]
@@ -142,7 +181,9 @@ def run(
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
 
-    account = load_account_obj(keystore_file, password)
+    password = get_password(password, password_file)
+
+    account = get_account(keystore_file, password)
 
     notify_tasks_callable = None
     if notify_tasks is TaskNotifyType.ROCKETCHAT:
@@ -239,7 +280,20 @@ def run(
 
 @main.command(name="reclaim-eth")
 @click.option("--keystore-file", required=True, type=click.Path(exists=True, dir_okay=False))
-@click.password_option("--password", envvar="ACCOUNT_PASSWORD", required=True)
+@click.option(
+    "--password-file",
+    type=click.Path(exists=True, dir_okay=False),
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password"],
+    default=None,
+)
+@click.option(
+    "--password",
+    envvar="ACCOUNT_PASSWORD",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password-file"],
+    default=None,
+)
 @click.option(
     "--min-age",
     default=72,
@@ -247,12 +301,13 @@ def run(
     help="Minimum account non-usage age before reclaiming eth. In hours.",
 )
 @click.pass_context
-def reclaim_eth(ctx, min_age, password, keystore_file):
+def reclaim_eth(ctx, min_age, password, password_file, keystore_file):
     from scenario_player.utils import reclaim_eth
 
     data_path = ctx.obj["data_path"]
     chain_rpc_urls = ctx.obj["chain_rpc_urls"]
-    account = load_account_obj(keystore_file, password)
+    password = get_password(password, password_file)
+    account = get_account(keystore_file, password)
 
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
 
