@@ -42,7 +42,7 @@ def SERVICE_TEMPLATEd_service(parsed):
 class TestReloadSystemd:
     def test_func_calls_systemctl_command_with_user_flags(self, mock_run):
         reload_systemd()
-        mock_run.assert_called_once_with(["systemd", "--user", "daemon-reload"], check=True)
+        mock_run.assert_called_once_with(["systemctl", "--user", "daemon-reload"], check=True)
 
     def test_func_raises_systemexit_when_subprocess_fails(self, mock_run):
         mock_run.side_effect = subprocess.CalledProcessError(1, [""])
@@ -70,7 +70,7 @@ class TestEnableAndStartService:
 
     def test_func_calls_systemd_command_as_expected(self, mock_run, tmp_path):
         enable_and_start_service(tmp_path)
-        mock_run.assert_has_calls([call(["systemd", "--user", "enable", tmp_path.name], check=True), call(["systemd", "--user", "start", tmp_path.name], check=True)])
+        mock_run.assert_has_calls([call(["systemctl", "--user", "enable", tmp_path.name], check=True), call(["systemctl", "--user", "start", tmp_path.name], check=True)])
 
 
 @pytest.mark.depends(name="stop_and_disable_service")
@@ -98,8 +98,8 @@ class TestStopAndDisableService:
         assert len(recorder) == 0
 
     def test_func_calls_systemd_command_as_expected(self, mock_run, tmp_path):
-        enable_and_start_service(tmp_path)
-        mock_run.assert_has_calls([call(["systemd", "--user", "stop", tmp_path.name], check=True), call(["systemd", "--user", "disable", tmp_path.name], check=True)])
+        stop_and_disable_service(tmp_path)
+        mock_run.assert_has_calls([call(["systemctl", "--user", "stop", tmp_path.name], check=True), call(["systemctl", "--user", "disable", tmp_path.name], check=True)])
 
 
 @pytest.mark.depends(depends=["stop_and_disable_service", "enable_and_start_service", "reload_systemd"])
@@ -127,7 +127,7 @@ class TestInstallService:
     def test_func_call_enable_and_start_service(self, parsed, tmp_path):
         given_path = tmp_path.joinpath("my.service")
         install_service(parsed, given_path)
-        self.mock_enable_and_start.assert_called_once_with(given_path))
+        self.mock_enable_and_start.assert_called_once_with(given_path)
 
 
 @pytest.mark.depends(depends=["stop_and_disable_service", "enable_and_start_service", "reload_systemd"])
