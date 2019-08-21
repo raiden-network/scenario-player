@@ -3,7 +3,11 @@ from typing import Callable, Union
 import structlog
 
 from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
-from scenario_player.exceptions.config import ScenarioConfigurationError, ServiceConfigurationError
+from scenario_player.exceptions.config import (
+    ScenarioConfigurationError,
+    ServiceConfigurationError,
+    UDCTokenConfigError,
+)
 from scenario_player.utils.configuration.base import ConfigMapping
 
 log = structlog.get_logger(__name__)
@@ -41,7 +45,11 @@ class UDCTokenSettings(ConfigMapping):
     def __init__(self, loaded_yaml: dict):
         udc_settings = ((loaded_yaml.get("settings") or {}).get("services") or {}).get("udc") or {}
         super(UDCTokenSettings, self).__init__(udc_settings.get("token"))
+        self.validate()
         print(self.dict)
+
+    def validate(self):
+        self.assert_option(self.max_funding >= self.balance_per_node, UDCTokenConfigError)
 
     @property
     def deposit(self):
