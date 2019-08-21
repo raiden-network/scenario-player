@@ -6,10 +6,6 @@ from constants import COMMIT_MSG, COMMIT_TYPE, CURRENT_BRANCH
 print(f"Validating commit message {COMMIT_MSG!r}")
 print(f"Parsed commit type: {COMMIT_TYPE}")
 
-if CURRENT_BRANCH not in ("master", "dev"):
-    # This workflow is executed on a PR - we skip validation for these.
-    exit(0)
-
 if not COMMIT_TYPE:
     # The commit message title does not comply with any of our regexes.
     print("No commit type parsed - the commit message does not comply with the required pattern!")
