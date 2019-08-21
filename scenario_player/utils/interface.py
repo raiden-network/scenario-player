@@ -1,8 +1,11 @@
 """Programmatic interface for requesting SP services."""
+import uuid
+
 from json import JSONDecodeError
 from urllib.parse import urlparse, urlunparse
 
 import requests
+import subprocess
 import structlog
 from requests.sessions import HTTPAdapter
 from simplejson import JSONDecodeError as SimpleJSONDecodeError
@@ -16,6 +19,23 @@ from scenario_player.exceptions.services import (
 from scenario_player.utils.configuration.spaas import SPaaSConfig, SPaaSServiceConfig
 
 log = structlog.getLogger(__name__)
+
+
+def spaas_services_up(service="stack") -> bool:
+    """Check if the SPaaS Systemd Services are running.
+
+    By default, checks if the 'stack' service, which includes all implemented services, is running.
+
+    If you only installed a sub-set of the SPaaS services, you may check a single service by
+    passing its name as the `service` parameter.
+
+    This runs `systemd --user is-active` under the hood.
+    """
+    try:
+        subprocess.run(f"systemctl --user is-active SPaaS-{service}.service".split(" "), check=True)
+    except subprocess.CalledProcessError:
+        return False
+    return True
 
 
 class SPaaSAdapter(HTTPAdapter):

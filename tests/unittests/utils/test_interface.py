@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 import requests
+import subprocess
 
 from scenario_player.exceptions.services import (
     BrokenService,
@@ -9,8 +10,18 @@ from scenario_player.exceptions.services import (
     ServiceUnavailable,
     ServiceUnreachable,
 )
-from scenario_player.utils.interface import ServiceInterface, SPaaSAdapter
+from scenario_player.utils.interface import ServiceInterface, SPaaSAdapter, spaas_services_up
 from scenario_player.utils.configuration.spaas import SPaaSConfig
+
+
+@patch("scenario_player.utils.interface.subprocess.run", autospec=True)
+def test_spaas_stack_running(mock_run):
+    # Simulate process exit code != 0. `cmd` value has no significance.
+    mock_run.side_effect = subprocess.CalledProcessError(1, ["check"])
+    assert spaas_services_up() is False
+
+    mock_run.side_effect = None
+    assert spaas_services_up() is True
 
 
 @pytest.mark.depends(name="spaas_adapter_mounted")
