@@ -10,7 +10,6 @@ from datetime import datetime
 from enum import Enum
 from itertools import chain
 from pathlib import Path
-from typing import List
 
 import click
 import gevent
@@ -25,6 +24,7 @@ from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.utils.cli import EnumChoiceType
 from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
+from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.runner import ScenarioRunner
 from scenario_player.services.common.app import ServiceProcess
@@ -35,6 +35,12 @@ from scenario_player.utils import (
     DummyStream,
     post_task_state_to_rc,
     send_notification_mail,
+)
+from scenario_player.utils.legacy import MutuallyExclusiveOption
+from scenario_player.utils.logs import (
+    pack_n_latest_logs_for_scenario_in_dir,
+    pack_n_latest_node_logs_in_dir,
+    verify_scenario_log_dir,
 )
 
 log = structlog.get_logger(__name__)
@@ -85,6 +91,22 @@ def load_account_obj(keystore_file, password):
         return account
 
 
+def get_password(password, password_file):
+    if password_file:
+        password = open(password_file, "r").read().strip()
+    if password == password_file is None:
+        password = click.prompt(text="Please enter your password: ", hide_input=True)
+    return password
+
+
+def get_account(keystore_file, password):
+    try:
+        account = load_account_obj(keystore_file, password)
+    except ValueError:
+        raise WrongPassword
+    return account
+
+
 @click.group(invoke_without_command=True, context_settings={"max_content_width": 120})
 @click.option(
     "--data-path",
@@ -112,7 +134,20 @@ def main(ctx, chains, data_path):
 @main.command(name="run")
 @click.argument("scenario-file", type=click.File(), required=False)
 @click.option("--keystore-file", required=True, type=click.Path(exists=True, dir_okay=False))
-@click.password_option("--password", envvar="ACCOUNT_PASSWORD", required=True)
+@click.option(
+    "--password-file",
+    type=click.Path(exists=True, dir_okay=False),
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password"],
+    default=None,
+)
+@click.option(
+    "--password",
+    envvar="ACCOUNT_PASSWORD",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password-file"],
+    default=None,
+)
 @click.option("--auth", default="")
 @click.option("--mailgun-api-key")
 @click.option(
@@ -129,7 +164,15 @@ def main(ctx, chains, data_path):
 )
 @click.pass_context
 def run(
-    ctx, mailgun_api_key, auth, password, keystore_file, scenario_file, notify_tasks, enable_ui
+    ctx,
+    mailgun_api_key,
+    auth,
+    password,
+    keystore_file,
+    scenario_file,
+    notify_tasks,
+    enable_ui,
+    password_file,
 ):
     scenario_file = Path(scenario_file.name).absolute()
     data_path = ctx.obj["data_path"]
@@ -138,7 +181,9 @@ def run(
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
 
-    account = load_account_obj(keystore_file, password)
+    password = get_password(password, password_file)
+
+    account = get_account(keystore_file, password)
 
     notify_tasks_callable = None
     if notify_tasks is TaskNotifyType.ROCKETCHAT:
@@ -164,9 +209,15 @@ def run(
     service_process.start()
 
     # Run the scenario using the configurations passed.
-    runner = ScenarioRunner(
-        account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
-    )
+    try:
+        runner = ScenarioRunner(
+            account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
+        )
+    except Exception as e:
+        # log anything that goes wrong during init of the runner and isnt handled.
+        log.exception(e)
+        raise
+
     ui = None
     ui_greenlet = None
     if enable_ui:
@@ -229,7 +280,20 @@ def run(
 
 @main.command(name="reclaim-eth")
 @click.option("--keystore-file", required=True, type=click.Path(exists=True, dir_okay=False))
-@click.password_option("--password", envvar="ACCOUNT_PASSWORD", required=True)
+@click.option(
+    "--password-file",
+    type=click.Path(exists=True, dir_okay=False),
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password"],
+    default=None,
+)
+@click.option(
+    "--password",
+    envvar="ACCOUNT_PASSWORD",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=["password-file"],
+    default=None,
+)
 @click.option(
     "--min-age",
     default=72,
@@ -237,12 +301,13 @@ def run(
     help="Minimum account non-usage age before reclaiming eth. In hours.",
 )
 @click.pass_context
-def reclaim_eth(ctx, min_age, password, keystore_file):
+def reclaim_eth(ctx, min_age, password, password_file, keystore_file):
     from scenario_player.utils import reclaim_eth
 
     data_path = ctx.obj["data_path"]
     chain_rpc_urls = ctx.obj["chain_rpc_urls"]
-    account = load_account_obj(keystore_file, password)
+    password = get_password(password, password_file)
+    account = get_account(keystore_file, password)
 
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
 
@@ -265,29 +330,22 @@ def reclaim_eth(ctx, min_age, password, keystore_file):
     "Specifying 0 will pack all available logs for a scenario.",
 )
 @click.option("--post-to-rocket/--no-post-to-rocket", default=True)
-@click.argument("scenario-file", type=click.File(), required=True)
+@click.argument("scenario-file", type=click.Path(exists=True, dir_okay=False), required=True)
 @click.pass_context
 def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
     data_path: Path = ctx.obj["data_path"].absolute()
     scenario_file = Path(scenario_file.name).absolute()
     scenario_name = Path(scenario_file.name).stem
+
     log_file_name = construct_log_file_name("pack-logs", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
 
-    target_dir = Path(target_dir)
-    target_dir.mkdir(exist_ok=True)
-
     # The logs are located at .raiden/scenario-player/scenarios/<scenario-name>
     # - make sure the path exists.
-    scenarios_path = data_path.joinpath("scenarios")
-    scenario_log_dir = scenarios_path.joinpath(scenario_name)
-    if not scenario_log_dir.exists():
-        print(f"No log directory found for scenario {scenario_name} at {scenario_log_dir}")
-        return
+    scenarios_path, scenario_log_dir = verify_scenario_log_dir(scenario_name, data_path)
 
-    # List all folders
-    folders = [path for path in scenario_log_dir.iterdir() if path.is_dir()]
-
+    # List all node folders which fall into the range of pack_n_latest
+    folders = pack_n_latest_node_logs_in_dir(scenario_log_dir, pack_n_latest)
     # List all files that match the filters `scenario_name` and the `pack_n_latest` counter.
     files = pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir, pack_n_latest)
 
@@ -317,31 +375,6 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
             rc_message["text"] = construct_rc_message(target_dir, archive_fpath, files[0])
             rc_message["description"] = f"Log files for scenario {scenario_name}"
         post_to_rocket_chat(archive_fpath, **rc_message)
-
-
-def pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir: Path, n) -> List[Path]:
-    """ Add the `n` latest log files for ``scenario_name`` in ``scenario_dir`` to a :cls:``set``
-        and return it.
-    """
-    scenario_logs = [
-        path for path in scenario_log_dir.iterdir() if (path.is_file() and "-run_" in path.name)
-    ]
-    history = sorted(scenario_logs, key=lambda x: x.stat().st_mtime, reverse=True)
-
-    # Can't pack more than the number of available logs.
-    num_of_packable_iterations = n or len(scenario_logs)
-
-    if not history:
-        raise RuntimeError(f"No Scenario logs found in {scenario_log_dir}")
-
-    if num_of_packable_iterations < n:
-        # We ran out of scenario logs to add before reaching the requested number of n latest logs.
-        print(
-            f"Only packing {num_of_packable_iterations} logs of requested latest {n} "
-            f"- no more logs found for {scenario_name}!"
-        )
-
-    return history[:num_of_packable_iterations]
 
 
 def construct_rc_message(base_dir, packed_log, log_fpath) -> str:

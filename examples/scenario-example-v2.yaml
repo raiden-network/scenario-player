@@ -60,8 +60,10 @@ nodes:
   ## Options to apply to all nodes
   ## Option names correspond to Raiden cli options without the leading double dash (`--`)
   default_options:
+    ## Sets Raiden config parameters.
     gas-price: fast
-    # environment-type: development
+    #environment-type: development
+    #flat-fee: 10
     #registry-contract-address: "0xbfa863Ac58a3E0A82B58a8e958F2752Bfb573388"
     #discovery-contract-address: "0xb2646EB8270a4de7451f6F7b259FdE17DBCeedc9"
     #secret-registry-contract-address: "0xA5c882f09c3DE551d76dcDE08890fAa0dD1F29E3"
