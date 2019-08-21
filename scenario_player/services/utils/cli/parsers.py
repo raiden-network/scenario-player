@@ -11,6 +11,7 @@ target_service_parser.add_argument(
     "--service",
     choices=list(SERVICE_APPS.keys()),
     default="all",
+    type=str.upper,
     help="Specify service to target. Selects entire SPaaS stack by default.",
 )
 

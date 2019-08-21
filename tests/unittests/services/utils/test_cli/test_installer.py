@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 import subprocess
 from unittest.mock import patch, call, Mock
 
@@ -17,9 +18,9 @@ from scenario_player.services.utils.cli.installer import (
 
 @pytest.fixture
 def parsed():
-    with patch.dict(SERVICE_APPS, {"test": "path.to.app"}):
+    with patch.dict(SERVICE_APPS, {"TEST": "path.to.app"}):
         yield Mock(
-            service="test", uwsgi="/bin/ban/bun", host="127.0.0.1", port=5100,
+            service="TEST", spaas="/bin/ban/bun", host="127.0.0.1", port=5100,
         )
 
 
@@ -29,10 +30,9 @@ def SERVICE_TEMPLATEd_service(parsed):
         service=parsed.service.upper(),
         user=pathlib.Path.home().name,
         workdir=pathlib.Path.home(),
-        uwsgi=parsed.uwsgi,
         host=parsed.host,
         port=parsed.port,
-        app_import_path=SERVICE_APPS[parsed.service],
+        spaas=shutil.which("spaas"),
     )
     return service
 
@@ -93,9 +93,7 @@ class TestStopAndDisableService:
 
     def test_func_does_not_raise_if_process_fails_due_to_missing_service_file(self, mock_run, tmp_path):
         mock_run.side_effect = subprocess.CalledProcessError(1, [""], stderr="Service does not exist!")
-        with pytest.raises(SystemExit) as recorder:
-            stop_and_disable_service(tmp_path)
-        assert len(recorder) == 0
+        stop_and_disable_service(tmp_path)
 
     def test_func_calls_systemd_command_as_expected(self, mock_run, tmp_path):
         stop_and_disable_service(tmp_path)
@@ -104,11 +102,11 @@ class TestStopAndDisableService:
 
 @pytest.mark.depends(depends=["stop_and_disable_service", "enable_and_start_service", "reload_systemd"])
 class TestInstallService:
-    @patch("scenario_player.services.utils.cli.installer.enable_and_start_service")
     @pytest.fixture(autouse=True)
-    def setup_install_service_tests(self, mock_enable_and_start):
-        self.mock_enable_and_start = mock_enable_and_start
-        yield
+    def setup_install_service_tests(self):
+        with patch("scenario_player.services.utils.cli.installer.enable_and_start_service") as mock_enable_and_start:
+            self.mock_enable_and_start = mock_enable_and_start
+            yield
 
     def test_func_calls_path_write_text_at_given_service_fpath(self, parsed, tmp_path, SERVICE_TEMPLATEd_service):
         given_path = tmp_path.joinpath("my.service")
@@ -119,7 +117,7 @@ class TestInstallService:
         with pytest.raises(SystemExit):
             install_service(parsed, tmp_path)
 
-    @patch("scenario_player.services.utils.installer.pathlib.Path.write_text", side_effect=Exception)
+    @patch("scenario_player.services.utils.cli.installer.pathlib.Path.write_text", side_effect=Exception)
     def test_func_raises_systemexit_if_it_cannot_write_to_path(self, parsed, tmp_path):
         with pytest.raises(SystemExit):
             install_service(parsed, tmp_path)
@@ -132,15 +130,15 @@ class TestInstallService:
 
 @pytest.mark.depends(depends=["stop_and_disable_service", "enable_and_start_service", "reload_systemd"])
 class TestRemoveService:
-    @patch("scenario_player.services.utils.cli.installer.stop_and_disable_service")
-    @patch("scenario_player.services.utils.cli.installer.reload_systemd")
-    @patch("scenario_player.services.utils.cli.installer.pathlib.Path.unlink")
     @pytest.fixture(autouse=True)
-    def setup_remove_service_tests(self, mock_unlink, mock_reload_systemd, mock_stop_and_disable):
-        self.mock_unlink = mock_unlink
-        self.mock_stop_and_disable = mock_stop_and_disable
-        self.mock_reload_systemd = mock_reload_systemd
-        yield
+    def setup_remove_service_tests(self):
+        with patch("scenario_player.services.utils.cli.installer.stop_and_disable_service") as mock_stop_and_disable,\
+            patch("scenario_player.services.utils.cli.installer.reload_systemd") as mock_reload_systemd,\
+            patch("scenario_player.services.utils.cli.installer.pathlib.Path.unlink") as mock_unlink:
+            self.mock_unlink = mock_unlink
+            self.mock_stop_and_disable = mock_stop_and_disable
+            self.mock_reload_systemd = mock_reload_systemd
+            yield
 
     def func_calls_stop_and_disable_service(self, parsed, tmp_path):
         remove_service(parsed, tmp_path)
@@ -156,6 +154,4 @@ class TestRemoveService:
         self.mock_reload_systemd.assert_called_once_with()
 
     def func_handles_non_existing_service_file_without_raising_an_exception(self, parsed, tmp_path):
-        with pytest.raises(SystemExit) as recorder:
-            remove_service(parsed, tmp_path.joinpath("does_not.exist"))
-        assert len(recorder) == 0
+        remove_service(parsed, tmp_path.joinpath("does_not.exist"))
