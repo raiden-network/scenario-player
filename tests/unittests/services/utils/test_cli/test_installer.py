@@ -156,10 +156,6 @@ class TestRemoveService:
         self.mock_reload_systemd.assert_called_once_with()
 
     def func_handles_non_existing_service_file_without_raising_an_exception(self, parsed, tmp_path):
-        # The inner `raises` will throw an `AssertionError`, if no exception is
-        # raised (the expected behaviour) this AssertionError is then caught by the outer
-        # `raises` and the test passes.
-        with pytest.raises(AssertionError, message="SystemExit was raised unexpectedly!"):
-            with pytest.raises(SystemExit):
-                remove_service(parsed, tmp_path.joinpath("does_not.exist"))
-
+        with pytest.raises(SystemExit) as recorder:
+            remove_service(parsed, tmp_path.joinpath("does_not.exist"))
+        assert len(recorder) == 0
