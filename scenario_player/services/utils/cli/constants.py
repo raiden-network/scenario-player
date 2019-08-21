@@ -1,4 +1,6 @@
-import scenario_player.services.rpc.app.serve
+import scenario_player.services.rpc.app
+
+
 SERVICE_APPS = {"rpc": scenario_player.services.rpc.app.serve}
 
 SERVICE_TEMPLATE = """
