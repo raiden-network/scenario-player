@@ -1,7 +1,9 @@
 import pytest
+import yaml
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
-from scenario_player.exceptions.config import ConfigurationError
+from scenario_player.exceptions.config import InsufficientMintingAmount, UDCTokenConfigError
+from scenario_player.scenario import ScenarioYAML
 from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.settings import (
     PFSSettingsConfig,
@@ -11,6 +13,16 @@ from scenario_player.utils.configuration.settings import (
     UDCSettingsConfig,
     UDCTokenSettings,
 )
+
+
+@pytest.fixture()
+def file_for_insufficient_minting_test(tmp_path, minimal_yaml_dict):
+    minimal_yaml_dict["settings"] = {"services": {"udc": {"token": {"max_funding": 6000}}}}
+    minimal_yaml_dict["token"] = {"min_balance": 5999}
+    tmp_file = tmp_path.joinpath("tmp.yaml")
+    with open(tmp_file, "w") as outfile:
+        yaml.dump(minimal_yaml_dict, outfile, default_flow_style=False)
+    yield tmp_file
 
 
 class TestSettingsConfig:
@@ -159,12 +171,14 @@ class TestUDCTokenConfig:
         assert getattr(config, key, MISSING) == expected
 
     def test_balance_per_node_bigger_than_max_funding(self, minimal_yaml_dict):
-        minimal_yaml_dict["max_funding"] = 5000
-        minimal_yaml_dict["balance_per_node"] = 5001
-        assert UDCTokenSettings(minimal_yaml_dict).CONFIGURATION_ERROR == ConfigurationError
+        minimal_yaml_dict["settings"] = {
+            "services": {"udc": {"token": {"max_funding": 6000, "balance_per_node": 6001}}}
+        }
+        with pytest.raises(UDCTokenConfigError):
+            UDCTokenSettings(minimal_yaml_dict)
 
-    # FIXME this test doesn't work for whatever reason
-    def test_insufficient_minting(self, minimal_yaml_dict):
-        minimal_yaml_dict["max_funding"] = 5000
-        minimal_yaml_dict["token"]["min_balance"] = 4999
-        assert UDCTokenSettings(minimal_yaml_dict).CONFIGURATION_ERROR == ConfigurationError
+    def test_insufficient_minting(self, file_for_insufficient_minting_test):
+        with pytest.raises(InsufficientMintingAmount):
+            ScenarioYAML(
+                file_for_insufficient_minting_test, file_for_insufficient_minting_test.parent
+            )
