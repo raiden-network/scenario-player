@@ -14,8 +14,9 @@ dummy_app = object()
 
 
 @patch("scenario_player.services.rpc.app.waitress.serve")
-@patch("scenario_player.services.rpc.app.flask.Flask", autospec=True)
+@patch("scenario_player.services.rpc.app.flask.Flask", autospec=True, config={})
 def test_rpc_app_constructor(mock_app, mock_serve):
+    mock_app.return_value.config = {}
     parsed = Mock(port=5100, host="127.0.0.1")
     app = serve(parsed)
     blueprints = [
@@ -26,8 +27,8 @@ def test_rpc_app_constructor(mock_app, mock_serve):
         transactions_blueprint,
     ]
     for bp in blueprints:
-        mock_app.register_blueprint.assert_any_call(bp)
+        mock_app.return_value.register_blueprint.assert_any_call(bp)
 
-    assert isinstance(app.config.get("rpc-client"), RPCRegistry)
+    assert isinstance(mock_app.return_value.config.get("rpc-client"), RPCRegistry)
 
-    mock_serve.assert_called_once_with(mock_app, host=parsed.host, port=parsed.port)
+    mock_serve.assert_called_once_with(mock_app.return_value, host=parsed.host, port=parsed.port)

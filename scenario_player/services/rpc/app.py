@@ -28,7 +28,7 @@ def serve(parsed):
     log.info("Creating RPC Flask App", version=__version__, name=NAME)
 
     app = flask.Flask(NAME)
-
+    print(app)
     log.debug("Creating RPC Client Registry")
     app.config["rpc-client"] = RPCRegistry()
 
