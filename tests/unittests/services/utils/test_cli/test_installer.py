@@ -10,7 +10,7 @@ from scenario_player.services.utils.cli.installer import (
     stop_and_disable_service,
     install_service,
     remove_service,
-    template,
+    SERVICE_TEMPLATE,
     SERVICE_APPS,
 )
 
@@ -24,8 +24,8 @@ def parsed():
 
 
 @pytest.fixture
-def templated_service(parsed):
-    service = template.format(
+def SERVICE_TEMPLATEd_service(parsed):
+    service = SERVICE_TEMPLATE.format(
         service=parsed.service.upper(),
         user=pathlib.Path.home().name,
         workdir=pathlib.Path.home(),
@@ -38,7 +38,7 @@ def templated_service(parsed):
 
 
 @pytest.mark.depends(name="reload_systemd")
-@patch("scenario_player.services.utils.installer.subprocess.run", autospec=True)
+@patch("scenario_player.services.utils.cli.installer.subprocess.run", autospec=True)
 class TestReloadSystemd:
     def test_func_calls_systemctl_command_with_user_flags(self, mock_run):
         reload_systemd()
@@ -51,7 +51,7 @@ class TestReloadSystemd:
 
 
 @pytest.mark.depends(name="enable_and_start_service")
-@patch("scenario_player.services.utils.installer.subprocess.run", autospec=True)
+@patch("scenario_player.services.utils.cli.installer.subprocess.run", autospec=True)
 class TestEnableAndStartService:
 
     @pytest.mark.parametrize(
@@ -74,7 +74,7 @@ class TestEnableAndStartService:
 
 
 @pytest.mark.depends(name="stop_and_disable_service")
-@patch("scenario_player.services.utils.installer.subprocess.run", autospec=True)
+@patch("scenario_player.services.utils.cli.installer.subprocess.run", autospec=True)
 class TestStopAndDisableService:
 
     @pytest.mark.parametrize(
@@ -104,16 +104,16 @@ class TestStopAndDisableService:
 
 @pytest.mark.depends(depends=["stop_and_disable_service", "enable_and_start_service", "reload_systemd"])
 class TestInstallService:
-    @patch("scenario_player.services.utils.installer.enable_and_start_service")
+    @patch("scenario_player.services.utils.cli.installer.enable_and_start_service")
     @pytest.fixture(autouse=True)
     def setup_install_service_tests(self, mock_enable_and_start):
         self.mock_enable_and_start = mock_enable_and_start
         yield
 
-    def test_func_calls_path_write_text_at_given_service_fpath(self, parsed, tmp_path, templated_service):
+    def test_func_calls_path_write_text_at_given_service_fpath(self, parsed, tmp_path, SERVICE_TEMPLATEd_service):
         given_path = tmp_path.joinpath("my.service")
         install_service(parsed, given_path)
-        assert given_path.read_text() == templated_service
+        assert given_path.read_text() == SERVICE_TEMPLATEd_service
 
     def test_func_raises_system_exit_if_service_fpath_exists(self, parsed, tmp_path):
         with pytest.raises(SystemExit):
@@ -132,9 +132,9 @@ class TestInstallService:
 
 @pytest.mark.depends(depends=["stop_and_disable_service", "enable_and_start_service", "reload_systemd"])
 class TestRemoveService:
-    @patch("scenario_player.services.utils.installer.stop_and_disable_service")
-    @patch("scenario_player.services.utils.installer.reload_systemd")
-    @patch("scenario_player.services.utils.installer.pathlib.Path.unlink")
+    @patch("scenario_player.services.utils.cli.installer.stop_and_disable_service")
+    @patch("scenario_player.services.utils.cli.installer.reload_systemd")
+    @patch("scenario_player.services.utils.cli.installer.pathlib.Path.unlink")
     @pytest.fixture(autouse=True)
     def setup_remove_service_tests(self, mock_unlink, mock_reload_systemd, mock_stop_and_disable):
         self.mock_unlink = mock_unlink
