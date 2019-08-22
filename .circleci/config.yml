@@ -236,7 +236,7 @@ jobs:
       - run:
           name: Update Changelog entries
           command: |
-            python3 ${CI_SCRIPTS_DIR}/update-changelog.py
+            python3 ${CI_SCRIPTS_DIR}/update-changelog.py {PROJECT_ROOT}/CHANGELOG.rst
 
   # Publish a wheel and tarball of the Scenario Player to pypi.
   deploy-to-pypi:
