@@ -353,10 +353,6 @@ class UserDepositContract(Contract):
         """Get the effective balance of the target address."""
         return self.contract_proxy.contract.functions.effectiveBalance(at_target).call()
 
-    def total_deposit(self, at_target):
-        """"Get the so far deposted amount"""
-        return self.contract_proxy.contract.functions.total_deposit(at_target).call()
-
     def mint(self, target_address) -> Union[str, None]:
         """The mint function isn't present on the UDC, pass the UDTC address instead."""
         return super(UserDepositContract, self).mint(
@@ -401,7 +397,6 @@ class UserDepositContract(Contract):
         TODO: Allow setting max funding parameter, similar to the token `funding_min` setting.
         """
         balance = self.effective_balance(target_address)
-        total_deposit = self.total_deposit(target_address)
         min_deposit = self.config.settings.services.udc.token.balance_per_node
         max_funding = self.config.settings.services.udc.token.max_funding
         log.debug(
@@ -414,6 +409,6 @@ class UserDepositContract(Contract):
             return
 
         log.debug("deposit call required - insufficient funds")
-        deposit_amount = total_deposit + (max_funding - balance)
+        deposit_amount = max_funding - balance
         params = {"amount": deposit_amount, "target_address": target_address}
         return self.transact("deposit", params)

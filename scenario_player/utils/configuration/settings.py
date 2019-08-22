@@ -3,11 +3,7 @@ from typing import Callable, Union
 import structlog
 
 from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
-from scenario_player.exceptions.config import (
-    ScenarioConfigurationError,
-    ServiceConfigurationError,
-    UDCTokenConfigError,
-)
+from scenario_player.exceptions.config import ScenarioConfigurationError, ServiceConfigurationError
 from scenario_player.utils.configuration.base import ConfigMapping
 
 log = structlog.get_logger(__name__)
