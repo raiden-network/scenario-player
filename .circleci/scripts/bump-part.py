@@ -12,6 +12,7 @@ from constants import (
     REPO_NAME,
     REPO_OWNER,
 )
+from chlogger import make_chlog
 
 from scenario_player import __version__
 
@@ -65,6 +66,7 @@ elif CURRENT_BRANCH == "master":
                 part = "minor"
                 break
 
+
 print(f"Bumping part {part}..")
 
 
@@ -84,6 +86,11 @@ else:
         check=True,
         stdout=subprocess.PIPE,
     )
+
+if CURRENT_BRANCH == "master" and COMMIT_TYPE == "RELEASE":
+    r = subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} describe --abbrev=0 --tags", check=True)
+    tag = r.stdout.decode("UTF-8").strip(" ").strip("\n")
+    make_chlog(Path(f"{PROJECT_ROOT}/CHANGES.rst"), new_version=tag)
 
 print("Push Bump commit..")
 subprocess.run(

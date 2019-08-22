@@ -4,11 +4,7 @@ import re
 import subprocess
 
 from typing import List, Set, Tuple
-from constants import PROJECT_GIT_DIR, CURRENT_BRANCH, COMMIT_PATTERN
-
-
-if CURRENT_BRANCH != "master":
-    exit(0)
+from constants import PROJECT_GIT_DIR, CURRENT_BRANCH, COMMIT_PATTERN, COMMIT_TYPE
 
 
 def latest_tag():
@@ -139,8 +135,9 @@ def update_chlog(tag: str, feats: List[str], fixes: List[str], hotfixes: List[st
     chlog_path.write_text(f"{chlog_entry}\n{history}")
 
 
-if __name__ == '__main__':
-    import sys
-    chlog_path = pathlib.Path(sys.argv[1])
-    feats, fixes, hotfixes = read_git_commit_history_since_tag("v0.3.0")
+def make_chlog(chlog_path, new_version):
+    feats, fixes, hotfixes = read_git_commit_history_since_tag(new_version)
     update_chlog("0.4.0", format_commits(feats), format_commits(fixes), format_commits(hotfixes), chlog_path)
+
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} git add CHANGELOG.rst".split(" "), check=True)
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} git commit CHANGELOG.rst -m \"Update Changelog.\"".split(" "), check=True)
