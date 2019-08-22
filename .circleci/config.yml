@@ -233,11 +233,6 @@ jobs:
           command: |
             python3 ${CI_SCRIPTS_DIR}/bump-part.py
 
-      - run:
-          name: Update Changelog entries
-          command: |
-            python3 ${CI_SCRIPTS_DIR}/update-changelog.py
-
   # Publish a wheel and tarball of the Scenario Player to pypi.
   deploy-to-pypi:
     executor: default-executor
