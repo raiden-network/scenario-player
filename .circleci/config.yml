@@ -37,7 +37,6 @@ PR_branches_only: &PR_branches_only
       ignore:
         - /^\d+\.\d+.*/
 
-
 ################################################################################
 #                                                                              #
 # Custom Executor definitions.                                                 #
@@ -67,6 +66,17 @@ commands:
   # ================= #
   # CI Setup Commands #
   # ================= #
+
+  setup-job:
+    description: |
+      Attach the workspace and load ENV variables.
+      Additionally skips the job this is used in, if the commit message is invalid
+      (unless the workflow executing the job is running on "master" or "dev").
+    steps:
+      - attach_workspace:
+          at: "/home/circleci"
+      - export_env_vars
+      - skip_bad_commit_format
 
   export_env_vars:
     description: Export ENV variables used by our script.
@@ -114,12 +124,12 @@ commands:
             make install-dev
 
 
-  validate_commit_format:
+  skip_bad_commit_format:
     description: Validate the first line of the commit message against a REGEX.
     steps:
       - run:
           name: Validate the commit's title description.
-          command: python3 ${CI_SCRIPTS_DIR}/validate-commit-message.py
+          command: python3 ${CI_SCRIPTS_DIR}/skip-on-bad-commit-message.py
 
   # ================================== #
   # Linter and test execution commands #
@@ -171,14 +181,6 @@ commands:
 
 jobs:
 
-  validate-commit-message:
-    executor: default-executor
-    steps:
-      - attach_workspace:
-          at: "/home/circleci"
-      - export_env_vars
-      - validate_commit_format
-
   prep-system:
     executor: default-executor
     steps:
@@ -192,11 +194,22 @@ jobs:
 
   # Run all test suites (aka the test harness) of the repository and lint-check
   # our code base.
+  test-harness:
+    executor: default-executor
+    steps:
+      - setup-job
+      - run_test_harness
+
+  style-check-and-lint:
+    executor: default-executor
+    steps:
+      - setup-job
+      - lint_codebase
+
   lint-and-test:
     executor: default-executor
     steps:
-      - attach_workspace:
-          at: "/home/circleci"
+      - setup-job
       - lint_codebase
       - run_test_harness
 
@@ -205,9 +218,7 @@ jobs:
   bump-versions:
     executor: default-executor
     steps:
-      - attach_workspace:
-          at: "/home/circleci"
-      - export_env_vars
+      - setup-job
       - run:
           name: Add Github to known hosts.
           command: |
@@ -227,6 +238,8 @@ jobs:
     executor: default-executor
     steps:
       - checkout
+      - export_env_vars
+      - skip_bad_commit_format
       - run:
           name: Publish to pypi using flit.
           command: |
@@ -258,7 +271,12 @@ workflows:
       - prep-system:
           <<: *PR_branches_only
 
-      - lint-and-test:
+      - test-harness:
+          context: Raiden-SP-Context
+          requires:
+            - prep-system
+
+      - style-check-and-lint:
           context: Raiden-SP-Context
           requires:
             - prep-system
@@ -266,23 +284,19 @@ workflows:
       - finalize:
           requires:
             - prep-system
-            - lint-and-test
+            - style-check-and-lint
+            - test-harness
 
   Merge-Commit-Workflow:
     jobs:
       - prep-system:
           <<: *master_dev_only
 
-      - validate-commit-message:
-          context: Raiden-SP-Context
-          requires:
-            - prep-system
-
       # Run linters and test harnesses against PR branches.
       - lint-and-test:
           context: Raiden-SP-Context
           requires:
-            - validate-commit-message
+            - prep-system
 
       # Bump the minor or patch for `master` on each merge commit.
       - bump-versions:
@@ -302,7 +316,6 @@ workflows:
       - finalize:
           requires:
             - prep-system
-            - validate-commit-message
             - lint-and-test
             - bump-versions
             - tear-down
