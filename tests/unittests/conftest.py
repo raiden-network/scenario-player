@@ -35,6 +35,10 @@ class DummyRPCConfig:
 
 
 class DummyServicesConfig:
+    pass
+
+
+class DummySPaaSConfig:
     def __init__(self):
         self.rpc = DummyRPCConfig()
 
@@ -43,6 +47,7 @@ class DummySettingsConfig:
     def __init__(self):
         self.timeout = 2
         self.services = DummyServicesConfig()
+        self.spaas = DummySPaaSConfig()
 
 
 class DummyTokenConfig:

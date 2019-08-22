@@ -5,8 +5,8 @@ from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_p
 #: The namespace plugins should use as a prefix when creating a :class:`pluggy.HookimplMarker`.
 HOST_NAMESPACE = "scenario_player"
 
-DEFAULT_TOKEN_BALANCE_MIN = 2_000
-DEFAULT_TOKEN_BALANCE_FUND = 10_000
+DEFAULT_TOKEN_BALANCE_MIN = 5_000
+DEFAULT_TOKEN_BALANCE_FUND = 50_000
 OWN_ACCOUNT_BALANCE_MIN = 5 * 10 ** 17  # := 0.5 Eth
 NODE_ACCOUNT_BALANCE_MIN = 15 * 10 ** 16  # := 0.15 Eth
 NODE_ACCOUNT_BALANCE_FUND = 3 * 10 ** 17  # := 0.3 Eth
