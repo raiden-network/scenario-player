@@ -1,26 +1,14 @@
-"""TODO: This script is a stub."""
 import pathlib
 import re
 import subprocess
 
-from typing import List, Set, Tuple
+from typing import List, Tuple
 from constants import PROJECT_GIT_DIR, CURRENT_BRANCH, COMMIT_PATTERN, COMMIT_TYPE
 
 
-def latest_tag():
-    proc =subprocess.run(
-        f"git --git-dir={PROJECT_GIT_DIR} tag -l".split(" "),
-        check=True,
-        stdout=subprocess.PIPE,
-    )
-
-    all_tags = proc.stdout.decode("UTF-8").split("\n")
-    releases = sorted([tag for tag in all_tags if 'dev' not in tag and tag.startswith("v")], reverse=True)
-    latest, *_ = releases
-    return latest
-
-
-def read_git_commit_history_since_tag(tag) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]], List[Tuple[str, str]]]:
+def read_git_commit_history_since_tag(
+        tag
+    ) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]], List[Tuple[str, str]]]:
     """Return a list of all git commit titles since the given `tag`.
 
     If `tag` is not given, we'll use the previous tag and compare the log up
@@ -70,10 +58,6 @@ def read_git_commit_history_since_tag(tag) -> Tuple[List[Tuple[str, str]], List[
         else:
             print(f"No type found, skipping commit '{title}'..")
 
-    print("feats", feats)
-    print("fixes", fixes)
-    print("hotfixes", hotfixes)
-
     return feats, fixes, hotfixes
 
 
@@ -95,7 +79,6 @@ def format_commits(commits: List[Tuple[str, str]]) -> List[str]:
         return []
     pattern = re.compile(COMMIT_PATTERN)
     formatted = set()
-    print("UNPACKING", commits)
     for title, body in commits:
         match = pattern.match(title)
         issue, subject = match.groupdict()["ISSUE"], match.groupdict()["SUBJECT"]
@@ -110,7 +93,13 @@ def format_commits(commits: List[Tuple[str, str]]) -> List[str]:
     return sorted(formatted)
 
 
-def update_chlog(tag: str, feats: List[str], fixes: List[str], hotfixes: List[str], chlog_path: pathlib.Path = pathlib.Path("CHANGELOG.rst")):
+def update_chlog(
+        tag: str,
+        feats: List[str],
+        fixes: List[str],
+        hotfixes: List[str],
+        chlog_path: pathlib.Path = pathlib.Path("CHANGELOG.rst"),
+):
     try:
         history = chlog_path.read_text()
     except FileNotFoundError:
@@ -137,7 +126,12 @@ def update_chlog(tag: str, feats: List[str], fixes: List[str], hotfixes: List[st
 
 def make_chlog(chlog_path, new_version):
     feats, fixes, hotfixes = read_git_commit_history_since_tag(new_version)
-    update_chlog("0.4.0", format_commits(feats), format_commits(fixes), format_commits(hotfixes), chlog_path)
+    update_chlog(
+        "0.4.0", format_commits(feats), format_commits(fixes), format_commits(hotfixes), chlog_path
+    )
 
     subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} git add CHANGELOG.rst".split(" "), check=True)
-    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} git commit CHANGELOG.rst -m \"Update Changelog.\"".split(" "), check=True)
+    subprocess.run(
+        f"git --git-dir={PROJECT_GIT_DIR} git commit CHANGELOG.rst -m \"Update Changelog.\"".split(" "),
+        check=True
+    )
