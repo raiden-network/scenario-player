@@ -532,8 +532,9 @@ class TestUserDepositContract:
         mock_transact.assert_called_once_with("allowance", expected_params)
 
     @patch("scenario_player.utils.token.Contract.transact")
+    @patch("scenario_player.utils.token.UserDepositContract.total_deposit")
     def test_deposit_method_issues_deposit_request_if_node_funding_is_insufficient(
-        self, mock_transact
+        self, mock_total_deposit, mock_transact
     ):
         """deposit() deposits the correct amount of UDC Tokens at the target node's address.
 
@@ -542,9 +543,11 @@ class TestUserDepositContract:
         self.instance.config.settings.services.udc.token.dict["balance_per_node"] = 5_000
         self.instance.config.settings.services.udc.token.dict["max_funding"] = 10_000
         self.mock_effective_balance.return_value = 1000
+        # Set the total_deposit return value ot 1, so we know it was factored in.
+        mock_total_deposit.return_value = 1
 
-        # amount = max_funding - effective_balance
-        expected_params = {"amount": 9_000, "target_address": "some_address"}
+        # amount = total_deposit + max_funding - effective_balance
+        expected_params = {"amount": 9_001, "target_address": "some_address"}
 
         self.instance.deposit("some_address")
 
