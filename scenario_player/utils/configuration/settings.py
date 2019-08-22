@@ -3,7 +3,11 @@ from typing import Callable, Union
 import structlog
 
 from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
-from scenario_player.exceptions.config import ScenarioConfigurationError, ServiceConfigurationError
+from scenario_player.exceptions.config import (
+    ScenarioConfigurationError,
+    ServiceConfigurationError,
+    UDCTokenConfigError,
+)
 from scenario_player.utils.configuration.base import ConfigMapping
 
 log = structlog.get_logger(__name__)
@@ -38,22 +42,54 @@ class PFSSettingsConfig(ConfigMapping):
 
 
 class UDCTokenSettings(ConfigMapping):
+    """UDC Token Settings Interface.
+
+    Example scenario yaml::
+
+        >my_scenario.yaml
+          ---
+            udc:
+              ...
+              token:
+                deposit: false
+                balance_per_node: 5000
+                max_funding: 5000
+            ...
+    """
+
+    CONFIGURATION_ERROR = UDCTokenConfigError
+
     def __init__(self, loaded_yaml: dict):
         udc_settings = ((loaded_yaml.get("settings") or {}).get("services") or {}).get("udc") or {}
         super(UDCTokenSettings, self).__init__(udc_settings.get("token"))
-        print(self.dict)
+        self.validate()
+
+    def validate(self) -> None:
+        """Validate the UDC Token options given.
+
+        :raises UDCTokenConfigError: if :attr:`.max_funding` < :attr:`.balance_per_node`.
+        """
+        self.assert_option(
+            self.max_funding >= self.balance_per_node,
+            "udc.token.max_funding must be >= udc.token.balance_per_node!",
+        )
 
     @property
-    def deposit(self):
+    def deposit(self) -> bool:
+        """Whether or not to deposit tokens at nodes.
+
+        If this is set to False or not given, the attributes :attr:`.max_funding` and
+        :attr:`.balance_per_node` will not be used.
+        """
         return self.get("deposit", False)
 
     @property
-    def balance_per_node(self):
+    def balance_per_node(self) -> int:
         """The required amount of UDC/RDN tokens required by each node."""
         return int(self.get("balance_per_node", 5000))
 
     @property
-    def max_funding(self):
+    def max_funding(self) -> int:
         """The maximum amount to fund when depositing RDN tokens at a target.
 
         It defaults to :attr:`.balance_per_node`'s value.
@@ -72,13 +108,11 @@ class UDCSettingsConfig(ConfigMapping):
         settings:
           ...
           services:
-            ...
             udc:
               enable: True
               address: 0x1000001
               token:
-                deposit: True
-                balance_per_node: 5000
+                <UDCTokenSettings>
             ...
     """
 
@@ -89,11 +123,11 @@ class UDCSettingsConfig(ConfigMapping):
         self.token = UDCTokenSettings(loaded_yaml)
 
     @property
-    def enable(self):
+    def enable(self) -> bool:
         return self.get("enable", False)
 
     @property
-    def address(self):
+    def address(self) -> Union[str, None]:
         return self.get("address")
 
 

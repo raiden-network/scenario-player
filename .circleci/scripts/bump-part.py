@@ -1,4 +1,5 @@
 import os
+import pathlib
 import subprocess
 
 import requests
@@ -12,6 +13,7 @@ from constants import (
     REPO_NAME,
     REPO_OWNER,
 )
+from chlogger import make_chlog
 
 from scenario_player import __version__
 
@@ -23,12 +25,6 @@ print(f"Bumping branch {CURRENT_BRANCH}..")
 if COMMIT_TYPE == "VERSION_BUMP":
     print("This is already a version bump - skip bumping.")
     exit()
-
-
-def get_last_tag():
-    return subprocess.run(
-        "git describe --tags".split(" "), check=True, stdout=subprocess.PIPE
-    ).stdout.decode("UTF-8")
 
 
 part = ""
@@ -65,6 +61,7 @@ elif CURRENT_BRANCH == "master":
                 part = "minor"
                 break
 
+
 print(f"Bumping part {part}..")
 
 
@@ -84,6 +81,11 @@ else:
         check=True,
         stdout=subprocess.PIPE,
     )
+
+if CURRENT_BRANCH == "master" and COMMIT_TYPE == "RELEASE":
+    r = subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} describe --abbrev=0 --tags".split(" "), check=True, stdout=subprocess.PIPE)
+    tag = r.stdout.decode("UTF-8").strip(" ").strip("\n")
+    make_chlog(pathlib.Path(f"{PROJECT_ROOT}/CHANGES.rst"), new_version=tag)
 
 print("Push Bump commit..")
 subprocess.run(

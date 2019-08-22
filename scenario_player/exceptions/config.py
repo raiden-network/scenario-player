@@ -2,6 +2,14 @@ class ConfigurationError(ValueError):
     """Generic error thrown if there was an error while reading the scenario file."""
 
 
+class UDCTokenConfigError(ConfigurationError):
+    """Invalid Configuration parameters. Most likely there is an issue with Token amounts"""
+
+
+class InsufficientMintingAmount(ConfigurationError):
+    """The minted amount set in token.min_balance is not sufficient"""
+
+
 class NodeConfigurationError(ConfigurationError):
     """An error occurred while validating the nodes setting of a scenario file."""
 
