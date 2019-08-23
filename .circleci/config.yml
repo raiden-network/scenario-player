@@ -281,19 +281,12 @@ workflows:
           requires:
             - prep-system
 
-      - finalize:
-          requires:
-            - prep-system
-            - style-check-and-lint
-            - test-harness
-
   Merge-Commit-Workflow:
     jobs:
       - prep-system:
           <<: *master_dev_only
 
-      # Run linters and test harnesses against PR branches.
-      - lint-and-test:
+      - test-harness:
           context: Raiden-SP-Context
           requires:
             - prep-system
@@ -302,7 +295,7 @@ workflows:
       - bump-versions:
           context: Raiden-SP-Context
           requires:
-            - lint-and-test
+            - test-harness
 
       # ======== #
       # Clean-up #
@@ -311,14 +304,7 @@ workflows:
       # Save our packages to the cache.
       - tear-down:
           requires:
-            - lint-and-test
-
-      - finalize:
-          requires:
-            - prep-system
-            - lint-and-test
-            - bump-versions
-            - tear-down
+            - test-harness
 
   Deploy-Release-Workflow:
     jobs:
@@ -330,8 +316,3 @@ workflows:
           context: "Raiden Context"
           requires:
             - prep-system
-
-      - finalize:
-          requires:
-            - prep-system
-            - deploy-to-pypi
