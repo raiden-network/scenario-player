@@ -212,10 +212,6 @@ def run(
     # Dynamically import valid Task classes from sceanrio_player.tasks package.
     collect_tasks(tasks)
 
-    # Start the SPaaS Service stack.
-    # This is a no-op if it's already running.
-    subprocess.run(["spaas-stack", "start"])
-
     # Run the scenario using the configurations passed.
     try:
         runner = ScenarioRunner(
