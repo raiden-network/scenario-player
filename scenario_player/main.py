@@ -162,14 +162,6 @@ def main(ctx, chains, data_path):
     default=sys.stdout.isatty(),
     help="En-/disable console UI. [default: auto-detect]",
 )
-@click.option(
-    "--spaas-no-teardown",
-    "no_spaas_teardown",
-    default=False,
-    is_flag=True,
-    help="Do NOT tear down the spaas stack after scenario execution completes. "
-    "Allows running scenarios concurrently. [Default: False]",
-)
 @click.pass_context
 def run(
     ctx,
@@ -180,8 +172,7 @@ def run(
     scenario_file,
     notify_tasks,
     enable_ui,
-    password_file,
-    no_spaas_teardown,
+    password_file,,
 ):
     scenario_file = Path(scenario_file.name).absolute()
     data_path = ctx.obj["data_path"]
@@ -278,8 +269,6 @@ def run(
             if ui_greenlet is not None and not ui_greenlet.dead:
                 ui_greenlet.kill(ExitMainLoop)
                 ui_greenlet.join()
-            if not no_spaas_teardown:
-                subprocess.run(["spaas-stack", "stop"])
 
 
 @main.command(name="reclaim-eth")
