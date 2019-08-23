@@ -130,8 +130,8 @@ def make_chlog(chlog_path, new_version):
         "0.4.0", format_commits(feats), format_commits(fixes), format_commits(hotfixes), chlog_path
     )
 
-    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} add {chlog_path}".split(" "), check=True)
+    subprocess.run(f"git --git-dir={PROJECT_GIT_DIR} git add CHANGELOG.rst".split(" "), check=True)
     subprocess.run(
-        f"git --git-dir={PROJECT_GIT_DIR} commit {chlog_path} -m".split(" ") + ['"Update Changelog."'],
+        f"git --git-dir={PROJECT_GIT_DIR} git commit CHANGELOG.rst -m \"Update Changelog.\"".split(" "),
         check=True
     )
