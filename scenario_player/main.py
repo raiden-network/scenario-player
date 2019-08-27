@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
 import tarfile
 import traceback
@@ -26,7 +25,6 @@ from raiden.utils.cli import EnumChoiceType
 from scenario_player import tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
-from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
@@ -172,7 +170,7 @@ def run(
     scenario_file,
     notify_tasks,
     enable_ui,
-    password_file,,
+    password_file,
 ):
     scenario_file = Path(scenario_file.name).absolute()
     data_path = ctx.obj["data_path"]
