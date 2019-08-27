@@ -1,6 +1,9 @@
 import scenario_player.services.rpc.app
 
-SERVICE_APPS = {"RPC": scenario_player.services.rpc.app.serve}
+SERVICE_APPS = {
+    "RPC": scenario_player.services.rpc.app.serve,
+    "ALL": scenario_player.services.rpc.app.serve,
+}
 
 SERVICE_TEMPLATE = """
 [Unit]
