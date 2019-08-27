@@ -52,8 +52,8 @@ class UDCTokenSettings(ConfigMapping):
               ...
               token:
                 deposit: false
-                balance_per_node: 5000
-                max_funding: 5000
+                balance_per_node: 5100
+                max_funding: 5100
             ...
     """
 
@@ -86,7 +86,7 @@ class UDCTokenSettings(ConfigMapping):
     @property
     def balance_per_node(self) -> int:
         """The required amount of UDC/RDN tokens required by each node."""
-        return int(self.get("balance_per_node", 5000))
+        return int(self.get("balance_per_node", 5100))
 
     @property
     def max_funding(self) -> int:

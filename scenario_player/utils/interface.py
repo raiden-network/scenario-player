@@ -44,7 +44,7 @@ class SPaaSAdapter(HTTPAdapter):
 
     Handles requests made using the `spaas` scheme and maps the url to a configured
     service, if available. If no configuration for the service exists, we always
-    assume it's available at localhost:5000 (the default flask port).
+    assume it's available at localhost:5100 (the default flask port).
     """
 
     def __init__(self, spaas_settings: SPaaSConfig):
@@ -63,7 +63,7 @@ class SPaaSAdapter(HTTPAdapter):
         path = f"{request.service}{parsed[2]}"
         unparse_args = (
             service_conf.scheme or "http",
-            service_conf.netloc or "localhost:5000",
+            service_conf.netloc or "localhost:5100",
             path,
             *parsed[3:],
         )

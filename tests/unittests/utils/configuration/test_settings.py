@@ -161,7 +161,7 @@ class TestUDCTokenConfig:
 
     @pytest.mark.parametrize(
         "key, expected",
-        argvalues=[("deposit", False), ("balance_per_node", 5000), ("max_funding", 5000)],
+        argvalues=[("deposit", False), ("balance_per_node", 5100), ("max_funding", 5100)],
     )
     def test_attributes_whose_key_is_absent_return_expected_default(
         self, key, expected, minimal_yaml_dict

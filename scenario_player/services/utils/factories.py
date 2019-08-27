@@ -55,15 +55,15 @@ def default_service_daemon_cli():
     Configures the following options:
 
         * <command> (required) - must be one of `start` or `stop`.
-        * --port (optional) - the port to assign to the service. Defaults to 5000.
+        * --port (optional) - the port to assign to the service. Defaults to 5100.
         * --host (optional) - the host to assign to the service. Defaults to 127.0.0.1
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["start", "stop"])
     parser.add_argument(
         "--port",
-        default=5000,
-        help="Port number to run this service on. Defaults to '5000'",
+        default=5100,
+        help="Port number to run this service on. Defaults to '5100'",
         type=int,
     )
     parser.add_argument(

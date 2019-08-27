@@ -43,7 +43,7 @@ class TestSPaaSAdapter:
         SPaaSAdapter.prep_service_request should default to sensible values."""
 
         expected_url = (
-            f"{scheme or 'http'}://{host or '127.0.0.1'}:{port or '5000'}/{service}/my-endpoint"
+            f"{scheme or 'http'}://{host or '127.0.0.1'}:{port or '5100'}/{service}/my-endpoint"
         )
 
         input_config = {}
@@ -112,5 +112,5 @@ class TestSPaaSAdapter:
         with pytest.raises(expected_err):
             config = SPaaSConfig({"spaas": {}})
             adapter = SPaaSAdapter(config)
-            req = requests.Request(url="http://127.0.0.1:5000").prepare()
+            req = requests.Request(url="http://127.0.0.1:5100").prepare()
             adapter.send(req)

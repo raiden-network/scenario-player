@@ -42,7 +42,7 @@ class SPaaSServiceConfig(ConfigMapping):
 
     @property
     def port(self):
-        return self.get("port", "5000")
+        return self.get("port", "5100")
 
     @property
     def netloc(self):
