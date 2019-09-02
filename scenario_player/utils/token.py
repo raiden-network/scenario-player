@@ -247,7 +247,7 @@ class Token(Contract):
         self._token_file.write_text(json.dumps(token_data))
 
     def init(self):
-        """Load an existing or deploy a new token contract.O"""
+        """Load an existing or deploy a new token contract."""
         if self.config.token.reuse_token:
             return self.use_existing()
         return self.deploy_new()
