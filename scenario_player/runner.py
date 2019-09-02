@@ -322,6 +322,9 @@ class ScenarioRunner:
     def _initialize_nodes(
         self
     ) -> Tuple[Set[TransactionHash], gevent.Greenlet, Set[ChecksumAddress], int]:
+        """This methods starts all the Raiden nodes and makes sure that each
+        account has at least `NODE_ACCOUNT_BALANCE_MIN`.
+        """
         fund_tx = set()
 
         self.node_controller.initialize_nodes()
