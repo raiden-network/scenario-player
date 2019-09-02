@@ -1,6 +1,6 @@
 import json
 import pathlib
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 import structlog
 from eth_utils import decode_hex, to_checksum_address
