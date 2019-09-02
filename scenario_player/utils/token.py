@@ -373,7 +373,7 @@ class UserDepositContract(Contract):
         required_allowance = self.config.settings.services.udc.token.balance_per_node * node_count
 
         log.debug(
-            "Checking necessity of deposit request",
+            "Checking necessity of allowance request",
             required_balance=required_allowance,
             actual_balance=udt_allowance,
         )
