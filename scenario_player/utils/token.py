@@ -102,6 +102,7 @@ class Token(Contract):
         self._token_file = data_path.joinpath("token.info")
         self.contract_data = {}
         self.deployment_receipt = None
+        self.contract_proxy = None
 
     @property
     def name(self) -> str:
@@ -159,7 +160,7 @@ class Token(Contract):
         It is an error to access this property before the token is deployed.
         """
         if self.deployed:
-            return super(Token, self).balance
+            return self.contract_proxy.contract.functions.balanceOf(self.address).call()
         else:
             raise TokenNotDeployed
 
@@ -258,18 +259,21 @@ class Token(Contract):
                 f"Cannot reuse token - address {address} has no code stored!"
             ) from e
 
-        # Fetch the token's contract_proxy data.
-        contract_proxy = self._local_contract_manager.get_contract(contract_name)
+        # Fetch the token's contract_info data.
+        contract_info = self._local_contract_manager.get_contract(contract_name)
 
-        self.contract_data = {"token_contract": address, "name": contract_proxy.name}
+        self.contract_data = {"token_contract": address, "name": contract_name}
+        self.contract_proxy = self._local_rpc_client.new_contract_proxy(
+            contract_info["abi"], address
+        )
         self.deployment_receipt = {"blockNum": block}
         checksummed_address = to_checksum_address(address)
 
         log.debug(
             "Reusing token",
             address=checksummed_address,
-            name=contract_proxy.name,
-            symbol=contract_proxy.symbol,
+            name=contract_name,
+            symbol=self.contract_proxy.contract.functions.symbol().call(),
         )
         return checksummed_address, block
 
@@ -308,8 +312,13 @@ class Token(Contract):
             resp_data["deployment_block"],
         )
 
+        contract_info = self._local_contract_manager.get_contract("CustomToken")
+
         # Make deployment address and block available to address/deployment_block properties.
         self.contract_data = token_contract_data
+        self.contract_proxy = self._local_rpc_client.new_contract_proxy(
+            contract_info["abi"], token_contract_data["address"]
+        )
         self.deployment_receipt = {"blockNumber": deployment_block}
 
         if self.config.token.reuse_token:
@@ -349,6 +358,11 @@ class UserDepositContract(Contract):
             self._local_rpc_client.address, self.address
         ).call()
 
+    @property
+    def balance(self):
+        """Proxy the balance call to the UDTC."""
+        return self.token_proxy.contract.functions.balanceOf(self.ud_token_address).call()
+
     def effective_balance(self, at_target):
         """Get the effective balance of the target address."""
         return self.contract_proxy.contract.functions.effectiveBalance(at_target).call()
@@ -359,9 +373,7 @@ class UserDepositContract(Contract):
 
     def mint(self, target_address) -> Union[str, None]:
         """The mint function isn't present on the UDC, pass the UDTC address instead."""
-        return super(UserDepositContract, self).mint(
-            target_address, contract_address=self.ud_token_address
-        )
+        return super().mint(target_address, contract_address=self.ud_token_address)
 
     def update_allowance(self) -> Union[str, None]:
         """Update the UD Token Contract allowance depending on the number of configured nodes.
