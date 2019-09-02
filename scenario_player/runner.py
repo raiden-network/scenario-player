@@ -270,7 +270,9 @@ class ScenarioRunner:
         should_deposit_ud_token: bool,
         gas_limit: int,
     ) -> Set[TransactionHash]:
-        """Deploy new token to the blockchain, or load an existing one's data from disk."""
+        """Create or reuse an existing token, and mint the token for every
+        `node_addresses`.
+        """
         self.token.init()
         mint_tx = set()
         for address in node_addresses:
