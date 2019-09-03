@@ -61,7 +61,9 @@ class Contract:
         log.info(f"'{action}' call succeeded", tx_hash=tx_hash)
         return decode_hex(tx_hash)
 
-    def mint(self, target_address, **kwargs) -> Union[str, None]:
+    def mint(
+        self, target_address, required_balance=None, max_fund_amount=None, **kwargs
+    ) -> Union[str, None]:
         """Mint new tokens for the given `target_address`.
 
         The amount of tokens depends on the scenario yaml's settings, and defaults to
@@ -69,7 +71,8 @@ class Contract:
         if those settings are absent.
         """
         balance = self.balance
-        required_balance = self.config.token.min_balance
+        if required_balance is None:
+            required_balance = self.config.token.min_balance
         log.debug(
             "Checking necessity of mint request",
             required_balance=required_balance,
@@ -79,7 +82,10 @@ class Contract:
             log.debug("Mint call not required - sufficient funds")
             return
 
-        mint_amount = self.config.token.max_funding - balance
+        if max_fund_amount is None:
+            max_fund_amount = self.config.token.max_funding
+
+        mint_amount = max_fund_amount - balance
         log.debug("Minting required - insufficient funds.")
         params = {"amount": mint_amount, "target_address": target_address}
         params.update(kwargs)
@@ -102,6 +108,7 @@ class Token(Contract):
         self._token_file = data_path.joinpath("token.info")
         self.contract_data = {}
         self.deployment_receipt = None
+        self.contract_proxy = None
 
     @property
     def name(self) -> str:
@@ -159,7 +166,7 @@ class Token(Contract):
         It is an error to access this property before the token is deployed.
         """
         if self.deployed:
-            return super(Token, self).balance
+            return self.contract_proxy.contract.functions.balanceOf(self.address).call()
         else:
             raise TokenNotDeployed
 
@@ -258,18 +265,21 @@ class Token(Contract):
                 f"Cannot reuse token - address {address} has no code stored!"
             ) from e
 
-        # Fetch the token's contract_proxy data.
-        contract_proxy = self._local_contract_manager.get_contract(contract_name)
+        # Fetch the token's contract_info data.
+        contract_info = self._local_contract_manager.get_contract(contract_name)
 
-        self.contract_data = {"token_contract": address, "name": contract_proxy.name}
+        self.contract_data = {"token_contract": address, "name": contract_name}
+        self.contract_proxy = self._local_rpc_client.new_contract_proxy(
+            contract_info["abi"], address
+        )
         self.deployment_receipt = {"blockNum": block}
         checksummed_address = to_checksum_address(address)
 
         log.debug(
             "Reusing token",
             address=checksummed_address,
-            name=contract_proxy.name,
-            symbol=contract_proxy.symbol,
+            name=contract_name,
+            symbol=self.contract_proxy.contract.functions.symbol().call(),
         )
         return checksummed_address, block
 
@@ -308,8 +318,13 @@ class Token(Contract):
             resp_data["deployment_block"],
         )
 
+        contract_info = self._local_contract_manager.get_contract("CustomToken")
+
         # Make deployment address and block available to address/deployment_block properties.
         self.contract_data = token_contract_data
+        self.contract_proxy = self._local_rpc_client.new_contract_proxy(
+            contract_info["abi"], token_contract_data["address"]
+        )
         self.deployment_receipt = {"blockNumber": deployment_block}
 
         if self.config.token.reuse_token:
@@ -349,6 +364,11 @@ class UserDepositContract(Contract):
             self._local_rpc_client.address, self.address
         ).call()
 
+    @property
+    def balance(self):
+        """Proxy the balance call to the UDTC."""
+        return self.token_proxy.contract.functions.balanceOf(self.ud_token_address).call()
+
     def effective_balance(self, at_target):
         """Get the effective balance of the target address."""
         return self.contract_proxy.contract.functions.effectiveBalance(at_target).call()
@@ -357,13 +377,19 @@ class UserDepositContract(Contract):
         """"Get the so far deposted amount"""
         return self.contract_proxy.contract.functions.total_deposit(at_target).call()
 
-    def mint(self, target_address) -> Union[str, None]:
+    def mint(
+        self, target_address, required_balance=None, max_fund_amount=None, **kwargs
+    ) -> Union[str, None]:
         """The mint function isn't present on the UDC, pass the UDTC address instead."""
-        return super(UserDepositContract, self).mint(
-            target_address, contract_address=self.ud_token_address
+        return super().mint(
+            target_address,
+            required_balance=required_balance,
+            max_fund_amount=max_fund_amount,
+            contract_address=self.ud_token_address,
+            **kwargs,
         )
 
-    def update_allowance(self) -> Union[str, None]:
+    def update_allowance(self) -> Union[Tuple[str, int], None]:
         """Update the UD Token Contract allowance depending on the number of configured nodes.
 
         If the UD Token Contract's allowance is sufficient, this is a no-op.
@@ -389,7 +415,7 @@ class UserDepositContract(Contract):
             "target_address": self.checksum_address,
             "contract_address": self.ud_token_address,
         }
-        return self.transact("allowance", params)
+        return self.transact("allowance", params), required_allowance
 
     def deposit(self, target_address) -> Union[str, None]:
         """Make a deposit at the given `target_address`.

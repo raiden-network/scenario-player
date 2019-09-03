@@ -50,8 +50,10 @@ class ScenarioYAML:
         If token.min_balance < settings.services.udc.token.max_funding
         """
 
+        # FIXME: This check seems to make no sense. The scenario token should be independent of the
+        #        UDC token @nlsdfnbch
         # Check that the amount of minted tokens is >= than the amount of deposited tokens
-        try:
-            assert self.token.min_balance >= self.settings.services.udc.token.max_funding
-        except AssertionError:
-            raise InsufficientMintingAmount
+        # try:
+        #     assert self.token.min_balance >= self.settings.services.udc.token.max_funding
+        # except AssertionError:
+        #     raise InsufficientMintingAmount
