@@ -61,7 +61,9 @@ class Contract:
         log.info(f"'{action}' call succeeded", tx_hash=tx_hash)
         return decode_hex(tx_hash)
 
-    def mint(self, target_address, **kwargs) -> Union[str, None]:
+    def mint(
+        self, target_address, required_balance=None, max_fund_amount=None, **kwargs
+    ) -> Union[str, None]:
         """Mint new tokens for the given `target_address`.
 
         The amount of tokens depends on the scenario yaml's settings, and defaults to
@@ -69,7 +71,8 @@ class Contract:
         if those settings are absent.
         """
         balance = self.balance
-        required_balance = self.config.token.min_balance
+        if required_balance is None:
+            required_balance = self.config.token.min_balance
         log.debug(
             "Checking necessity of mint request",
             required_balance=required_balance,
@@ -79,7 +82,10 @@ class Contract:
             log.debug("Mint call not required - sufficient funds")
             return
 
-        mint_amount = self.config.token.max_funding - balance
+        if max_fund_amount is None:
+            max_fund_amount = self.config.token.max_funding
+
+        mint_amount = max_fund_amount - balance
         log.debug("Minting required - insufficient funds.")
         params = {"amount": mint_amount, "target_address": target_address}
         params.update(kwargs)
@@ -371,11 +377,19 @@ class UserDepositContract(Contract):
         """"Get the so far deposted amount"""
         return self.contract_proxy.contract.functions.total_deposit(at_target).call()
 
-    def mint(self, target_address) -> Union[str, None]:
+    def mint(
+        self, target_address, required_balance=None, max_fund_amount=None, **kwargs
+    ) -> Union[str, None]:
         """The mint function isn't present on the UDC, pass the UDTC address instead."""
-        return super().mint(target_address, contract_address=self.ud_token_address)
+        return super().mint(
+            target_address,
+            required_balance=required_balance,
+            max_fund_amount=max_fund_amount,
+            contract_address=self.ud_token_address,
+            **kwargs,
+        )
 
-    def update_allowance(self) -> Union[str, None]:
+    def update_allowance(self) -> Union[Tuple[str, int], None]:
         """Update the UD Token Contract allowance depending on the number of configured nodes.
 
         If the UD Token Contract's allowance is sufficient, this is a no-op.
@@ -401,7 +415,7 @@ class UserDepositContract(Contract):
             "target_address": self.checksum_address,
             "contract_address": self.ud_token_address,
         }
-        return self.transact("allowance", params)
+        return self.transact("allowance", params), required_allowance
 
     def deposit(self, target_address) -> Union[str, None]:
         """Make a deposit at the given `target_address`.
