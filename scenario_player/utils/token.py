@@ -27,6 +27,13 @@ class Contract:
         self.interface = ServiceInterface(runner.yaml.spaas)
         self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
+    def __repr__(self):
+        return f"<{self.name}>"
+
+    @property
+    def name(self):
+        return f"{self.__class__.__name__}@{to_checksum_address(self.address)}"
+
     @property
     def client_id(self):
         return self.config.spaas.rpc.client_id
@@ -70,23 +77,24 @@ class Contract:
         :attr:`.DEFAULT_TOKEN_BALANCE_MIN` and :attr:`.DEFAULT_TOKEN_BALANCE_FUND`
         if those settings are absent.
         """
+        local_log = log.bind(contract=self.name)
         balance = self.balance
         if required_balance is None:
             required_balance = self.config.token.min_balance
-        log.debug(
+        local_log.debug(
             "Checking necessity of mint request",
             required_balance=required_balance,
             actual_balance=balance,
         )
         if not balance < required_balance:
-            log.debug("Mint call not required - sufficient funds")
+            local_log.debug("Mint call not required - sufficient funds")
             return
 
         if max_fund_amount is None:
             max_fund_amount = self.config.token.max_funding
 
         mint_amount = max_fund_amount - balance
-        log.debug("Minting required - insufficient funds.")
+        local_log.debug("Minting required - insufficient funds.", mint_amount=mint_amount)
         params = {"amount": mint_amount, "target_address": target_address}
         params.update(kwargs)
         return self.transact("mint", params)
@@ -104,7 +112,7 @@ class Token(Contract):
     """
 
     def __init__(self, scenario_runner, data_path: pathlib.Path):
-        super(Token, self).__init__(scenario_runner)
+        super().__init__(scenario_runner)
         self._token_file = data_path.joinpath("token.info")
         self.contract_data = {}
         self.deployment_receipt = None
@@ -346,9 +354,7 @@ class UserDepositContract(Contract):
     """
 
     def __init__(self, scenario_runner, contract_proxy, token_proxy):
-        super(UserDepositContract, self).__init__(
-            scenario_runner, address=contract_proxy.contract_address
-        )
+        super().__init__(scenario_runner, address=contract_proxy.contract_address)
         self.contract_proxy = contract_proxy
         self.token_proxy = token_proxy
         self.tx_hashes = set()
@@ -399,19 +405,20 @@ class UserDepositContract(Contract):
         required_allowance = self.config.settings.services.udc.token.balance_per_node * node_count
 
         log.debug(
-            "Checking necessity of deposit request",
-            required_balance=required_allowance,
-            actual_balance=udt_allowance,
+            "Checking UDTC allowance",
+            required_allowance=required_allowance,
+            required_per_node=self.config.settings.services.udc.token.balance_per_node,
+            node_count=node_count,
+            actual_allowance=udt_allowance,
         )
 
         if not udt_allowance < required_allowance:
-            log.debug("allowance update call not required - sufficient allowance")
+            log.debug("UDTC allowance sufficient")
             return
 
-        log.debug("allowance update call required - insufficient allowance")
-        allow_amount = required_allowance - udt_allowance
+        log.debug("UDTC allowance insufficient, updating")
         params = {
-            "amount": allow_amount,
+            "amount": required_allowance,
             "target_address": self.checksum_address,
             "contract_address": self.ud_token_address,
         }
@@ -432,6 +439,7 @@ class UserDepositContract(Contract):
         max_funding = self.config.settings.services.udc.token.max_funding
         log.debug(
             "Checking necessity of deposit request",
+            target_address=target_address,
             required_balance=min_deposit,
             actual_balance=balance,
         )
@@ -439,7 +447,7 @@ class UserDepositContract(Contract):
             log.debug("deposit call not required - sufficient funds")
             return
 
-        log.debug("deposit call required - insufficient funds")
+        log.debug("deposit call required - insufficient funds", target_address=target_address)
         deposit_amount = total_deposit + (max_funding - balance)
         params = {"amount": deposit_amount, "target_address": target_address}
         return self.transact("deposit", params)
