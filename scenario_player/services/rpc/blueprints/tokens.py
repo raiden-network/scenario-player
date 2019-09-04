@@ -208,7 +208,7 @@ def transact_call(key, data):
 
     contract_proxy = rpc_client.new_contract_proxy(contract_abi, data["contract_address"])
 
-    log.debug("Transacting..", **data)
+    log.debug("Transacting..", action=action, **data)
 
     args = data["amount"], data["target_address"]
     if action != "mintFor":

@@ -337,6 +337,7 @@ class ScenarioRunner:
             for address, balance in balance_per_node.items()
             if balance < NODE_ACCOUNT_BALANCE_MIN
         }
+        log.debug("Node eth balances", balances=balance_per_node, low_balances=low_balances)
         if low_balances:
             log.info("Funding nodes", nodes=low_balances.keys())
             fund_tx = set()
