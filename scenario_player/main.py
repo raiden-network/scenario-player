@@ -334,6 +334,8 @@ def reclaim_eth(ctx, min_age, password, password_file, keystore_file):
 @click.pass_context
 def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
     data_path: Path = ctx.obj["data_path"].absolute()
+    scenario_file = Path(scenario_file)
+    target_dir = Path(target_dir)
     scenario_file = Path(scenario_file.name).absolute()
     scenario_name = Path(scenario_file.name).stem
 
