@@ -333,10 +333,9 @@ def reclaim_eth(ctx, min_age, password, password_file, keystore_file):
 @click.argument("scenario-file", type=click.Path(exists=True, dir_okay=False), required=True)
 @click.pass_context
 def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
-    target_dir = Path(target_dir)
     data_path: Path = ctx.obj["data_path"].absolute()
-    scenario_file = Path(scenario_file).absolute()
-    scenario_name = Path(scenario_file).stem
+    scenario_file = Path(scenario_file.name).absolute()
+    scenario_name = Path(scenario_file.name).stem
 
     log_file_name = construct_log_file_name("pack-logs", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
