@@ -66,7 +66,7 @@ class Contract:
         resp_data = resp.json()
         tx_hash = resp_data["tx_hash"]
         log.info(f"'{action}' call succeeded", tx_hash=tx_hash)
-        return decode_hex(tx_hash)
+        return decode_hex(tx_hash).decode()
 
     def mint(
         self, target_address, required_balance=None, max_fund_amount=None, **kwargs
@@ -276,7 +276,10 @@ class Token(Contract):
         # Fetch the token's contract_info data.
         contract_info = self._local_contract_manager.get_contract(contract_name)
 
-        self.contract_data = {"token_contract": address, "name": contract_name}
+        self.contract_data = {
+            "token_contract": address,
+            "name": contract_info.get("name") or contract_name,
+        }
         self.contract_proxy = self._local_rpc_client.new_contract_proxy(
             contract_info["abi"], address
         )
@@ -325,7 +328,8 @@ class Token(Contract):
             resp_data["contract"],
             resp_data["deployment_block"],
         )
-
+        print(token_contract_data)
+        print(deployment_block)
         contract_info = self._local_contract_manager.get_contract("CustomToken")
 
         # Make deployment address and block available to address/deployment_block properties.
