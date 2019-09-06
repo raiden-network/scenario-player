@@ -1,6 +1,6 @@
 import json
 import pathlib
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import structlog
 from eth_utils import decode_hex, to_checksum_address
@@ -328,8 +328,6 @@ class Token(Contract):
             resp_data["contract"],
             resp_data["deployment_block"],
         )
-        print(token_contract_data)
-        print(deployment_block)
         contract_info = self._local_contract_manager.get_contract("CustomToken")
 
         # Make deployment address and block available to address/deployment_block properties.
@@ -399,7 +397,8 @@ class UserDepositContract(Contract):
             **kwargs,
         )
 
-    def update_allowance(self) -> Union[Tuple[str, int], None]:
+    def update_allowance(self) -> Tuple[Optional[str], int]:
+
         """Update the UD Token Contract allowance depending on the number of configured nodes.
 
         If the UD Token Contract's allowance is sufficient, this is a no-op.
@@ -418,7 +417,7 @@ class UserDepositContract(Contract):
 
         if not udt_allowance < required_allowance:
             log.debug("UDTC allowance sufficient")
-            return
+            return None, required_allowance
 
         log.debug("UDTC allowance insufficient, updating")
         params = {
