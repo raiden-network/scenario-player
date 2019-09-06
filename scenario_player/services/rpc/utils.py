@@ -36,7 +36,10 @@ def generate_hash_key(chain_url: str, privkey: bytes, strategy: Callable):
 class RPCClient(JSONRPCClient):
     def __init__(self, chain_url, privkey, strategy):
         super(RPCClient, self).__init__(
-            Web3(HTTPProvider(chain_url)), privkey=privkey, gas_price_strategy=strategy
+            Web3(HTTPProvider(chain_url)),
+            privkey=privkey,
+            gas_price_strategy=strategy,
+            block_num_confirmations=5,
         )
         self.client_id = generate_hash_key(chain_url, privkey, strategy)
 
