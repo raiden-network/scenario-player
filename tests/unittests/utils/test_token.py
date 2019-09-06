@@ -1,9 +1,9 @@
 import json
-import pathlib
+
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
-from eth_utils.address import to_checksum_address
+from eth_utils.address import to_checksum_address, to_hex
 from requests.exceptions import (
     ConnectionError,
     ConnectTimeout,
@@ -24,7 +24,6 @@ from scenario_player.exceptions.config import (
     TokenSourceCodeDoesNotExist,
 )
 from scenario_player.scenario import ScenarioYAML
-from scenario_player.utils.configuration.spaas import SPaaSConfig
 from scenario_player.utils.configuration.token import TokenConfig
 from scenario_player.utils.token import Contract, Token, UserDepositContract
 
@@ -32,9 +31,21 @@ token_import_path = "scenario_player.utils.token"
 token_config_import_path = "scenario_player.utils.configuration.token"
 
 
+# TODO: These tests mock and use dummy values even though it isn't necessary;
+#   For example, using "my_address" instead of a proper hex address.
+
+
 class Sentinel(Exception):
     """Raised when it's desired to exit a method under test early."""
 
+
+@pytest.fixture
+def hex_address():
+    return "0x5A0b54D5dc17e0AadC383d2db43B0a0D3E029c4c"
+
+@pytest.fixture
+def contract_addr():
+    return "0x5A0b54D5dc17e0AadC383d2db43B0a0D3E029c4c"
 
 @pytest.fixture
 def runner(dummy_scenario_runner, minimal_yaml_dict, token_info_path, tmp_path):
@@ -57,8 +68,8 @@ def token_instance(runner, tmp_path):
 
 
 @pytest.fixture
-def contract_instance(runner, tmp_path):
-    return Contract(runner, "my_address")
+def contract_instance(runner, tmp_path, contract_addr):
+    return Contract(runner, contract_addr)
 
 
 class TestContract:
@@ -111,9 +122,9 @@ class TestContract:
         return instance
 
     @patch(f"{token_import_path}.ServiceInterface.request")
-    def test_mint_is_a_no_op_if_balance_is_sufficient(self, mock_request, contract_instance):
+    def test_mint_is_a_no_op_if_balance_is_sufficient(self, mock_request, contract_instance, hex_address):
         contract_instance = self.setup_instance_with_balance(contract_instance, 100000)
-        assert contract_instance.mint("the_address") is None
+        assert contract_instance.mint(hex_address) is None
         assert mock_request.called is False
 
     @patch(f"{token_import_path}.ServiceInterface.post", side_effect=Sentinel)
@@ -374,7 +385,7 @@ class TestToken:
             name = "my_deployed_token_name"
             symbol = "token_symbol"
 
-        token_instance._local_contract_manager.get_contract.return_value = MockContractProxy
+        token_instance._local_contract_manager.get_contract.return_value = {"abi": "contract_abi", "name": "my_deployed_token_name"}
 
         expected_deployment_receipt = {"blockNum": loaded_token_info["block"]}
         expected_contract_data = {
@@ -455,7 +466,7 @@ class TestToken:
     def test_deploy_new_calls_save_token_depending_on_reuse_token_property(
         self, _, mock_save_token, mock_request, reuse_token, token_instance
     ):
-        json_resp = {"contract": {}, "deployment_block": 1}
+        json_resp = {"contract": {"address": None}, "deployment_block": 1}
 
         class MockResp:
             def json(self):
@@ -519,10 +530,10 @@ class TestUserDepositContract:
         self.mock_ud_token_address.return_value = "ud_token_addr"
 
         # Expect an allowance transact request to be invoked, with its amount equal to:
-        #   (balance_per_node * node_count) - current_allowance
+        #   balance_per_node * node_count
         # Targeting the UD Contract address, calling from the UD Token address.
         expected_params = {
-            "amount": 25_000,
+            "amount": 30_000,
             "target_address": "ud_contract_addr",
             "contract_address": "ud_token_addr",
         }
@@ -554,7 +565,7 @@ class TestUserDepositContract:
         mock_transact.assert_called_once_with("deposit", expected_params)
 
     @patch("scenario_player.utils.token.Contract.transact")
-    def test_deposit_methpd_is_noop_if_node_funding_is_sufficient(self, mock_transact):
+    def test_deposit_method_is_noop_if_node_funding_is_sufficient(self, mock_transact):
         self.instance.config.settings.services.udc.token.dict["balance_per_node"] = 5_000
         self.mock_effective_balance.return_value = 10_000
 
