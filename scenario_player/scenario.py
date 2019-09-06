@@ -6,7 +6,6 @@ import structlog
 import yaml
 
 from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
-from scenario_player.exceptions.config import InsufficientMintingAmount
 from scenario_player.utils.configuration import (
     NodesConfig,
     ScenarioConfig,
@@ -34,7 +33,6 @@ class ScenarioYAML:
         self.scenario = ScenarioConfig(self._loaded)
         self.token = TokenConfig(self._loaded, data_path.joinpath("token.info"))
         self.spaas = SPaaSConfig(self._loaded)
-        self.validate()
 
         self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
@@ -42,16 +40,3 @@ class ScenarioYAML:
     def name(self) -> str:
         """Return the name of the scenario file, sans extension."""
         return self.path.stem
-
-    def validate(self):
-        """Validate cross-config section requirements of the scenario.
-
-        :raises InsufficientMintingAmount:
-        If token.min_balance < settings.services.udc.token.max_funding
-        """
-
-        # Check that the amount of minted tokens is >= than the amount of deposited tokens
-        try:
-            assert self.token.min_balance >= self.settings.services.udc.token.max_funding
-        except AssertionError:
-            raise InsufficientMintingAmount

@@ -308,12 +308,16 @@ class ScenarioRunner:
         self.udc = UserDepositContract(self, udc_ctr, ud_token_ctr)
 
         should_deposit_ud_token = udc_enabled and udc_settings.token["deposit"]
-        allowance_tx = self.udc.update_allowance()
+        allowance_tx, required_allowance = self.udc.update_allowance()
         if allowance_tx:
             ud_token_tx.add(allowance_tx)
         if should_deposit_ud_token:
 
-            tx = self.udc.mint(our_address)
+            tx = self.udc.mint(
+                our_address,
+                required_balance=required_allowance,
+                max_fund_amount=required_allowance * 2,
+            )
             if tx:
                 ud_token_tx.add(tx)
 
@@ -333,6 +337,7 @@ class ScenarioRunner:
             for address, balance in balance_per_node.items()
             if balance < NODE_ACCOUNT_BALANCE_MIN
         }
+        log.debug("Node eth balances", balances=balance_per_node, low_balances=low_balances)
         if low_balances:
             log.info("Funding nodes", nodes=low_balances.keys())
             fund_tx = set()

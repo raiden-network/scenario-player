@@ -12,9 +12,13 @@ The following endpoints are supplied by this blueprint:
 
 """
 from flask import Blueprint, request
+from structlog import get_logger
 
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.rpc.schemas.transactions import SendTransactionSchema
+
+log = get_logger(__name__)
+
 
 transactions_blueprint = Blueprint("transactions_view", __name__)
 
@@ -77,6 +81,7 @@ def new_transaction():
     data = transaction_send_schema.validate_and_deserialize(request.get_json())
     rpc_client, _ = data.pop("client"), data.pop("client_id")
 
+    log.debug("Performing transaction", params=data)
     result = rpc_client.send_transaction(**data)
 
     return transaction_send_schema.jsonify({"tx_hash": result})
