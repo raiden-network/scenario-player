@@ -7,7 +7,7 @@ import time
 import uuid
 from collections import defaultdict, deque
 from datetime import datetime
-from itertools import islice
+from itertools import chain, islice
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
 
@@ -355,8 +355,9 @@ def reclaim_eth(
 
     log.info("Starting eth reclaim", data_path=data_path)
 
-    addresses = dict()
-    for node_dir in data_path.glob("**/node_???"):
+    address_to_keyfile = dict()
+    address_to_privkey = dict()
+    for node_dir in chain(data_path.glob("**/node_???"), data_path.glob("**/node_*_???")):
         scenario_name: Path = node_dir.parent.name
         last_run = next(
             iter(
@@ -381,17 +382,20 @@ def reclaim_eth(
             keyfile_content = json.loads(keyfile.read_text())
             address = keyfile_content.get("address")
             if address:
-                addresses[to_checksum_address(address)] = decode_keyfile_json(keyfile_content, b"")
+                address_to_keyfile[to_checksum_address(address)] = keyfile_content
 
-    log.info("Reclaiming candidates", addresses=list(addresses.keys()))
+    log.info("Reclaiming candidates", addresses=list(address_to_keyfile.keys()))
 
     txs = defaultdict(set)
     reclaim_amount = defaultdict(int)
     for chain_name, web3 in web3s.items():
         log.info("Checking chain", chain=chain_name)
-        for address, privkey in addresses.items():
+        for address, keyfile_content in address_to_keyfile.items():
             balance = web3.eth.getBalance(address)
             if balance > RECLAIM_MIN_BALANCE:
+                if address not in address_to_privkey:
+                    address_to_privkey[address] = decode_keyfile_json(keyfile_content, b"")
+                privkey = address_to_privkey[address]
                 drain_amount = balance - (web3.eth.gasPrice * VALUE_TX_GAS_COST)
                 log.info(
                     "Reclaiming",
