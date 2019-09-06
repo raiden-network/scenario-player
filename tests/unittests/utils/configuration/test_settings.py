@@ -176,9 +176,3 @@ class TestUDCTokenConfig:
         }
         with pytest.raises(UDCTokenConfigError):
             UDCTokenSettings(minimal_yaml_dict)
-
-    def test_insufficient_minting(self, file_for_insufficient_minting_test):
-        with pytest.raises(InsufficientMintingAmount):
-            ScenarioYAML(
-                file_for_insufficient_minting_test, file_for_insufficient_minting_test.parent
-            )
