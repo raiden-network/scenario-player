@@ -27,7 +27,7 @@ from web3 import HTTPProvider, Web3
 from raiden.accounts import Account
 from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
 from raiden.network.rpc.smartcontract_proxy import ContractProxy
-from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
+from raiden.settings import RAIDEN_CONTRACT_VERSION 
 from raiden.utils.typing import TransactionHash
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
 
@@ -289,7 +289,7 @@ def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[Contrac
     udc_address = udc_config.address
     if udc_address is None:
         contracts = get_contracts_deployment_info(
-            chain_id=runner.chain_id, version=DEVELOPMENT_CONTRACT_VERSION
+            chain_id=runner.chain_id, version=RAIDEN_CONTRACT_VERSION
         )
         udc_address = contracts["contracts"][CONTRACT_USER_DEPOSIT]["address"]
     udc_abi = runner.contract_manager.get_contract_abi(CONTRACT_USER_DEPOSIT)
