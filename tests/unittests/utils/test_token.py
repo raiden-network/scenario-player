@@ -451,7 +451,7 @@ class TestToken:
 
         address, deployment_block = token_instance.deploy_new()
 
-        assert address == json_resp["contract"]["address"]
+        assert token_instance.address == json_resp["contract"]["address"]
         assert deployment_block == json_resp["deployment_block"]
 
         assert token_instance.deployment_receipt == {"blockNumber": json_resp["deployment_block"]}
