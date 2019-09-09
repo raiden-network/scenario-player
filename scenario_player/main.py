@@ -356,7 +356,10 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
         f"-{datetime.today():%Y-%m-%d}.tar.gz"
     )
 
-    with tarfile.open(str(archive_fpath), mode="w:gz") as archive:
+    # Ensure the target archive's parents exist
+    Path(archive_fpath.parent).mkdir(parents=True, exist_ok=True)
+
+    with tarfile.open(archive_fpath, mode="w:gz") as archive:
         for obj in chain(folders, files):
             archive.add(str(obj), arcname=str(obj.relative_to(scenarios_path)))
 
