@@ -3,10 +3,12 @@ import pathlib
 from typing import Optional, Tuple, Union
 
 import structlog
-from eth_utils import decode_hex, to_checksum_address
+from eth_utils import to_checksum_address
+from eth_utils.typing import ChecksumAddress, HexAddress
 
 from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import AddressWithoutCode, check_address_has_code
+from raiden.utils.typing import TransactionHash
 from scenario_player.exceptions.config import (
     TokenFileError,
     TokenFileMissing,
@@ -39,7 +41,7 @@ class Contract:
         return self.config.spaas.rpc.client_id
 
     @property
-    def address(self):
+    def address(self) -> HexAddress:
         return self._address
 
     @property
@@ -47,11 +49,11 @@ class Contract:
         return self._local_rpc_client.balance(self.address)
 
     @property
-    def checksum_address(self) -> str:
+    def checksum_address(self) -> ChecksumAddress:
         """Checksum'd address of the deployed contract."""
         return to_checksum_address(self.address)
 
-    def transact(self, action: str, parameters: dict) -> str:
+    def transact(self, action: str, parameters: dict) -> TransactionHash:
         """Send a transact request to `/rpc/contract/<action>` and return the resulting tx hash."""
         payload = {
             "client_id": self.client_id,
@@ -66,11 +68,11 @@ class Contract:
         resp_data = resp.json()
         tx_hash = resp_data["tx_hash"]
         log.info(f"'{action}' call succeeded", tx_hash=tx_hash)
-        return decode_hex(tx_hash).decode()
+        return tx_hash
 
     def mint(
         self, target_address, required_balance=None, max_fund_amount=None, **kwargs
-    ) -> Union[str, None]:
+    ) -> Union[TransactionHash, None]:
         """Mint new tokens for the given `target_address`.
 
         The amount of tokens depends on the scenario yaml's settings, and defaults to
@@ -134,7 +136,7 @@ class Token(Contract):
         return self.config.token.decimals
 
     @property
-    def address(self) -> str:
+    def address(self) -> HexAddress:
         """Return the address of the token contract.
 
         While not deployed, this reads the addres from :attr:`TokenConfig.address`.
@@ -294,7 +296,7 @@ class Token(Contract):
         )
         return checksummed_address, block
 
-    def deploy_new(self) -> Tuple[str, int]:
+    def deploy_new(self) -> Tuple[ChecksumAddress, int]:
         """Returns the proxy contract address of the token contract, and the creation receipt.
 
         Since this involves sending a transaction via the network, we send a request
@@ -328,8 +330,6 @@ class Token(Contract):
             resp_data["contract"],
             resp_data["deployment_block"],
         )
-        print(token_contract_data)
-        print(deployment_block)
         contract_info = self._local_contract_manager.get_contract("CustomToken")
 
         # Make deployment address and block available to address/deployment_block properties.
@@ -345,7 +345,7 @@ class Token(Contract):
         log.info(
             "Deployed token", address=self.checksum_address, name=self.name, symbol=self.symbol
         )
-        return self.address, self.deployment_block
+        return self.checksum_address, self.deployment_block
 
 
 class UserDepositContract(Contract):
@@ -364,7 +364,7 @@ class UserDepositContract(Contract):
         self.tx_hashes = set()
 
     @property
-    def ud_token_address(self):
+    def ud_token_address(self) -> ChecksumAddress:
         return to_checksum_address(self.token_proxy.contract_address)
 
     @property
@@ -389,7 +389,7 @@ class UserDepositContract(Contract):
 
     def mint(
         self, target_address, required_balance=None, max_fund_amount=None, **kwargs
-    ) -> Union[str, None]:
+    ) -> Union[TransactionHash, None]:
         """The mint function isn't present on the UDC, pass the UDTC address instead."""
         return super().mint(
             target_address,
@@ -399,7 +399,7 @@ class UserDepositContract(Contract):
             **kwargs,
         )
 
-    def update_allowance(self) -> Tuple[Optional[str], int]:
+    def update_allowance(self) -> Tuple[Optional[TransactionHash], int]:
         """Update the UD Token Contract allowance depending on the number of configured nodes.
 
         If the UD Token Contract's allowance is sufficient, this is a no-op.
@@ -428,7 +428,7 @@ class UserDepositContract(Contract):
         }
         return self.transact("allowance", params), required_allowance
 
-    def deposit(self, target_address) -> Union[str, None]:
+    def deposit(self, target_address) -> Union[TransactionHash, None]:
         """Make a deposit at the given `target_address`.
 
         The amount of tokens depends on the scenario yaml's settings.

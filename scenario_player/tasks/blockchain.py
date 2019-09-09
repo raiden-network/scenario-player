@@ -14,7 +14,7 @@ from web3 import Web3
 from web3.utils.abi import filter_by_type
 from web3.utils.events import get_event_data
 
-from raiden.settings import DEVELOPMENT_CONTRACT_VERSION
+from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.typing import ABI, Address, BlockNumber
 from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
