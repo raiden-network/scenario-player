@@ -2,4 +2,4 @@
 
 End-to-end testing tool for the ``Raiden`` test suite.
 """
-__version__ = "0.3.2"
+__version__ = "0.3.1-stable1"
