@@ -97,7 +97,7 @@ commands:
       - run:
           name: Install additional packages for CI tools
           command: |
-            pip install bumpversion
+            pip install bump2version
             pip install flit
             pip install tomlkit
 
