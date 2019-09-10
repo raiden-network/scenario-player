@@ -110,7 +110,7 @@ class AssertBlockchainEventsTask(Task):
         # get the correct contract address
         # this has to be done in `_run`, otherwise `_runner` is not initialized yet
         contract_data = get_contracts_deployment_info(
-            chain_id=self._runner.chain_id, version=DEVELOPMENT_CONTRACT_VERSION
+            chain_id=self._runner.chain_id, version=RAIDEN_CONTRACT_VERSION
         )
         if self.contract_name == CONTRACT_TOKEN_NETWORK:
             self.contract_address = self._runner.token_network_address
@@ -165,7 +165,7 @@ class AssertMSClaimTask(Task):
 
         # get the MS contract address
         contract_data = get_contracts_deployment_info(
-            chain_id=self._runner.chain_id, version=DEVELOPMENT_CONTRACT_VERSION
+            chain_id=self._runner.chain_id, version=RAIDEN_CONTRACT_VERSION
         )
         try:
             contract_info = contract_data["contracts"][self.contract_name]
