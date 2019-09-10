@@ -27,7 +27,7 @@ from web3 import HTTPProvider, Web3
 from raiden.accounts import Account
 from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
 from raiden.network.rpc.smartcontract_proxy import ContractProxy
-from raiden.settings import RAIDEN_CONTRACT_VERSION 
+from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.typing import TransactionHash
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
 
