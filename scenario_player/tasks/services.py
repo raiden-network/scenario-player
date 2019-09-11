@@ -8,6 +8,7 @@ from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.tasks.api_base import RESTAPIActionTask
 from scenario_player.tasks.base import Task
+from scenario_player.utils.datastructures import FrozenList
 
 log = structlog.get_logger(__name__)
 
@@ -83,6 +84,33 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
     """
     Assert PFS history task
 
+    Config options:
+
+    Required:
+
+      - ``source``:
+        The node (address or index) of the source of the requested route(s).
+
+    Optional:
+      - ``target``:
+        The node (address or index) of the target of the requested route(s).
+
+      - ``request_count``
+        The expected number of requests performed to the PFS with the given ``source``
+        (and ``target`` if given).
+
+      - ``routes_count``
+        The expected number of routes returned.
+        This can either be a list of counts for each expected responses or an integer in which case
+        all responses must have the given route count.
+
+      - ``expected_routes``
+        Explicit list of expected routes.
+
+      - ``distinct_routes_only``
+        If set to true the list of routes is de-duplicated before being checked against
+        ``expected_routes``.
+
     Example usages:
 
         # 4 requests where made from source node 0
@@ -106,6 +134,16 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
           expected_routes:
             - ['0x00[...]01', '0x00[...]04']
             - ['0x00[...]01', '0x00[...]02', '0x00[...]04']
+
+        # The listed *distinct* routes have been returned for requests from source node 0 to
+        # target node 1.
+        assert_pfs_history:
+          source: 0
+          target: 2
+          distinct_routes_only: true
+          expected_routes:
+            - [0, 2]
+            - [0, 1, 2]
 
     Expected response from PFS debug endpoint:
         {
@@ -191,12 +229,17 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                         f"at index {i}"
                     )
 
-        actual_routes = [
-            route["path"]
+        # We use a ``FrozenList`` because ``set`` (see below) doesn't accepts unhashable types
+        actual_routes = FrozenList(
+            FrozenList(route["path"])
             for response in response_dict["responses"]
             for route in response["routes"]
             if response["routes"]
-        ]
+        )
+
+        if self._config.get("distinct_routes_only", False):
+            # We only want distinct routes
+            actual_routes = list(set(actual_routes))
 
         exp_routes = self._config.get("expected_routes")
         if exp_routes:
