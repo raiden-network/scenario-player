@@ -355,9 +355,13 @@ class NodeRunner:
         if not keystore_file.exists():
             log.debug("Initializing keystore", node=self._index)
             gevent.sleep()
-            privkey = hashlib.sha256(
-                f"{self._runner.yaml.name}-{self._runner.run_number}-{self._index}".encode()
-            ).digest()
+            seed = (
+                f"{self._runner.local_seed}"
+                f"-{self._runner.yaml.name}"
+                f"-{self._runner.run_number}"
+                f"-{self._index}"
+            ).encode()
+            privkey = hashlib.sha256(seed).digest()
             keystore_file.write_text(json.dumps(create_keyfile_json(privkey, b"")))
         return keystore_file
 

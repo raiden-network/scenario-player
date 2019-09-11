@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
 import gevent
 import structlog
 from eth_typing import ChecksumAddress
-from eth_utils import is_checksum_address, to_checksum_address
+from eth_utils import encode_hex, is_checksum_address, to_checksum_address
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
 from requests import HTTPError, RequestException, Session
 from web3 import HTTPProvider, Web3
@@ -66,8 +66,14 @@ class ScenarioRunner:
         self.task_storage = defaultdict(dict)
 
         scenario_name = scenario_file.stem
-        self.data_path = data_path.joinpath("scenarios", scenario_name)
+        self.base_path = data_path
+        self.base_path.mkdir(exist_ok=True, parents=True)
+
+        log.debug("Local seed", seed=self.local_seed)
+
+        self.data_path = self.base_path.joinpath("scenarios", scenario_name)
         self.data_path.mkdir(exist_ok=True, parents=True)
+
         self.yaml = ScenarioYAML(scenario_file, self.data_path)
         log.debug("Data path", path=self.data_path)
 
@@ -132,6 +138,24 @@ class ScenarioRunner:
         run_number_file.write_text(str(run_number))
         log.info("Run number", run_number=run_number)
         return run_number
+
+    @property
+    def local_seed(self) -> str:
+        """Return a persistent random seed value.
+
+        We need a unique seed per scenario player 'installation'.
+        This is used in the node private key generation to prevent re-use of node keys between
+        multiple users of the scenario player.
+
+        The seed is stored in a file inside the ``.base_path``.
+        """
+        seed_file = self.base_path.joinpath("seed.txt")
+        if not seed_file.exists():
+            seed = encode_hex(bytes(random.randint(0, 255) for _ in range(20)))
+            seed_file.write_text(seed)
+        else:
+            seed = seed_file.read_text().strip()
+        return seed
 
     def select_chain(self, chain_urls: Dict[str, List[str]]) -> Tuple[str, List[str]]:
         """Select a chain and return its name and RPC URL.
