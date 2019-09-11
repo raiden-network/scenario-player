@@ -96,3 +96,16 @@ class TestScenarioRunner:
                 # Should have raised the TypeError, all good.
                 return
             pytest.fail(f"DID RAISE {e!r}")
+
+
+def test_runner_local_seed(runner, tmp_path):
+    """Ensure the ``.local_seed`` property creates the seed file inside the ``.base_path``."""
+    runner.base_path = tmp_path
+    seed_file = tmp_path.joinpath("seed.txt")
+
+    assert not seed_file.exists()
+
+    runner_seed = runner.local_seed
+
+    assert seed_file.exists()
+    assert runner_seed == seed_file.read_text().strip()
