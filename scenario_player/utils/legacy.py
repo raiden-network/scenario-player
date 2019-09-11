@@ -16,7 +16,7 @@ import mirakuru
 import requests
 import structlog
 from eth_keyfile import decode_keyfile_json
-from eth_utils import encode_hex, to_checksum_address
+from eth_utils import to_checksum_address
 from mirakuru import AlreadyRunning, TimeoutExpired
 from mirakuru.base import ENV_UUID, IGNORED_ERROR_CODES
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
@@ -211,12 +211,12 @@ def wait_for_txs(
             if tx and tx["blockNumber"] is not None:
                 status = tx.get("status")
                 if status is not None and status == 0:
-                    raise ScenarioTxError(f"Transaction {encode_hex(txhash)} failed.")
+                    raise ScenarioTxError(f"Transaction {txhash} failed.")
                 txhashes.remove(txhash)
             time.sleep(0.1)
         time.sleep(1)
     if len(txhashes):
-        txhashes_str = ", ".join(encode_hex(txhash) for txhash in txhashes)
+        txhashes_str = ", ".join(txhash for txhash in txhashes)
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
 
 
