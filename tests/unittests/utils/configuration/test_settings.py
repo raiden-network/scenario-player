@@ -149,7 +149,7 @@ class TestUDCTokenConfig:
 
     @pytest.mark.parametrize(
         "key, expected",
-        argvalues=[("deposit", True), ("balance_per_node", 1000), ("max_funding", 10_000)],
+        argvalues=[("deposit", False), ("balance_per_node", 1000), ("max_funding", 10_000)],
     )
     def test_attributes_return_for_key_value_if_key_present(
         self, key, expected, minimal_yaml_dict
@@ -161,7 +161,7 @@ class TestUDCTokenConfig:
 
     @pytest.mark.parametrize(
         "key, expected",
-        argvalues=[("deposit", False), ("balance_per_node", 5000), ("max_funding", 5000)],
+        argvalues=[("deposit", True), ("balance_per_node", 5000), ("max_funding", 5000)],
     )
     def test_attributes_whose_key_is_absent_return_expected_default(
         self, key, expected, minimal_yaml_dict
