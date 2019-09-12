@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List, Union
 
 import structlog
+from eth_typing import ChecksumAddress
 
 from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
@@ -240,23 +241,30 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
         if self._config.get("distinct_routes_only", False):
             # We only want distinct routes
             actual_routes = list(set(actual_routes))
+        else:
+            actual_routes = list(actual_routes)
 
-        exp_routes = self._config.get("expected_routes")
+        node_address_to_index = self._runner.node_controller.address_to_index
+        actual_routes_indices = [
+            [node_address_to_index.get(hop, hop) for hop in actual_route]
+            for actual_route in actual_routes
+        ]
+
+        exp_routes: List[List[Union[ChecksumAddress, int]]] = self._config.get("expected_routes")
         if exp_routes:
             if len(exp_routes) != len(actual_routes):
                 raise ScenarioAssertionError(
                     f"Expected {len(exp_routes)} routes but got {len(actual_routes)}."
                 )
-            node_address_to_index = self._runner.node_controller.address_to_index
-            for i, (exp_route, actual_route) in enumerate(zip(exp_routes, actual_routes)):
+            for exp_route in exp_routes:
                 exp_route_addr = [self._runner.get_node_address(node) for node in exp_route]
-                if exp_route_addr != actual_route:
-                    actual_route_indices = [
-                        node_address_to_index.get(hop, hop) for hop in actual_route
-                    ]
+                try:
+                    actual_routes.remove(exp_route_addr)
+                except ValueError as ex:
                     raise ScenarioAssertionError(
-                        f"Expected route {exp_route} but got {actual_route_indices} at index {i}"
-                    )
+                        f"Expected route {exp_route} not found. "
+                        f"Actual routes: {actual_routes_indices}."
+                    ) from ex
 
         exp_fees = self._config.get("expected_fees")
         if exp_fees:
