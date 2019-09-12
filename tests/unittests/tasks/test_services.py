@@ -10,10 +10,11 @@ from tests.unittests.tasks.utils import generic_task_test
 
 from scenario_player.exceptions import ScenarioAssertionError
 
-HOPS_0_1_2 = [NODE_ADDRESS_0, NODE_ADDRESS_1, NODE_ADDRESS_2]
-HOPS_0_1_3_2 = [NODE_ADDRESS_0, NODE_ADDRESS_1, NODE_ADDRESS_3, NODE_ADDRESS_2]
-ROUTE_0_1_2 = {"path": HOPS_0_1_2, "estimated_fee": 0}
-ROUTE_0_1_3_2 = {"path": HOPS_0_1_3_2, "estimated_fee": 0}
+ROUTE_0_1_2 = {"path": [NODE_ADDRESS_0, NODE_ADDRESS_1, NODE_ADDRESS_2], "estimated_fee": 0}
+ROUTE_0_1_3_2 = {
+    "path": [NODE_ADDRESS_0, NODE_ADDRESS_1, NODE_ADDRESS_3, NODE_ADDRESS_2],
+    "estimated_fee": 0,
+}
 
 
 @pytest.mark.parametrize(
@@ -52,7 +53,7 @@ ROUTE_0_1_3_2 = {"path": HOPS_0_1_3_2, "estimated_fee": 0}
             "assert_pfs_history",
             {"source": 0, "request_count": 1, "routes_count": 1, "expected_routes": [[0, 1, 2]]},
             ScenarioAssertionError,
-            "Expected route [0, 1, 2] but got [0, 1, 3, 2] at index 0",
+            "Expected route [0, 1, 2] not found. Actual routes: [[0, 1, 3, 2]]",
             "GET",
             f"http://pfs/api/v1/_debug/routes/{TEST_TOKEN_NETWORK_ADDRESS}/{NODE_ADDRESS_0}",
             {},
@@ -64,6 +65,39 @@ ROUTE_0_1_3_2 = {"path": HOPS_0_1_3_2, "estimated_fee": 0}
                 ],
             },
             id="assert_pfs_history-expected-route-error-msg",
+        ),
+        # Test unique route matching in assert_pfs_history
+        pytest.param(
+            "assert_pfs_history",
+            {
+                "source": 0,
+                "request_count": 2,
+                "routes_count": 2,
+                "expected_routes": [[0, 1, 2], [0, 1, 3, 2]],
+                "distinct_routes_only": True,
+            },
+            None,
+            None,
+            "GET",
+            f"http://pfs/api/v1/_debug/routes/{TEST_TOKEN_NETWORK_ADDRESS}/{NODE_ADDRESS_0}",
+            {},
+            200,
+            {
+                "request_count": 2,
+                "responses": [
+                    {
+                        "source": NODE_ADDRESS_0,
+                        "target": NODE_ADDRESS_2,
+                        "routes": [ROUTE_0_1_3_2, ROUTE_0_1_2],
+                    },
+                    {
+                        "source": NODE_ADDRESS_0,
+                        "target": NODE_ADDRESS_2,
+                        "routes": [ROUTE_0_1_2, ROUTE_0_1_3_2],
+                    },
+                ],
+            },
+            id="assert_pfs_history-expected-routes-unique",
         ),
     ],
 )
