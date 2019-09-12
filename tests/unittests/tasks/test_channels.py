@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 
 import pytest
+from tests.unittests.constants import NODE_ADDRESS_0, NODE_ADDRESS_1, TEST_TOKEN_ADDRESS
+
+# TODO: Add tests for request timeouts
+from tests.unittests.tasks.utils import generic_task_test
 
 from scenario_player.exceptions import (
     RESTAPIStatusMismatchError,
@@ -10,8 +14,6 @@ from scenario_player.exceptions import (
     ScenarioError,
 )
 from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
-
-# TODO: Add tests for request timeouts
 
 
 @pytest.mark.parametrize(
@@ -34,7 +36,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             "PUT",
             "http://0/api/v1/channels",
-            {"token_address": f"0x1{1:039d}", "partner_address": f"0x2{1:039d}"},
+            {"token_address": TEST_TOKEN_ADDRESS, "partner_address": NODE_ADDRESS_1},
             200,
             {"resp": 1},
             id="open-channel-simple",
@@ -46,7 +48,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             "PUT",
             "http://0/api/v1/channels",
-            {"token_address": f"0x1{1:039d}", "partner_address": f"0x3{10:039d}"},
+            {"token_address": TEST_TOKEN_ADDRESS, "partner_address": f"0x3{10:039d}"},
             200,
             {"resp": 1},
             id="open-channel-external-address",
@@ -59,8 +61,8 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             "PUT",
             "http://1/api/v1/channels",
             {
-                "token_address": f"0x1{1:039d}",
-                "partner_address": f"0x2{0:039d}",
+                "token_address": TEST_TOKEN_ADDRESS,
+                "partner_address": NODE_ADDRESS_0,
                 "total_deposit": 100,
             },
             200,
@@ -75,8 +77,8 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             "PUT",
             "http://1/api/v1/channels",
             {
-                "token_address": f"0x1{1:039d}",
-                "partner_address": f"0x2{0:039d}",
+                "token_address": TEST_TOKEN_ADDRESS,
+                "partner_address": NODE_ADDRESS_0,
                 "total_deposit": 100,
                 "settle_timeout": 501,
             },
@@ -91,7 +93,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             "PUT",
             "http://0/api/v1/channels",
-            {"token_address": f"0x1{1:039d}", "partner_address": f"0x2{1:039d}"},
+            {"token_address": TEST_TOKEN_ADDRESS, "partner_address": NODE_ADDRESS_1},
             409,
             {},
             id="open-channel-conflict",
@@ -103,7 +105,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             "PUT",
             "http://0/api/v1/channels",
-            {"token_address": f"0x1{1:039d}", "partner_address": f"0x2{1:039d}"},
+            {"token_address": TEST_TOKEN_ADDRESS, "partner_address": NODE_ADDRESS_1},
             409,
             {"resp": 1},
             id="open-channel-conflict-expected",
@@ -114,7 +116,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "PATCH",
-            f"http://0/api/v1/channels/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {"state": "closed"},
             200,
             {"resp": 1},
@@ -138,7 +140,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "PATCH",
-            f"http://0/api/v1/channels/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {"total_deposit": 100},
             200,
             {"resp": 1},
@@ -150,7 +152,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "PATCH",
-            f"http://0/api/v1/channels/0x1{1:039d}/0x3{10:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/0x3{10:039d}",
             {"total_deposit": 100},
             200,
             {"resp": 1},
@@ -174,7 +176,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "PATCH",
-            f"http://0/api/v1/channels/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {"total_withdraw": 100},
             200,
             {"resp": 1},
@@ -198,7 +200,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "POST",
-            f"http://0/api/v1/payments/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/payments/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {"amount": 1},
             200,
             {"resp": 1},
@@ -210,7 +212,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "POST",
-            f"http://0/api/v1/payments/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/payments/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {"amount": 1, "identifier": 13512710000000001},
             200,
             {"resp": 1},
@@ -222,7 +224,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "POST",
-            f"http://0/api/v1/payments/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/payments/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {"amount": 1, "identifier": 1},
             200,
             {"resp": 1},
@@ -234,7 +236,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {},
             200,
             {"resp": 1},
@@ -246,7 +248,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {},
             200,
             {"balance": 100},
@@ -258,7 +260,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {},
             200,
             {"total_deposit": 100},
@@ -270,7 +272,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {},
             200,
             {"state": "open"},
@@ -282,7 +284,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             ScenarioAssertionError,
             'Value mismatch for "balance". Should: "100" Is: "101"',
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {},
             200,
             {"balance": 101},
@@ -294,7 +296,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             ScenarioAssertionError,
             'Field "balance" is missing in channel',
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}/0x2{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {},
             200,
             {},
@@ -306,7 +308,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             {"resp": 1},
@@ -318,7 +320,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"balance": 100}, {"balance": 50}],
@@ -330,7 +332,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"total_deposit": 100}, {"total_deposit": 50}],
@@ -342,7 +344,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"state": "open"}, {"state": "closed"}],
@@ -354,7 +356,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             ScenarioAssertionError,
             'Field "balance" is missing in at least one channel',
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"balance": 100}, {}],
@@ -366,7 +368,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             ScenarioAssertionError,
             'Assertion field "balance" has too many values.',
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"balance": 100}, {"balance": 50}],
@@ -378,7 +380,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             ScenarioAssertionError,
             'Expected value "90" for field "balance" not found in any channel.',
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"balance": 100}, {"balance": 50}],
@@ -390,7 +392,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"balance": 50}, {"balance": 50}],
@@ -402,7 +404,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"total_deposit": 50}, {"total_deposit": 50}],
@@ -414,7 +416,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             None,
             None,
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"state": "open"}, {"state": "open"}],
@@ -426,7 +428,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             ScenarioAssertionError,
             'Expected sum value "100" for channel fields "balance". Actual value: "90".',
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"balance": 50}, {"balance": 40}],
@@ -438,7 +440,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             ScenarioAssertionError,
             'Expected all channels to be in "open" state.',
             "GET",
-            f"http://0/api/v1/channels/0x1{1:039d}",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
             [{"state": "open"}, {"state": "closed"}],
@@ -459,42 +461,20 @@ def test_channel_task(
     resp_code,
     resp_json,
 ):
-    """ Execute given task class with given parameters.
-
-    If ``expected_req_method`` is None the test assumes the task will not perform a request (e.g.
-    because it raises an exception before getting to the request).
-
-    If ``expected_exception`` (and optional ``expected_exception_message``) is given we assert
-    this exception is actually raised.
-
-    Combinations of both of the above behaviours allow to assert on these three cases:
-      - Successful task execution
-      - Exception raised before a request is performed (e.g. violated precondition)
-      - Exception raised after a request is performed (e.g. processing return value)
-    """
-    task_instance = api_task_by_name(task_name, task_params)
-
-    # If no expected method is passed we don't register an expected response
-    # Useful if an exception will be raised before the request is performed
-    if expected_req_method:
-        mocked_responses.add(
-            expected_req_method, expected_req_url, json=resp_json, status=resp_code
-        )
-
-    if expected_exception is not None:
-        with pytest.raises(expected_exception) as ex:
-            task_instance()
-        if expected_exception_message:
-            assert expected_exception_message in str(ex)
-    else:
-        response = task_instance()
-        assert response == resp_json
-
-    if expected_req_method:
-        assert mocked_responses.calls[0].request.method == expected_req_method
-        assert mocked_responses.calls[0].request.url == expected_req_url
-        assert mocked_responses.calls[0].request.body.decode() == json.dumps(expected_req_body)
-        assert mocked_responses.calls[0].response.json() == resp_json
+    # See ``generic_task_test`` for an explanation of the parameters
+    generic_task_test(
+        mocked_responses=mocked_responses,
+        api_task_by_name=api_task_by_name,
+        task_name=task_name,
+        task_params=task_params,
+        expected_exception=expected_exception,
+        expected_exception_message=expected_exception_message,
+        expected_req_method=expected_req_method,
+        expected_req_url=expected_req_url,
+        expected_req_body=expected_req_body,
+        resp_code=resp_code,
+        resp_json=resp_json,
+    )
 
 
 def test_store_channel_info(mocked_responses, dummy_scenario_runner, api_task_by_name):
