@@ -181,7 +181,7 @@ class ScenarioRunner:
                 f'The scenario requested chain "{chain_name}" for which no RPC-URL is known.'
             )
 
-    def wait_for_token_network_discovery(self, node):
+    def wait_for_token_network_discovery(self, node) -> ChecksumAddress:
         """Check for token network discovery with the given `node`.
 
         By default exit the wait if the token has not been discovered after `n` seconds,
@@ -229,6 +229,14 @@ class ScenarioRunner:
         # acceptable time frame.
         raise TokenNetworkDiscoveryTimeout
 
+    def ensure_token_network_discovery(self) -> ChecksumAddress:
+        """Ensure that all our nodes have discovered the token network."""
+        discovered = None
+        for node in self.node_controller:
+            discovered = self.wait_for_token_network_discovery(node.base_url)
+            log.info("Token Network Discovery", node=node._index, network=discovered)
+        return discovered
+
     def run_scenario(self):
         mint_gas = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
@@ -268,11 +276,9 @@ class ScenarioRunner:
                 log.error("Couldn't register token with network", code=code, message=msg)
                 raise TokenRegistrationError(msg)
 
-        last_node = self.node_controller[-1].base_url
-        self.token_network_address = self.wait_for_token_network_discovery(last_node)
-
+        self.token_network_address = self.ensure_token_network_discovery()
         log.info(
-            "Received token network address", token_network_address=self.token_network_address
+            "Token Network Discovery Completed", token_network_address=self.token_network_address
         )
 
         # Start root task
