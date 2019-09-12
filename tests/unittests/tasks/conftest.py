@@ -6,7 +6,7 @@ from scenario_player import tasks
 from scenario_player.tasks.base import collect_tasks, get_task_class_for_type
 from scenario_player.tasks.channels import TransferTask
 
-from ..conftest import dummy_scenario_runner, mocked_responses
+pytest.register_assert_rewrite("tests.unittests.tasks.utils")
 
 
 @pytest.fixture(scope="session", autouse=True)

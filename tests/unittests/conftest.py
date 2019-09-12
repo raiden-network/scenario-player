@@ -1,11 +1,14 @@
 from collections import defaultdict
+from typing import Dict
 from unittest.mock import MagicMock
 
 import pytest
 import requests
 import responses
+from eth_typing import ChecksumAddress
 from eth_utils.address import to_checksum_address
 from raiden_contracts.contract_manager import ContractManager
+from tests.unittests.constants import TEST_TOKEN_ADDRESS, TEST_TOKEN_NETWORK_ADDRESS
 
 from raiden.network.rpc.client import JSONRPCClient
 from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
@@ -34,8 +37,13 @@ class DummyRPCConfig:
         self.client_id = "the_client_id"
 
 
+class DummyPFSConfig:
+    url = "http://pfs"
+
+
 class DummyServicesConfig:
-    pass
+    def __init__(self):
+        self.pfs = DummyPFSConfig()
 
 
 class DummySPaaSConfig:
@@ -63,8 +71,40 @@ class DummyScenarioYAML:
         self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
 
+class DummyNodeRunner:
+    def __init__(self, index):
+        self.index = index
+
+    @property
+    def address(self):
+        return f"0x1{self.index:039d}"
+
+
+class DummyNodeController:
+    def __init__(self, node_count: int):
+        self.node_count = node_count
+
+    def __getitem__(self, item):
+        if int(item) >= self.node_count:
+            raise IndexError()
+        return DummyNodeRunner(item)
+
+    def __len__(self):
+        return self.node_count
+
+    @property
+    def address_to_index(self) -> Dict[ChecksumAddress, int]:
+        return {runner.address: i for i, runner in enumerate(iter(self))}
+
+
 class DummyScenarioRunner:
-    def __init__(self, scenario_name, token_address):
+    def __init__(
+        self,
+        scenario_name: str,
+        token_address: ChecksumAddress,
+        token_network_address: ChecksumAddress = TEST_TOKEN_NETWORK_ADDRESS,
+        node_count: int = 4,
+    ):
         self.client = MagicMock(spec=JSONRPCClient)
         self.contract_manager = MagicMock(spec=ContractManager)
         self.scenario_name = scenario_name
@@ -77,6 +117,8 @@ class DummyScenarioRunner:
         self.run_number = 0
         self.protocol = "http"
         self.token = DummyTokenContract(token_address)
+        self.token_network_address = token_network_address
+        self.node_controller = DummyNodeController(node_count)
 
     def task_state_changed(self, task, new_state):
         pass
@@ -85,7 +127,7 @@ class DummyScenarioRunner:
         return f"{index}"
 
     def get_node_address(self, index):
-        return f"0x2{index:039d}"
+        return self.node_controller[index].address
 
 
 @pytest.fixture
@@ -96,4 +138,4 @@ def mocked_responses():
 
 @pytest.fixture
 def dummy_scenario_runner(mocked_responses):
-    return DummyScenarioRunner("dummy_scenario", f"0x1{1:039d}")
+    return DummyScenarioRunner("dummy_scenario", TEST_TOKEN_ADDRESS)
