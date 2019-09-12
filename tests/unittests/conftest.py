@@ -74,6 +74,7 @@ class DummyScenarioYAML:
 class DummyNodeRunner:
     def __init__(self, index):
         self.index = index
+        self.base_url = index
 
     @property
     def address(self):
