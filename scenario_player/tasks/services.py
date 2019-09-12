@@ -247,11 +247,15 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                 raise ScenarioAssertionError(
                     f"Expected {len(exp_routes)} routes but got {len(actual_routes)}."
                 )
+            node_address_to_index = self._runner.node_controller.address_to_index
             for i, (exp_route, actual_route) in enumerate(zip(exp_routes, actual_routes)):
                 exp_route_addr = [self._runner.get_node_address(node) for node in exp_route]
                 if exp_route_addr != actual_route:
+                    actual_route_indices = [
+                        node_address_to_index.get(hop, hop) for hop in actual_route
+                    ]
                     raise ScenarioAssertionError(
-                        f"Expected route {exp_route} but got {actual_route} at index {i}"
+                        f"Expected route {exp_route} but got {actual_route_indices} at index {i}"
                     )
 
         exp_fees = self._config.get("expected_fees")
@@ -271,6 +275,7 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                     raise ScenarioAssertionError(
                         f"Expected fee {exp_fee} but got {actual_fee} at index {i}"
                     )
+        return response_dict
 
 
 class AssertPFSIoUTask(RESTAPIActionTask):

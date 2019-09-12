@@ -493,6 +493,10 @@ class NodeController:
     def addresses(self) -> Set[ChecksumAddress]:
         return {runner.address for runner in self._node_runners}
 
+    @property
+    def address_to_index(self) -> Dict[ChecksumAddress, int]:
+        return {runner.address: i for i, runner in enumerate(self._node_runners)}
+
     def start_node_monitor(self):
         def _monitor(runner: NodeRunner):
             while not self._runner.root_task.done:
