@@ -17,6 +17,8 @@ from scenario_player.exceptions.config import (
 )
 from scenario_player.services.utils.interface import ServiceInterface
 
+CUSTOM_TOKEN_NAME = "CustomToken"
+
 log = structlog.get_logger(__name__)
 
 
@@ -250,7 +252,7 @@ class Token(Contract):
 
     def init(self):
         """Load an existing or deploy a new token contract."""
-        if self.config.token.reuse_token:
+        if self.config.token.reuse_token or self.config.token.address:
             return self.use_existing()
         return self.deploy_new()
 
@@ -260,12 +262,20 @@ class Token(Contract):
         :raises TokenSourceCodeDoesNotExist:
             If no source code is present at the loaded address.
         """
-        token_data = self.load_from_file()
-        contract_name, address, block = (
-            token_data["name"],
-            token_data["address"],
-            token_data["block"],
-        )
+        if self.config.token.reuse_token:
+            token_data = self.load_from_file()
+            contract_name, address, block = (
+                token_data["name"],
+                token_data["address"],
+                token_data["block"],
+            )
+        elif self.config.token.address:
+            contract_name = CUSTOM_TOKEN_NAME
+            address = self.config.token.address
+            block = 1
+        else:
+            raise RuntimeError("`use_existing()` called without `reuse` or `address` set.")
+
         try:
             check_address_has_code(
                 self._local_rpc_client, address=address, contract_name=contract_name
@@ -285,7 +295,7 @@ class Token(Contract):
         self.contract_proxy = self._local_rpc_client.new_contract_proxy(
             contract_info["abi"], address
         )
-        self.deployment_receipt = {"blockNum": block}
+        self.deployment_receipt = {"blockNumber": block}
         checksummed_address = to_checksum_address(address)
 
         log.debug(
@@ -330,7 +340,7 @@ class Token(Contract):
             resp_data["contract"],
             resp_data["deployment_block"],
         )
-        contract_info = self._local_contract_manager.get_contract("CustomToken")
+        contract_info = self._local_contract_manager.get_contract(CUSTOM_TOKEN_NAME)
 
         # Make deployment address and block available to address/deployment_block properties.
         self.contract_data = token_contract_data
