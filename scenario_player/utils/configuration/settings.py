@@ -80,8 +80,10 @@ class UDCTokenSettings(ConfigMapping):
 
         If this is set to False or not given, the attributes :attr:`.max_funding` and
         :attr:`.balance_per_node` will not be used.
+
+        Defaults to True.
         """
-        return self.get("deposit", False)
+        return self.get("deposit", True)
 
     @property
     def balance_per_node(self) -> int:
