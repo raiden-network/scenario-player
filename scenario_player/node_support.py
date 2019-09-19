@@ -323,16 +323,25 @@ class NodeRunner:
                 # already handled above
                 continue
             if option_name in self._options:
-                cmd.extend([f"--{option_name}", self._options[option_name]])
+                option_value = self._options[option_name]
+                if isinstance(option_value, list):
+                    cmd.extend([f"--{option_name}", *self._options[option_name]])
+                else:
+                    cmd.extend([f"--{option_name}", self._options[option_name]])
 
         remaining_option_candidates = (
             KNOWN_OPTIONS - MANAGED_CONFIG_OPTIONS - MANAGED_CONFIG_OPTIONS_OVERRIDABLE
         )
         for option_name in remaining_option_candidates:
             if option_name in self._options:
-                cmd.append(f"--{option_name}")
                 if option_name not in FLAG_OPTIONS:
-                    cmd.append(self._options[option_name])
+                    option_value = self._options[option_name]
+                    if isinstance(option_value, list):
+                        cmd.extend([f"--{option_name}", *self._options[option_name]])
+                    else:
+                        cmd.extend([f"--{option_name}", self._options[option_name]])
+                else:
+                    cmd.append(f"--{option_name}")
 
         # Ensure path instances are converted to strings
         cmd = [str(c) for c in cmd]
