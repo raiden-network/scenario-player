@@ -82,6 +82,32 @@ def query_blockchain_events(
 
 
 class AssertBlockchainEventsTask(Task):
+    """ Assert on blockchain events.
+
+    Required parameters:
+      - ``contract_name``
+        Which contract events to assert on. Example: ``TokenNetwork``
+      - ``event_name``
+        Contract specific event name to filter for.
+      - ``num_events``
+        The number of expected events.
+
+    Optional parameters:
+      - ``event_args``
+        A dictionary of event specific arguments that is used to further filter the found events.
+        This has a special handling for node addresses: If the name of an argument contains the
+        word ``participant`` an integer node index can be given instead of an ethereum address.
+
+    Example::
+
+        - assert_events:
+            contract_name: "TokenNetwork"
+            event_name: "ChannelClosed"
+            num_events: 1
+            event_args: {closing_participant: 1}  # The 1 refers to scenario node index 1
+
+    """
+
     _name = "assert_events"
 
     def __init__(
@@ -103,6 +129,12 @@ class AssertBlockchainEventsTask(Task):
         self.contract_name = config["contract_name"]
         self.event_name = config["event_name"]
         self.num_events = config["num_events"]
+        self.event_args: Dict[str, Any] = config.get("event_args", {}).copy()
+        for key, value in self.event_args.items():
+            if "participant" in key:
+                if isinstance(value, int) or (isinstance(value, str) and value.isnumeric()):
+                    # Replace node index with eth address
+                    self.event_args[key] = self._runner.get_node_address(int(value))
 
         self.web3 = self._runner.client.web3
 
@@ -133,6 +165,12 @@ class AssertBlockchainEventsTask(Task):
 
         # Filter matching events
         events = [e for e in events if e["event"] == self.event_name]
+
+        if self.event_args:
+            event_args_items = self.event_args.items()
+            # Filter the events by the given event args.
+            # `.items()` produces a set like object which supports intersection (`&`)
+            events = [e for e in events if e["args"] and event_args_items & e["args"].items()]
 
         # Raise exception when events do not match
         if not self.num_events == len(events):
