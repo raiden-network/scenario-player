@@ -86,6 +86,18 @@ class TestSettingsConfig:
         config = SettingsConfig(minimal_yaml_dict)
         assert config.gas_price_strategy == expected_func
 
+    def test_chain_property_prioritizes_cli_attr_over_scenario_definition(self, minimal_yaml_dict):
+        minimal_yaml_dict["chain"] = "kovan"
+        instance = SettingsConfig(minimal_yaml_dict)
+        instance._cli_chain = "my_chain"
+        assert instance.chain == "my_chain"
+
+    def test_eth_rpc_address_property_prioritizes_cli_attr_over_scenario_definition(self, minimal_yaml_dict):
+        instance = SettingsConfig(minimal_yaml_dict)
+        instance._cli_rpc_address = "my_address"
+        minimal_yaml_dict["settings"]["eth-client-rpc-address"] = "http://ethnodes.io"
+        assert instance.eth_client_rpc_address == "my_address"
+
 
 class TestServiceSettingsConfig:
     def test_is_subclass_of_config_mapping(self, minimal_yaml_dict):

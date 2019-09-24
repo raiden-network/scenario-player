@@ -87,6 +87,9 @@ class ScenarioRunner:
         self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
         self.chain_name, chain_urls = self.select_chain(chain_urls)
+        # Set CLI overrides.
+        self.yaml.settings._cli_chain = self.chain_name
+        self.yaml.settings._cli_rpc_address = chain_urls[0]
         self.eth_rpc_urls = chain_urls
         self.client = JSONRPCClient(
             Web3(HTTPProvider(chain_urls[0])),

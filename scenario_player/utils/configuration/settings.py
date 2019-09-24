@@ -2,13 +2,13 @@ from typing import Callable, Union
 
 import structlog
 
-from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
+from scenario_player.constants import GAS_STRATEGIES, TIMEOUT, BB_ETH_RPC_ADDRESS
+from scenario_player.exceptions.config import ScenarioConfigurationError, ServiceConfigurationError
 from scenario_player.exceptions.config import (
-    ScenarioConfigurationError,
-    ServiceConfigurationError,
     UDCTokenConfigError,
 )
 from scenario_player.utils.configuration.base import ConfigMapping
+from scenario_player.utils.types import NetlocWithPort
 
 log = structlog.get_logger(__name__)
 
@@ -181,6 +181,10 @@ class SettingsConfig(ConfigMapping):
         super(SettingsConfig, self).__init__(loaded_yaml.get("settings") or {})
         self.services = ServiceSettingsConfig(loaded_yaml)
         self.validate()
+        # If chain or rpc address are given via CLI, they override the scenario
+        # definition values. These attributes store these overrides.
+        self._cli_rpc_address = None
+        self._cli_chain = None
 
     def validate(self):
         self.assert_option(
@@ -210,8 +214,35 @@ class SettingsConfig(ConfigMapping):
 
     @property
     def chain(self) -> str:
-        """Return the name of the chain to be used for this scenario."""
-        return self.get("chain", "any")
+        """Return the name of the chain to be used for this scenario.
+
+        Defaults to `goerli` test net.
+        """
+        return self._cli_chain or self.get("chain", "goerli")
+
+    @property
+    def eth_client(self) -> str:
+        """Return the Ethereum Client to use.
+
+        This should be the name of the executable, not a path.
+
+        Defaults to `parity`.
+        """
+        return self.get("eth-client", "parity")
+
+    @property
+    def eth_client_rpc_address(self) -> NetlocWithPort:
+        """Return the Ethereum client's RPC address.
+
+        The value is loaded in the following order:
+
+            - `--chain` value passed via CLI
+            - `eth-client-rpc-address` value in the scenario definition file
+            - :var:`BB_ETH_RPC_ADDRESS`, populated with values of
+             :attr:`.chain` and :attr:`.eth_client`.
+
+        """
+        return self._cli_rpc_address or self.get("eth-client-rpc-address", BB_ETH_RPC_ADDRESS.format(network=self.chain, client=self.eth_client))
 
     @property
     def gas_price(self) -> str:

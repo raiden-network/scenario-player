@@ -43,9 +43,11 @@ class Sentinel(Exception):
 def hex_address():
     return "0x5A0b54D5dc17e0AadC383d2db43B0a0D3E029c4c"
 
+
 @pytest.fixture
 def contract_addr():
     return "0x5A0b54D5dc17e0AadC383d2db43B0a0D3E029c4c"
+
 
 @pytest.fixture
 def runner(dummy_scenario_runner, minimal_yaml_dict, token_info_path, tmp_path):
@@ -354,6 +356,8 @@ class TestToken:
 
     @patch(f"{token_import_path}.Token.load_from_file", side_effect=Sentinel)
     def test_use_exising_loads_token_info_file(self, _, token_instance):
+        # use_existing() requires `reuse` or `address` keys set in dict.
+        token_instance.config.token.dict["reuse"] = True
         with pytest.raises(Sentinel):
             token_instance.use_existing()
 
@@ -365,10 +369,14 @@ class TestToken:
     def test_uses_existing_raises_error_if_address_has_no_sourcecode(
         self, _, mock_check_address, token_instance
     ):
+        # use_existing() requires `reuse` or `address` keys set in dict.
+        token_instance.config.token.dict["reuse"] = True
+
         def raise_exc(*args, **kwargs):
             raise AddressWithoutCode
 
         mock_check_address.side_effect = raise_exc
+
         with pytest.raises(TokenSourceCodeDoesNotExist):
             token_instance.use_existing()
 
@@ -378,6 +386,9 @@ class TestToken:
     def test_use_existing_assigns_contract_data_and_deployment_receipt_correctly(
         self, mock_load_from_file, _, __, token_instance
     ):
+        # use_existing() requires `reuse` or `address` keys set in dict.
+        token_instance.config.token.dict["reuse"] = True
+
         loaded_token_info = {"address": "my_address", "name": "my_token_name", "block": 1}
         mock_load_from_file.return_value = loaded_token_info
 
@@ -387,7 +398,7 @@ class TestToken:
 
         token_instance._local_contract_manager.get_contract.return_value = {"abi": "contract_abi", "name": "my_deployed_token_name"}
 
-        expected_deployment_receipt = {"blockNum": loaded_token_info["block"]}
+        expected_deployment_receipt = {"blockNumber": loaded_token_info["block"]}
         expected_contract_data = {
             "token_contract": loaded_token_info["address"],
             "name": MockContractProxy.name,
