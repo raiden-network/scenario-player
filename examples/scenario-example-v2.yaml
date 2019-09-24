@@ -45,7 +45,11 @@ token:
   #name: "Some token"
   #symbol: "STKN"
   #decimals: 18
+  # Set the minimum required balance of each node
   #balance_min: 5000
+  # Set the max number of tokens sent to each node - if you plan on rerunning the scenarios, this allows skipping
+  # the mint stage, as the nodes may still have sufficient funds.
+  #balance_fund: 15000
   #reuse: true
 
 nodes:
@@ -67,6 +71,10 @@ nodes:
     #registry-contract-address: "0xbfa863Ac58a3E0A82B58a8e958F2752Bfb573388"
     #discovery-contract-address: "0xb2646EB8270a4de7451f6F7b259FdE17DBCeedc9"
     #secret-registry-contract-address: "0xA5c882f09c3DE551d76dcDE08890fAa0dD1F29E3"
+    # If an option takes multiple arguments, pass them as a list
+    #flat-fee:
+    #  - "0x62083c80353Df771426D209eF578619EE68D5C7A"
+    #  - 100
   ## Per-node option overrides
   #node_options:
   #  0:
