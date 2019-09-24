@@ -2,9 +2,6 @@ import json
 
 import pytest
 
-from ..conftest import dummy_scenario_runner, minimal_definition_dict
-
-
 @pytest.fixture
 def token_info_path(tmp_path):
     path = tmp_path.joinpath("token.info")
