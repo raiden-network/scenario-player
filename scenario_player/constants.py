@@ -23,6 +23,10 @@ GAS_STRATEGIES = {"FAST": fast_gas_price_strategy, "MEDIUM": medium_gas_price_st
 GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL = 100_000
 
 
+#: Ethereum Nodes hosted by Brainbot
+BB_ETH_RPC_ADDRESS = "{client}.{network}.ethnodes.brainbot.com:5085"
+
+
 class NodeMode(enum.Enum):
     EXTERNAL = 1
     MANAGED = 2
