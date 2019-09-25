@@ -44,6 +44,11 @@ Then, for **Maintainers only**:
 8.After approving a PR, merge it using the following REGEX pattern for the commit title:
 
     ^\[(?P<type>(FEAT|FIX))-(?P<issue>#\d+)\]\w?(?P<description>.*)$
+    
+Examples::
+
+    [FEAT-#333] Allow assert_events to filter by event args by event args
+    [FIX-#319] Respect token.address scenario setting
 
 Hotfixes
 --------
