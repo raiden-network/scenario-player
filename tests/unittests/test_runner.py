@@ -37,7 +37,6 @@ def runner(dummy_scenario_runner):
 
 @mock.patch("scenario_player.runner.Session.get")
 class TestScenarioRunner:
-    @pytest.mark.token_network_discovery
     def test_wait_for_token_discovery_raises_error_after_timeout_threshold_is_crossed(
         self, mock_request, response, runner
     ):
@@ -54,7 +53,6 @@ class TestScenarioRunner:
         actual = runner.wait_for_token_network_discovery("test_node")
         assert actual == response.payload
 
-    @pytest.mark.token_network_discovery
     @pytest.mark.parametrize(
         "code, should_raise_http_error", argvalues=[(404, False), (500, True), (400, True)]
     )
@@ -75,7 +73,6 @@ class TestScenarioRunner:
                 return
             pytest.fail("DID RAISE HTTPError!")
 
-    @pytest.mark.token_network_discovery
     @pytest.mark.parametrize(
         "returned, is_checksum",
         argvalues=[
