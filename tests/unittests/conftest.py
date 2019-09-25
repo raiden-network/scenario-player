@@ -5,6 +5,8 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 import responses
+import yaml
+
 from eth_typing import ChecksumAddress
 from eth_utils.address import to_checksum_address
 from raiden_contracts.contract_manager import ContractManager
@@ -24,6 +26,14 @@ def minimal_yaml_dict():
         "nodes": {"count": 1},
         "spaas": {},
     }
+
+
+@pytest.fixture
+def scenario_file(minimal_yaml_dict, tmp_path):
+    fpath = tmp_path.joinpath("scenario.yaml")
+    with fpath.open(mode="w+") as f:
+        yaml.dump(minimal_yaml_dict, f)
+    return fpath
 
 
 class DummyTokenContract:

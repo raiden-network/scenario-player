@@ -12,15 +12,14 @@ TEST_NET = "testnet"
 
 
 @pytest.fixture
-def raiden_flags(wallet, minimal_yaml_dict, tmp_path):
-    with patch("scenario_player.scenario.yaml.safe_load", return_value=minimal_yaml_dict):
-        return RaidenFlags(
-            loaded_yaml=ScenarioYAML(minimal_yaml_dict, tmp_path),
-            index=1,
-            chain=TEST_NET,
-            client_addr=ETH_RPC_ENDPOINT,
-            run_number=1,
-        )
+def raiden_flags(scenario_file, tmp_path):
+    return RaidenFlags(
+        loaded_yaml=ScenarioYAML(scenario_file, tmp_path),
+        index=1,
+        chain=TEST_NET,
+        client_addr=ETH_RPC_ENDPOINT,
+        run_number=1,
+    )
 
 
 class RaidenFlagsTestBase:
