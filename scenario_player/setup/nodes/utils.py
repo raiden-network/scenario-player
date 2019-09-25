@@ -1,28 +1,40 @@
 import pathlib
 import random
-
 from typing import Optional
 
 from eth_utils import encode_hex
 
 from scenario_player.utils.files.base import ManagedFile
-from scenario_player.utils.files.mixins import VersionedMixin, ArchitectureSpecificMixin, PlatformSpecificMixin
+from scenario_player.utils.files.mixins import (
+    ArchitectureSpecificMixin,
+    PlatformSpecificMixin,
+    VersionedMixin,
+)
 
 
-class RaidenExecutable(ManagedFile, ArchitectureSpecificMixin, PlatformSpecificMixin, VersionedMixin):
-    """A :class:`.ManagedFile` sublcass, taking care of downloading and extracting a Raiden Binary Archive."""
+class RaidenExecutable(
+    ManagedFile, ArchitectureSpecificMixin, PlatformSpecificMixin, VersionedMixin
+):
+    """A :class:`.ManagedFile` sublcass, taking care of downloading and extracting
+    a Raiden Binary Archive."""
+
     @classmethod
-    def download(cls, version: str, tar_dir: pathlib.Path, source: Optional[str] = None) -> ManagedFile:
+    def download(
+        cls, version: str, tar_dir: pathlib.Path, source: Optional[str] = None
+    ) -> ManagedFile:
         """Download the binary archive from the raiden cloud.
 
-        :raises ArchiveNotFound: if we cannot find a downloadable archive for the specified version.
+        :raises ArchiveNotFound:
+            if we cannot find a downloadable archive for the specified version.
         """
 
     def unpack(self) -> ManagedFile:
         """Extract the binary archive at this instance's :attr:`pathlib.Path.parent`."""
 
 
-def create_keystore(*, run_number: int, index: int, scenario_name: str, password: str) -> pathlib.Path:
+def create_keystore(
+    *, run_number: int, index: int, scenario_name: str, password: str
+) -> pathlib.Path:
     """Create a new keystore.
 
     The private key is a combination of the local seed, the run number, the instance's index,

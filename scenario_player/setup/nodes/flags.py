@@ -2,22 +2,22 @@
 import enum
 import pathlib
 import socket
-from typing import Optional, List, Union
-from scenario_player.utils.types import NetlocWithPort
+from typing import List, Optional, Union
+
 import structlog
 from eth_utils.address import to_checksum_address
-
-from scenario_player.setup.nodes.utils import create_keystore
-
 from eth_utils.typing import ChecksumAddress
-from scenario_player.setup.nodes.utils import RaidenExecutable
+
 from scenario_player.scenario import ScenarioYAML
+from scenario_player.setup.nodes.utils import RaidenExecutable, create_keystore
+from scenario_player.utils.types import NetlocWithPort
 
 log = structlog.getLogger(__name__)
 
 
 class OPTION_TYPE(enum.Enum):
     """Sentinel Enum used to detect CLI options without nargs (switches) and missing options."""
+
     #: The option wasn't stated in the scenario definition file.
     MISSING = f"MISSING_{object()!r}"
 
@@ -58,9 +58,7 @@ class RaidenFlags:
     #: The list of CLI switches which are always passed when starting a Raiden Node,
     #: and cannot be overridden in a scenario definition file (if given, they'll
     #: be ignored).
-    FORCED_SWITCHES = [
-        "accept-disclaimer", "log-json", "disable-debug-logfile", "no-web-ui"
-    ]
+    FORCED_SWITCHES = ["accept-disclaimer", "log-json", "disable-debug-logfile", "no-web-ui"]
 
     #: The list of options which are ignored if given in
     #: <scenario definition file>.nodes.[node_options|default_options].
@@ -76,7 +74,9 @@ class RaidenFlags:
         "password-file",
     ]
 
-    def __init__(self, loaded_yaml: ScenarioYAML, index: int, chain: str, client_addr: str, run_number: int):
+    def __init__(
+        self, loaded_yaml: ScenarioYAML, index: int, chain: str, client_addr: str, run_number: int
+    ):
         self._yaml = loaded_yaml
         self._chain = chain
         self.index = index
@@ -86,11 +86,7 @@ class RaidenFlags:
         self._keystore = None
 
     def render_options(
-            self,
-            data_dir: pathlib.Path,
-            network_id: str,
-            log_file: pathlib.Path,
-            **options
+        self, data_dir: pathlib.Path, network_id: str, log_file: pathlib.Path, **options
     ) -> List[str]:
         """Create a list of CLI options with a double dash prepended to them.
 
@@ -138,7 +134,9 @@ class RaidenFlags:
         optional_switches = []
         return [f"--{switch}" for switch in [*forced_switches, *optional_switches]]
 
-    def as_cli_command(self, chain_id: str, data_dir: pathlib.Path, log_file:pathlib.Path) -> List[str]:
+    def as_cli_command(
+        self, chain_id: str, data_dir: pathlib.Path, log_file: pathlib.Path
+    ) -> List[str]:
         """Render the set options in the scenario definitions as CLI flags for the Raiden Client.
 
         Distinguishes between switches (flags which take no value) and options
@@ -151,7 +149,7 @@ class RaidenFlags:
         """
         executable = self.executable.path.absolute()
         switches = self.render_switches()
-        options = self.render_options(data_dir, chain_id, log_file,)
+        options = self.render_options(data_dir, chain_id, log_file)
         return [executable, *switches, *options]
 
     def get_option(self, key) -> Optional[Union[OPTION_TYPE, str]]:
@@ -300,6 +298,6 @@ class RaidenFlags:
         The password written to a created password.txt is always equivalent to
         :attr:`.password`'s value.
 
-        When creating a password file, we always use :attr:`.address` as the stem of the file, appending
-        `.password` to it.
+        When creating a password file, we always use :attr:`.address` as the stem of the file,
+        appending `.password` to it.
         """

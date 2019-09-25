@@ -2,9 +2,10 @@ from typing import Callable, Union
 
 import structlog
 
-from scenario_player.constants import GAS_STRATEGIES, TIMEOUT, BB_ETH_RPC_ADDRESS
-from scenario_player.exceptions.config import ScenarioConfigurationError, ServiceConfigurationError
+from scenario_player.constants import BB_ETH_RPC_ADDRESS, GAS_STRATEGIES, TIMEOUT
 from scenario_player.exceptions.config import (
+    ScenarioConfigurationError,
+    ServiceConfigurationError,
     UDCTokenConfigError,
 )
 from scenario_player.utils.configuration.base import ConfigMapping
@@ -242,7 +243,10 @@ class SettingsConfig(ConfigMapping):
              :attr:`.chain` and :attr:`.eth_client`.
 
         """
-        return self._cli_rpc_address or self.get("eth-client-rpc-address", BB_ETH_RPC_ADDRESS.format(network=self.chain, client=self.eth_client))
+        return self._cli_rpc_address or self.get(
+            "eth-client-rpc-address",
+            BB_ETH_RPC_ADDRESS.format(network=self.chain, client=self.eth_client),
+        )
 
     @property
     def gas_price(self) -> str:

@@ -5,7 +5,7 @@ import pytest
 
 from scenario_player.scenario import ScenarioYAML
 from scenario_player.setup.nodes.flags import RaidenFlags, OPTION_TYPE
-
+from scenario_player.exceptions.setup import NotInstalled
 
 ETH_RPC_ENDPOINT = "127.0.0.:6666"
 TEST_NET = "testnet"
