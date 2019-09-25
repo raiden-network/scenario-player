@@ -22,6 +22,10 @@ lint: flake8 black-check isort-check
 install-dev:
 	pip install ".[dev]"
 
+install-raiden-develop:
+	pip uninstall raiden
+	pip install git+https://github.com/raiden-network/raiden.git@develop
+
 unit-tests:
 	pytest --cov=scenario_player
 
