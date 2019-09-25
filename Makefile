@@ -23,7 +23,7 @@ install-dev:
 	pip install ".[dev]"
 
 install-raiden-develop:
-	pip uninstall raiden
+	pip uninstall raiden -y
 	pip install git+https://github.com/raiden-network/raiden.git@develop
 
 unit-tests:
