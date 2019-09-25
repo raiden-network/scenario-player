@@ -87,7 +87,7 @@ class TestRaidenFlagsGetOptionMethod(RaidenFlagsTestBase):
             3. <scenario definition file>.settings.gas_price
 
         """
-        expected_global = "global-gp
+        expected_global = "global-gp"
         expected_default = "default-gp"
         expected_node_specific = "node-gp"
 
@@ -140,7 +140,7 @@ class TestRaidenFlagsExecutableProperty(RaidenFlagsTestBase):
 
     @pytest.mark.parametrize("version", ["latest", "1.5.6"])
     @patch("scenario_player.setup.nodes.flags.RaidenExecutable.download")
-    def test_property_calls_raiden_executable_class_when_specifying_version(self, version, mock_download):
+    def test_property_calls_raiden_executable_class_when_specifying_version(self, mock_download, version):
         self.instance._yaml.nodes.dict["raiden_version"] = version
         mock_download.return_value = pathlib.Path(f"raiden_{version}")
         assert self.instance.executable == mock_download.return_value

@@ -2,17 +2,16 @@
 import enum
 import pathlib
 import socket
-from typing import TYPE_CHECKING, Optional, List, Union
+from typing import Optional, List, Union
 from scenario_player.utils.types import NetlocWithPort
 import structlog
 from eth_utils.address import to_checksum_address
 
 from scenario_player.setup.nodes.utils import create_keystore
 
-if TYPE_CHECKING:
-    from eth_utils.typing import ChecksumAddress
-    from scenario_player.setup.nodes.utils import RaidenExecutable
-    from scenario_player.scenario import ScenarioYAML
+from eth_utils.typing import ChecksumAddress
+from scenario_player.setup.nodes.utils import RaidenExecutable
+from scenario_player.scenario import ScenarioYAML
 
 log = structlog.getLogger(__name__)
 

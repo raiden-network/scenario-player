@@ -1,4 +1,5 @@
-from ..conftest import minimal_yaml_dict
+import pytest
+
 
 @pytest.fixture
 def wallet():

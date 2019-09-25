@@ -6,6 +6,7 @@ import requests
 from scenario_player.runner import ScenarioRunner, TokenNetworkDiscoveryTimeout
 
 
+# FIXME: Use :mod:`responses` instead!
 class MockResponse:
     def __init__(self, status=200, payload=None):
         self.status_code = status
