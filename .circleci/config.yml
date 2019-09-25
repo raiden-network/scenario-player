@@ -122,6 +122,7 @@ commands:
           name: Install the project.
           command: |
             make install-dev
+            make install-raiden-develop
 
 
   skip_bad_commit_format:
