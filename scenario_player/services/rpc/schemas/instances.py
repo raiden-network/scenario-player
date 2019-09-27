@@ -33,7 +33,7 @@ class CreateClientSchema(SPSchema):
     """
 
     # Deserialization fields.
-    chain_url = Url(required=True, load_only=True)
+    chain_url = Url(required=True, load_only=True, require_tld=False)
     privkey = BytesField(required=True, load_only=True)
     gas_price = GasPrice(required=False, load_only=True, missing="FAST")
 
