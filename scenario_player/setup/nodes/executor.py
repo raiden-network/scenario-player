@@ -9,9 +9,13 @@ unexpected fashion.
 import os
 import platform
 import subprocess
+import typing
 
 import mirakuru
 import structlog
+
+if typing.TYPE_CHECKING:
+    from scenario_player.setup.nodes.flags import RaidenFlags
 
 log = structlog.getLogger(__name__)
 
@@ -83,3 +87,24 @@ class ClientExecutor(mirakuru.HTTPExecutor):
             return super().stop(sig)
         finally:
             self._timeout = global_timeout
+
+
+class RaidenExecutor(ClientExecutor):
+    """Raiden Client Executor class.
+
+    The command is constructed from the `raiden_flags` argument. In addition,
+    it also exposes all of the flags' attributes, for convenient access.
+    """
+    def __init__(self, raiden_flags: "RaidenFlags", chain_id, data_path, log_file, *args, **kwargs):
+        command = raiden_flags.as_cli_command(chain_id, data_path, log_file)
+        super(RaidenExecutor, self).__init__(command, *args, **kwargs)
+        self.flags = raiden_flags
+
+    def __getattr__(self, item):
+        try:
+            return getattr(self, item)
+        except AttributeError as e:
+            try:
+                return getattr(self.flags, item)
+            except:
+                raise e
