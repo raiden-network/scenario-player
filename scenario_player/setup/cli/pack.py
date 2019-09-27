@@ -15,5 +15,5 @@ pack_parser.add_argument(
     default=1,
     type=int,
     help="The number of runs to pack logs for; stating 1 will pack the latest, "
-         "2 the 2 latest runs, and giving 0 will pack all of them.",
+    "2 the 2 latest runs, and giving 0 will pack all of them.",
 )

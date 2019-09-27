@@ -1,7 +1,10 @@
 import pathlib
 import random
+import tarfile
+import zipfile
 from typing import Optional
 
+import requests
 from eth_utils import encode_hex
 
 from scenario_player.utils.files.base import ManagedFile

@@ -75,7 +75,7 @@ class TestCreateKeystore:
         assert keystore_file.suffix == "keystore"
 
     @patch("scenario_player.setup.nodes.utils.create_keyfile_json")
-    def test_generated_private_key_is_sha256_hash_of_func_parameters(self, mock_create_json, local_seed, runner):
+    def test_generated_private_key_is_sha256_hash_of_func_parameters(self, mock_create_json, local_seed, dummy_scenario_runner):
         """The private key is a hashed str using sha256.
 
         The original string is a combination of the local seed, the run number,

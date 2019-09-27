@@ -95,7 +95,10 @@ class RaidenExecutor(ClientExecutor):
     The command is constructed from the `raiden_flags` argument. In addition,
     it also exposes all of the flags' attributes, for convenient access.
     """
-    def __init__(self, raiden_flags: "RaidenFlags", chain_id, data_path, log_file, *args, **kwargs):
+
+    def __init__(
+        self, raiden_flags: "RaidenFlags", chain_id, data_path, log_file, *args, **kwargs
+    ):
         command = raiden_flags.as_cli_command(chain_id, data_path, log_file)
         super(RaidenExecutor, self).__init__(command, *args, **kwargs)
         self.flags = raiden_flags
