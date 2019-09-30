@@ -36,6 +36,9 @@ class OpenChannelTask(RaidenAPIActionTask):
         settle_timeout = self._config.get("settle_timeout")
         if settle_timeout is not None:
             params["settle_timeout"] = settle_timeout
+        reveal_timeout = self._config.get("reveal_timeout")
+        if reveal_timeout is not None:
+            params["reveal_timeout"] = reveal_timeout
         return params
 
 
