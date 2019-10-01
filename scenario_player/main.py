@@ -392,7 +392,7 @@ def construct_rc_message(base_dir, packed_log, log_fpath, scenario_name) -> str:
                 result = json_obj["result"]
                 exc = json_obj.get("exception", None)
     if result == "success":
-        return f":white_check_mark: Succesfully ran {scenario_name}!"
+        return f":white_check_mark: Successfully ran {scenario_name}!"
     elif result is None:
         message = f":skull_and_crossbones: {scenario_name} incomplete. No result found in log file."
     else:
