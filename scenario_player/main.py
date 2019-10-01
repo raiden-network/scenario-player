@@ -376,12 +376,12 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
         rc_message = {"msg": None, "description": None}
         if pack_n_latest == 1:
             # Index 0 will always return the latest log file for the scenario.
-            rc_message["text"] = construct_rc_message(target_dir, archive_fpath, files[0])
+            rc_message["text"] = construct_rc_message(target_dir, archive_fpath, files[0], scenario_name)
             rc_message["description"] = f"Log files for scenario {scenario_name}"
         post_to_rocket_chat(archive_fpath, **rc_message)
 
 
-def construct_rc_message(base_dir, packed_log, log_fpath) -> str:
+def construct_rc_message(base_dir, packed_log, log_fpath, scenario_name) -> str:
     """Check the result of the log file at the given `log_fpath`."""
     result = None
     exc = None
@@ -392,17 +392,23 @@ def construct_rc_message(base_dir, packed_log, log_fpath) -> str:
                 result = json_obj["result"]
                 exc = json_obj.get("exception", None)
     if result == "success":
-        return ":white_check_mark: Succesfully ran scenario!"
+        return f":white_check_mark: Succesfully ran {scenario_name}!"
     elif result is None:
-        message = f":skull_and_crossbones: Scenario incomplete. No result found in log file."
+        message = f":skull_and_crossbones: {scenario_name} incomplete. No result found in log file."
     else:
-        message = f":x: Error while running scenario: {result}!"
+        message = f":x: Error while running {scenario_name}: {result}!"
         if exc:
             message += "\n```\n" + exc + "\n```"
-    message += (
-        f"\nLog can be downloaded from:\n"
-        f"http://scenario-player.ci.raiden.network/{packed_log.relative_to(base_dir)}"
-    )
+    if scenario_name.startswith("ms"):
+        message += (
+            f"\nLog can be downloaded from:\n"
+            f"http://scenario-player.ci.raiden.network/{packed_log.relative_to(base_dir)}"
+        )
+    else:
+        message += (
+            f"\nLog can be downloaded from:\n"
+            f"http://68.183.70.168/{packed_log.relative_to(base_dir)}"
+        )
     return message
 
 
