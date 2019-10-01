@@ -46,6 +46,12 @@ class TestPackNLatestNodeLogsInDir:
         result = pack_n_latest_node_logs_in_dir(scenario_dir, given)
         assert len(result) == expected
 
+    def test_func_returns_node_logs_for_newest_run_if_n_is_one(self, scenario_dir):
+        """Newest node logs first."""
+        result = pack_n_latest_node_logs_in_dir(scenario_dir, 1)
+        expected = sorted([scenario_dir.joinpath(f"node_9_00{n}") for n in range(1, 4)])
+        assert result == expected
+
     def test_func_returns_directories_only(self, scenario_dir):
         result = pack_n_latest_node_logs_in_dir(scenario_dir, 10)
         assert all(path.is_dir() for path in result)
