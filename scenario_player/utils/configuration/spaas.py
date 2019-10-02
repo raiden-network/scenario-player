@@ -9,13 +9,13 @@ class SPaaSServiceConfig(ConfigMapping):
     """SPaaS Configuration for a single micro service.
 
     Provides the host, port, netloc and scheme from the
-    scenario yaml, if specified; if not specified, provides
+    scenario definition, if specified; if not specified, provides
     defaults for these values.
 
     `netloc` is auto-generated from `port` and `host`, and must
-    not be specified in the yaml file.
+    not be specified in the definition file.
 
-    Example scenario yaml section::
+    Example scenario definition section::
 
         >my_scenario.yaml
         version: 2
@@ -50,8 +50,8 @@ class SPaaSServiceConfig(ConfigMapping):
 
 
 class SPaaSConfig(ConfigMapping):
-    def __init__(self, loaded_yaml: dict):
-        super(SPaaSConfig, self).__init__(loaded_yaml.get("spaas") or {})
+    def __init__(self, loaded_definition: dict):
+        super(SPaaSConfig, self).__init__(loaded_definition.get("spaas") or {})
         self.rpc = RPCServiceConfig(self.dict)
 
 

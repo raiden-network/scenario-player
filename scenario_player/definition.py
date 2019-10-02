@@ -17,7 +17,7 @@ from scenario_player.utils.configuration import (
 log = structlog.get_logger(__name__)
 
 
-class ScenarioYAML:
+class ScenarioDefinition:
     """Interface for a Scenario `.yaml` file.
 
     Takes care of loading the yaml from the given `yaml_path`, and validates

@@ -15,7 +15,7 @@ log = structlog.get_logger(__name__)
 class TokenConfig(ConfigMapping):
     """Configuration for the token to be used in the scenario.
 
-    Example scenario yaml section::
+    Example scenario definition section::
 
         >my_scenario.yaml
         version: 2
@@ -31,14 +31,14 @@ class TokenConfig(ConfigMapping):
 
     ..note::
 
-        When setting the option `reuse` in the yaml file, it is an error
+        When setting the option `reuse` in the definition file, it is an error
         to also give an `address` option - these two options are mutually exclusive!
     """
 
     CONFIGURATION_ERROR = TokenConfigurationError
 
-    def __init__(self, loaded_yaml: dict, token_info_fpath: pathlib.Path):
-        super(TokenConfig, self).__init__(loaded_yaml.get("token") or {})
+    def __init__(self, loaded_definition: dict, token_info_fpath: pathlib.Path):
+        super(TokenConfig, self).__init__(loaded_definition.get("token") or {})
         self._token_id = uuid.uuid4()
         self._name = None
         self._token_file = token_info_fpath

@@ -366,7 +366,7 @@ class NodeRunner:
             gevent.sleep()
             seed = (
                 f"{self._runner.local_seed}"
-                f"-{self._runner.yaml.name}"
+                f"-{self._runner.definition.name}"
                 f"-{self._runner.run_number}"
                 f"-{self._index}"
             ).encode()
@@ -407,7 +407,7 @@ class NodeRunner:
     @property
     def _pfs_address(self):
         local_pfs = self._options.get("pathfinding-service-address")
-        global_pfs = self._runner.yaml.settings.services.pfs.url
+        global_pfs = self._runner.definition.settings.services.pfs.url
         if local_pfs:
             if global_pfs:
                 log.warning(

@@ -25,10 +25,10 @@ log = structlog.get_logger(__name__)
 class Contract:
     def __init__(self, runner, address=None):
         self._address = address
-        self.config = runner.yaml
+        self.config = runner.definition
         self._local_rpc_client = runner.client
         self._local_contract_manager = runner.contract_manager
-        self.interface = ServiceInterface(runner.yaml.spaas)
+        self.interface = ServiceInterface(runner.definition.spaas)
         self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
     def __repr__(self):
@@ -77,7 +77,7 @@ class Contract:
     ) -> Union[TransactionHash, None]:
         """Mint new tokens for the given `target_address`.
 
-        The amount of tokens depends on the scenario yaml's settings, and defaults to
+        The amount of tokens depends on the scenario definition's settings, and defaults to
         :attr:`.DEFAULT_TOKEN_BALANCE_MIN` and :attr:`.DEFAULT_TOKEN_BALANCE_FUND`
         if those settings are absent.
         """
@@ -441,7 +441,7 @@ class UserDepositContract(Contract):
     def deposit(self, target_address) -> Union[TransactionHash, None]:
         """Make a deposit at the given `target_address`.
 
-        The amount of tokens depends on the scenario yaml's settings.
+        The amount of tokens depends on the scenario definition's settings.
 
         If the target address has a sufficient deposit, this is a no-op.
 
