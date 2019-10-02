@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from ..conftest import minimal_yaml_dict, token_info_path
+from ..conftest import minimal_definition_dict, token_info_path
 
 
 @pytest.fixture

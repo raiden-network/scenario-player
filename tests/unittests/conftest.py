@@ -15,7 +15,7 @@ from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 
 
 @pytest.fixture
-def minimal_yaml_dict():
+def minimal_definition_dict():
     """A dictionary with the minimum required keys for instantiating any ConfigMapping."""
     return {
         "scenario": {"serial": {"tasks": {"wait_blocks": {"blocks": 5}}}},
@@ -63,7 +63,7 @@ class DummyTokenConfig:
         self.address = "the_token_config_address"
 
 
-class DummyScenarioYAML:
+class DummyScenarioDefinition:
     def __init__(self, scenario_name):
         self.name = scenario_name
         self.settings = DummySettingsConfig()
@@ -109,7 +109,7 @@ class DummyScenarioRunner:
         self.client = MagicMock(spec=JSONRPCClient)
         self.contract_manager = MagicMock(spec=ContractManager)
         self.scenario_name = scenario_name
-        self.yaml = DummyScenarioYAML(scenario_name)
+        self.definition = DummyScenarioDefinition(scenario_name)
         self.session = requests.Session()
         self.task_cache = {}
         self.task_storage = defaultdict(dict)

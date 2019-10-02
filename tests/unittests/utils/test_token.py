@@ -23,7 +23,7 @@ from scenario_player.exceptions.config import (
     TokenNotDeployed,
     TokenSourceCodeDoesNotExist,
 )
-from scenario_player.scenario import ScenarioYAML
+from scenario_player.definition import ScenarioDefinition
 from scenario_player.utils.configuration.token import TokenConfig
 from scenario_player.utils.token import Contract, Token, UserDepositContract
 
@@ -48,14 +48,14 @@ def contract_addr():
     return "0x5A0b54D5dc17e0AadC383d2db43B0a0D3E029c4c"
 
 @pytest.fixture
-def runner(dummy_scenario_runner, minimal_yaml_dict, token_info_path, tmp_path):
-    token_config = TokenConfig(minimal_yaml_dict, token_info_path)
-    with patch("yaml.safe_load", return_value=minimal_yaml_dict):
+def runner(dummy_scenario_runner, minimal_definition_dict, token_info_path, tmp_path):
+    token_config = TokenConfig(minimal_definition_dict, token_info_path)
+    with patch("yaml.safe_load", return_value=minimal_definition_dict):
         tmp_file = tmp_path.joinpath("tmp.yaml")
         tmp_file.touch()
-        dummy_scenario_runner.yaml = ScenarioYAML(tmp_file, tmp_path)
-    dummy_scenario_runner.yaml.spaas.rpc.client_id = "the_client_id"
-    dummy_scenario_runner.yaml.token = token_config
+        dummy_scenario_runner.definition = ScenarioDefinition(tmp_file, tmp_path)
+    dummy_scenario_runner.definition.spaas.rpc.client_id = "the_client_id"
+    dummy_scenario_runner.definition.token = token_config
 
     dummy_scenario_runner.token = Token(dummy_scenario_runner, tmp_path)
 
@@ -78,25 +78,25 @@ class TestContract:
         """The following attributes are loaded correctly from the given parameters:
 
             - :attr:`Contract.interface` is an instance of :class:`ServiceInterface`
-                and constructed using the passed `yaml_config` paramter.
+                and constructed using the passed `definition_config` paramter.
 
             - :attr:`Contract._local_rpc_client` is loaded from :attr:`runner.client`
 
             - :attr:`Contract._local_contract_manager` is loaded from
                 :attr:`runner.client.contract_manager`
 
-            - :attr:`Contract.config` is a reference to `runner.yaml`.
+            - :attr:`Contract.config` is a reference to `runner.definition`.
         """
         iface = object()
         mock_interface.return_value = iface
         contract = Contract(runner, tmp_path)
 
-        mock_interface.assert_called_once_with(runner.yaml.spaas)
+        mock_interface.assert_called_once_with(runner.definition.spaas)
         assert contract.interface == iface
 
         assert contract._local_rpc_client == runner.client
         assert contract._local_contract_manager == runner.contract_manager
-        assert contract.config == runner.yaml
+        assert contract.config == runner.definition
 
     def test_address_property_returns_from_private_attribute(self, contract_instance):
         contract_instance._address = "khashyyk"
@@ -179,10 +179,10 @@ class TestToken:
         runner,
         tmp_path,
         token_info_path,
-        minimal_yaml_dict,
+        minimal_definition_dict,
     ):
         mocked_properties = {"name": m_name, "symbol": m_symbol, "decimals": m_decimals}
-        runner.yaml.token = TokenConfig(minimal_yaml_dict, token_info_path)
+        runner.definition.token = TokenConfig(minimal_definition_dict, token_info_path)
         token = Token(runner, tmp_path)
         getattr(token, prop)
         assert len(mocked_properties[prop].mock_calls) == 1
@@ -521,7 +521,7 @@ class TestUserDepositContract:
         new_callable=PropertyMock(return_value="ud_contract_addr"),
     )
     @patch("scenario_player.utils.token.Contract.transact")
-    def test_update_allowance_updates_allowance_according_to_udc_token_balance_per_node_yaml_setting(
+    def test_update_allowance_updates_allowance_according_to_udc_token_balance_per_node_definition_setting(
         self, mock_transact, _
     ):
         self.instance.config.nodes.dict["count"] = 2
@@ -549,7 +549,7 @@ class TestUserDepositContract:
     ):
         """deposit() deposits the correct amount of UDC Tokens at the target node's address.
 
-        amount = yaml.settings.services.udc.token.max_funding - target_node.effective_balance
+        amount = definition.settings.services.udc.token.max_funding - target_node.effective_balance
         """
         self.instance.config.settings.services.udc.token.dict["balance_per_node"] = 5_000
         self.instance.config.settings.services.udc.token.dict["max_funding"] = 10_000
