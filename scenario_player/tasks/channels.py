@@ -110,7 +110,10 @@ class TransferTask(ChannelActionTask):
 
     @property
     def _request_params(self):
-        params = dict(amount=self._config["amount"])
+        params = dict(
+            amount=self._config["amount"],
+            lock_timeout=self._config["lock_timeout"],
+        )
         if "identifier" in self._config:
             params["identifier"] = self._config["identifier"]
         return params
