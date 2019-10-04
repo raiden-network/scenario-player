@@ -113,6 +113,9 @@ class TransferTask(ChannelActionTask):
         params = dict(amount=self._config["amount"])
         if "identifier" in self._config:
             params["identifier"] = self._config["identifier"]
+        if "lock_timeout" in self._config:
+            params["lock_timeout"] = self._config["lock_timeout"]
+
         return params
 
 
