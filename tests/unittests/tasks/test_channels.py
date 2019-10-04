@@ -4,7 +4,6 @@ import json
 
 import pytest
 from tests.unittests.constants import NODE_ADDRESS_0, NODE_ADDRESS_1, TEST_TOKEN_ADDRESS
-
 # TODO: Add tests for request timeouts
 from tests.unittests.tasks.utils import generic_task_test
 
@@ -229,6 +228,18 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             200,
             {"resp": 1},
             id="transfer-id-given",
+        ),
+        pytest.param(
+            "transfer",
+            {"from": 0, "to": 1, "amount": 1, "identifier": 1, "lock_timeout": 30},
+            None,
+            None,
+            "POST",
+            f"http://0/api/v1/payments/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
+            {"amount": 1, "identifier": 1, "lock_timeout": 30},
+            200,
+            {"resp": 1},
+            id="transfer-lock-timeout-given",
         ),
         pytest.param(
             "assert",
