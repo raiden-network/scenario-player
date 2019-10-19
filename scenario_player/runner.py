@@ -10,21 +10,20 @@ import gevent
 import structlog
 from eth_typing import ChecksumAddress
 from eth_utils import encode_hex, is_checksum_address, to_checksum_address
-from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
-from requests import HTTPError, RequestException, Session
-from web3 import HTTPProvider, Web3
-
 from raiden.accounts import Account
 from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import JSONRPCClient
 from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from raiden.utils.typing import TransactionHash
+from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
+from requests import HTTPError, RequestException, Session
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
     API_URL_TOKENS,
     NODE_ACCOUNT_BALANCE_FUND,
     NODE_ACCOUNT_BALANCE_MIN,
     OWN_ACCOUNT_BALANCE_MIN,
+    RUN_NUMBER_FILENAME,
 )
 from scenario_player.exceptions import ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
@@ -33,6 +32,7 @@ from scenario_player.services.rpc.utils import assign_rpc_instance_id
 from scenario_player.services.utils.interface import ServiceInterface
 from scenario_player.utils import TimeOutHTTPAdapter, get_udc_and_token, wait_for_txs
 from scenario_player.utils.token import Token, UserDepositContract
+from web3 import HTTPProvider, Web3
 
 if TYPE_CHECKING:
     from scenario_player.tasks.base import Task, TaskState
@@ -132,7 +132,7 @@ class ScenarioRunner:
         REFAC: Replace this with a property.
         """
         run_number = 0
-        run_number_file = self.data_path.joinpath("run_number.txt")
+        run_number_file = self.data_path.joinpath(RUN_NUMBER_FILENAME)
         if run_number_file.exists():
             run_number = int(run_number_file.read_text()) + 1
         run_number_file.write_text(str(run_number))
