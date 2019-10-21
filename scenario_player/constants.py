@@ -22,6 +22,8 @@ GAS_STRATEGIES = {"FAST": fast_gas_price_strategy, "MEDIUM": medium_gas_price_st
 
 GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL = 100_000
 
+# DO NOT CHANGE THIS! It would break backwards compatibility, since i.e. wallet generation
+# depends on it!!!
 RUN_NUMBER_FILENAME = "run_number.txt"
 
 
