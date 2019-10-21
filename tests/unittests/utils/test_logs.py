@@ -49,7 +49,7 @@ class TestPackNLatestNodeLogsInDir:
         """Newest node logs first."""
         result = pack_n_latest_node_logs_in_dir(scenario_dir, 1)
         expected = sorted([scenario_dir.joinpath(f"node_9_00{n}") for n in range(1, 4)])
-        assert result == expected
+        assert sorted(result) == expected
 
     def test_func_returns_directories_only(self, scenario_dir):
         result = pack_n_latest_node_logs_in_dir(scenario_dir, 10)
