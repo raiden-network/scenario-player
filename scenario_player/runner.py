@@ -25,6 +25,7 @@ from scenario_player.constants import (
     NODE_ACCOUNT_BALANCE_FUND,
     NODE_ACCOUNT_BALANCE_MIN,
     OWN_ACCOUNT_BALANCE_MIN,
+    RUN_NUMBER_FILENAME,
 )
 from scenario_player.exceptions import ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
@@ -132,7 +133,7 @@ class ScenarioRunner:
         REFAC: Replace this with a property.
         """
         run_number = 0
-        run_number_file = self.data_path.joinpath("run_number.txt")
+        run_number_file = self.data_path.joinpath(RUN_NUMBER_FILENAME)
         if run_number_file.exists():
             run_number = int(run_number_file.read_text()) + 1
         run_number_file.write_text(str(run_number))

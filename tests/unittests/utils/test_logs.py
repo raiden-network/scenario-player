@@ -1,11 +1,10 @@
 import pytest
-
+from scenario_player.constants import RUN_NUMBER_FILENAME
 from scenario_player.utils.logs import (
     pack_n_latest_logs_for_scenario_in_dir,
     pack_n_latest_node_logs_in_dir,
     verify_scenario_log_dir,
 )
-
 
 
 @pytest.fixture
@@ -26,7 +25,7 @@ def faked_scenario_dir(scenario_dir):
         scenario_dir.joinpath(f"node_{n}_003").mkdir()
 
     # Create the run_num text file.
-    run_num_file = scenario_dir.joinpath("run_num.txt")
+    run_num_file = scenario_dir.joinpath(RUN_NUMBER_FILENAME)
     run_num_file.touch()
     run_num_file.write_text("9")
 
@@ -90,7 +89,7 @@ class TestVerifyScenarioLogDir:
     def test_func_raises_not_a_directory_if_scenario_log_dir_is_not_a_directory(self, tmp_path):
         f = tmp_path.joinpath("scenarios")
         f.mkdir(parents=True)
-        f= f.joinpath("wolohoo")
+        f = f.joinpath("wolohoo")
         f.write_text("something")
         with pytest.raises(NotADirectoryError):
             verify_scenario_log_dir("wolohoo", tmp_path)
