@@ -376,7 +376,9 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
         rc_message = {"msg": None, "description": None}
         if pack_n_latest == 1:
             # Index 0 will always return the latest log file for the scenario.
-            rc_message["text"] = construct_rc_message(target_dir, archive_fpath, files[0], scenario_name)
+            rc_message["text"] = construct_rc_message(
+                target_dir, archive_fpath, files[0], scenario_name
+            )
             rc_message["description"] = f"Log files for scenario {scenario_name}"
         post_to_rocket_chat(archive_fpath, **rc_message)
 
@@ -394,7 +396,9 @@ def construct_rc_message(base_dir, packed_log, log_fpath, scenario_name) -> str:
     if result == "success":
         return f":white_check_mark: Successfully ran {scenario_name}!"
     elif result is None:
-        message = f":skull_and_crossbones: {scenario_name} incomplete. No result found in log file."
+        message = (
+            f":skull_and_crossbones: {scenario_name} incomplete. No result found in log file."
+        )
     else:
         message = f":x: Error while running {scenario_name}: {result}!"
         if exc:
