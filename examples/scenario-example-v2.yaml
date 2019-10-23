@@ -53,7 +53,6 @@ token:
   #reuse: true
 
 nodes:
-  mode: managed
   count: 3
   ## Raiden version to use, default: 'LATEST' uses the latest nightly release
   #raiden_version: LATEST
