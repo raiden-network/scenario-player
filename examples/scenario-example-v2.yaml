@@ -55,7 +55,7 @@ token:
 nodes:
   ## Mode, either `managed` or `external`
   # - managed: The scenario player will manage the Raiden nodes
-  # - external: The nodes need to be managed externally (see v1 for examples)
+  # - external: The nodes need to be managed externally
   mode: managed
   count: 3
   ## Raiden version to use, default: 'LATEST' uses the latest nightly release
