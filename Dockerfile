@@ -13,8 +13,12 @@ LABEL maintainer=devops@brainbot.com
 #   - RAIDEN_VERSION (default: develop)
 #     The version of the Raiden client to run the nightlies against.
 #
-#   - RAIDEN_VERSION (default: dev)
+#   - SP_VERSION (default: dev)
 #     The version of the SP to run the nightlies with.
+#
+#   - SCENARIOS_VERSION (default: develop)
+#     The branch or commit from which the scenarios should be checked out of the
+#     raiden repository.
 #
 # The build stage uses a virtual environment to install the raiden client
 # and scenario player tool, which can be copied to subsequent build stages,
@@ -22,6 +26,7 @@ LABEL maintainer=devops@brainbot.com
 
 ARG RAIDEN_VERSION=develop
 ARG SP_VERSION=dev
+ARG SCENARIOS_VERSION=develop
 
 # Set up the build stage
 RUN apt-get update
@@ -41,6 +46,10 @@ WORKDIR /raiden
 RUN git checkout ${RAIDEN_VERSION}
 RUN pip install .
 
+# Install scenarios
+RUN git checkout ${SCENARIOS_VERSION}
+RUN cp -r /raiden/raiden/tests/scenarios /scenarios
+
 FROM python:3.7-slim as execution-image
 WORKDIR /
 
@@ -54,9 +63,15 @@ WORKDIR /
 #
 # This stage copies the virtual environment created in the previous stage,
 # and prepends its location to the $PATH environment variable.
+#
+# Scenario definition files are also copied from the previous stage, and the
+# working directory is set to /scenarios, allowing users to specify the name
+# of the scenario yaml without a path.
 
 # Copy virtual env and scenario definition files.
 COPY --from=compile-image /opt/venv /opt/venv
+COPY --from=compile-image /scenarios /scenarios
 ENV PATH="/opt/venv/bin:$PATH"
 
-ENTRYPOINT ["scenario_player"]
+WORKDIR /scenarios
+ENTRYPOINT ["scenario_player", "--data-path", "/raw"]
