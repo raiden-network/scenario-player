@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# The default behaviour of the Dockerfile is to build the SP master
+# branch against raiden and the scenarios from the develop branch, which
+# is then tagged as `latest` and pushed to the scenario-player docker hub.
+#
+# This post build hook builds 4 further tags:
+#
+# - raiden develop / scenarios develop (identical to `scenario-player:latest`)
+# - raiden develop / scenarios stable
+# - raiden stable / scenarios stable
+# - raiden stable / scenarios develop
+
+docker build . -t raiden_stable-scenarios_stable --build-arg RAIDEN_VERSION=master --build-arg SCENARIOS_VERSION=master
+docker build . -t raiden_develop-scenarios_stable --build-arg RAIDEN_VERSION=develop --build-arg SCENARIOS_VERSION=master
+docker build . -t raiden_stable-scenarios_develop --build-arg RAIDEN_VERSION=master --build-arg SCENARIOS_VERSION=develop
+docker build . -t raiden_develop-scenarios_develop --build-arg RAIDEN_VERSION=develop --build-arg SCENARIOS_VERSION=develop

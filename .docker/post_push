@@ -1,0 +1,6 @@
+#!/bin/bash
+
+docker push raidennetwork/scenario-player:raiden_stable-scenarios_stable
+docker push raidennetwork/scenario-player:raiden_develop-scenarios_stable
+docker push raidennetwork/scenario-player:raiden_stable-scenarios_develop
+docker push raidennetwork/scenario-player:raiden_develop-scenarios_develop

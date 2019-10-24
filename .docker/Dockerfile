@@ -71,6 +71,7 @@ WORKDIR /
 # Copy virtual env and scenario definition files.
 COPY --from=compile-image /opt/venv /opt/venv
 COPY --from=compile-image /scenarios /scenarios
+COPY --from=compile-image /logs/build.log /build.log
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /scenarios
