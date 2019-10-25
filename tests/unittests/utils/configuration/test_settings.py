@@ -86,6 +86,7 @@ class TestSettingsConfig:
         config = SettingsConfig(minimal_definition_dict)
         assert config.gas_price_strategy == expected_func
 
+
 class TestServiceSettingsConfig:
     def test_is_subclass_of_config_mapping(self, minimal_definition_dict):
         """The class is a subclass of :class:`ConfigMapping`."""

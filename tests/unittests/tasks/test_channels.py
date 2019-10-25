@@ -488,6 +488,7 @@ def test_channel_task(
     )
 
 
+@pytest.mark.skip
 def test_store_channel_info(mocked_responses, dummy_scenario_runner, api_task_by_name):
     """ Test store_channel_info task.
 
