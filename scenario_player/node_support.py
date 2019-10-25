@@ -72,6 +72,7 @@ MANAGED_CONFIG_OPTIONS_OVERRIDABLE = {
 
 KNOWN_OPTIONS = {param.name.replace("_", "-") for param in cli_run.params}
 FLAG_OPTIONS = {param.name.replace("_", "-") for param in cli_run.params if param.is_flag}
+FLAG_OPTIONS += {'no-' + opt for opt in FLAG_OPTIONS}
 
 
 class NodeState(Enum):
@@ -318,7 +319,10 @@ class NodeRunner:
         if pfs_address:
             cmd.extend(["--pathfinding-service-address", pfs_address])
 
+        seen = set()
+
         for option_name in MANAGED_CONFIG_OPTIONS_OVERRIDABLE:
+            seen.add(option_name)
             if option_name in ("api-address", "pathfinding-service-address"):
                 # already handled above
                 continue
@@ -333,6 +337,7 @@ class NodeRunner:
             KNOWN_OPTIONS - MANAGED_CONFIG_OPTIONS - MANAGED_CONFIG_OPTIONS_OVERRIDABLE
         )
         for option_name in remaining_option_candidates:
+            seen.add(option_name)
             if option_name in self._options:
                 if option_name not in FLAG_OPTIONS:
                     option_value = self._options[option_name]
