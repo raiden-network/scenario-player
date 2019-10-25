@@ -60,7 +60,7 @@ class AssertPFSRoutesTask(RESTAPIActionTask):
 
     @property
     def _url_params(self):
-        pfs_url = self._runner.yaml.settings.services.pfs.url
+        pfs_url = self._runner.definition.settings.services.pfs.url
         if not pfs_url:
             raise ScenarioError("PFS tasks require settings.services.pfs.url to be set.")
 
@@ -173,7 +173,7 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
 
     @property
     def _url_params(self):
-        pfs_url = self._runner.yaml.settings.services.pfs.url
+        pfs_url = self._runner.definition.settings.services.pfs.url
         if not pfs_url:
             raise ScenarioError("PFS tasks require settings.services.pfs.url to be set.")
 
@@ -327,7 +327,7 @@ class AssertPFSIoUTask(RESTAPIActionTask):
 
     @property
     def _url_params(self):
-        pfs_url = self._runner.yaml.settings.services.pfs.url
+        pfs_url = self._runner.definition.settings.services.pfs.url
         if not pfs_url:
             raise ScenarioError("PFS tasks require settings.services.pfs.url to be set.")
 

@@ -27,9 +27,9 @@ from scenario_player.constants import (
     OWN_ACCOUNT_BALANCE_MIN,
     RUN_NUMBER_FILENAME,
 )
+from scenario_player.definition import ScenarioDefinition
 from scenario_player.exceptions import ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
-from scenario_player.scenario import ScenarioYAML
 from scenario_player.services.rpc.utils import assign_rpc_instance_id
 from scenario_player.services.utils.interface import ServiceInterface
 from scenario_player.utils import TimeOutHTTPAdapter, get_udc_and_token, wait_for_txs
@@ -75,13 +75,13 @@ class ScenarioRunner:
         self.data_path = self.base_path.joinpath("scenarios", scenario_name)
         self.data_path.mkdir(exist_ok=True, parents=True)
 
-        self.yaml = ScenarioYAML(scenario_file, self.data_path)
+        self.definition = ScenarioDefinition(scenario_file, self.data_path)
         log.debug("Data path", path=self.data_path)
 
         # Determining the run number requires :attr:`.data_path`
         self.run_number = self.determine_run_number()
 
-        self.node_controller = NodeController(self, self.yaml.nodes)
+        self.node_controller = NodeController(self, self.definition.nodes)
 
         self.protocol = "http"
 
@@ -92,7 +92,7 @@ class ScenarioRunner:
         self.client = JSONRPCClient(
             Web3(HTTPProvider(chain_urls[0])),
             privkey=account.privkey,
-            gas_price_strategy=self.yaml.settings.gas_price_strategy,
+            gas_price_strategy=self.definition.settings.gas_price_strategy,
         )
         self.chain_id = int(self.client.web3.net.version)
 
@@ -108,20 +108,22 @@ class ScenarioRunner:
         self.session = Session()
         if auth:
             self.session.auth = tuple(auth.split(":"))
-        self.session.mount("http", TimeOutHTTPAdapter(timeout=self.yaml.settings.timeout))
-        self.session.mount("https", TimeOutHTTPAdapter(timeout=self.yaml.settings.timeout))
+        self.session.mount("http", TimeOutHTTPAdapter(timeout=self.definition.settings.timeout))
+        self.session.mount("https", TimeOutHTTPAdapter(timeout=self.definition.settings.timeout))
 
-        self.service_session = ServiceInterface(self.yaml.spaas)
+        self.service_session = ServiceInterface(self.definition.spaas)
         # Request an RPC Client instance ID from the RPC service and assign it to the runner.
-        assign_rpc_instance_id(self, chain_urls[0], account.privkey, self.yaml.settings.gas_price)
+        assign_rpc_instance_id(
+            self, chain_urls[0], account.privkey, self.definition.settings.gas_price
+        )
 
         self.token = Token(self, data_path)
         self.udc = None
 
         self.token_network_address = None
 
-        task_config = self.yaml.scenario.root_config
-        task_class = self.yaml.scenario.root_class
+        task_config = self.definition.scenario.root_config
+        task_class = self.definition.scenario.root_class
         self.root_task = task_class(runner=self, config=task_config)
 
     def determine_run_number(self) -> int:
@@ -170,7 +172,7 @@ class ScenarioRunner:
             if ScenarioRunner.scenario.chain_name is not one of `('any', 'Any', 'ANY')`
             and it is not a key in `chain_urls`.
         """
-        chain_name = self.yaml.settings.chain
+        chain_name = self.definition.settings.chain
         if chain_name in ("any", "Any", "ANY"):
             chain_name = random.choice(list(chain_urls.keys()))
 
@@ -198,7 +200,7 @@ class ScenarioRunner:
 
         started = time.monotonic()
         elapsed = 0
-        while elapsed < self.yaml.settings.timeout:
+        while elapsed < self.definition.settings.timeout:
             try:
                 resp = self.session.get(node_endpoint)
                 resp.raise_for_status()
@@ -323,7 +325,7 @@ class ScenarioRunner:
         self, gas_limit: int, node_count: int
     ) -> Tuple[Set[TransactionHash], Optional[ContractProxy], bool]:
         our_address = to_checksum_address(self.client.address)
-        udc_settings = self.yaml.settings.services.udc
+        udc_settings = self.definition.settings.services.udc
         udc_enabled = udc_settings.enable
 
         ud_token_tx = set()
@@ -379,7 +381,7 @@ class ScenarioRunner:
             fund_tx = set()
             for address, balance in low_balances.items():
                 params = {
-                    "client_id": self.yaml.spaas.rpc.client_id,
+                    "client_id": self.definition.spaas.rpc.client_id,
                     "to": address,
                     "value": NODE_ACCOUNT_BALANCE_FUND - balance,
                     "startgas": 21_000,
