@@ -267,6 +267,18 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
         ),
         pytest.param(
             "assert",
+            {"from": 0, "to": 1, "balance": 100, "allow_balance_error": 1},
+            None,
+            None,
+            "GET",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
+            {},
+            200,
+            {"balance": 101},
+            id="assert-balance-with-allowed-error",
+        ),
+        pytest.param(
+            "assert",
             {"from": 0, "to": 1, "total_deposit": 100},
             None,
             None,

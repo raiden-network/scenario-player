@@ -153,7 +153,17 @@ class AssertTask(ChannelActionTask):
                 raise ScenarioAssertionError(
                     f'Field "{field}" is missing in channel: {response_dict}'
                 )
-            if response_dict[field] != self._config[field]:
+            allow_error = self._config.get("allow_" + field + "_error")
+            if allow_error:
+                success = (
+                    response_dict[field] - allow_error
+                    <= self._config[field]
+                    <= response_dict[field] + allow_error
+                )
+                log.info("allow_error", allow_error=allow_error, error_success=success)
+            else:
+                success = response_dict[field] == self._config[field]
+            if not success:
                 raise ScenarioAssertionError(
                     f'Value mismatch for "{field}". '
                     f'Should: "{self._config[field]}" '
