@@ -126,5 +126,5 @@ can be found `here <https://github.com/raiden-network/raiden/tree/develop/raiden
 
 Tools
 =================
-With the `performance analysis <https://github.com/raiden-network/performance-analysis-tool>`_ 
-tool the logs of the scenario player can be analyzed and visualized.
+With the `Performance analysis Tool <https://github.com/raiden-network/performance-analysis-tool>`_ 
+the logs of the scenario player can be analyzed and visualized.
