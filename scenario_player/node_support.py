@@ -29,7 +29,7 @@ from gevent import Greenlet
 from gevent.pool import Group, Pool
 from mirakuru import ProcessExitedWithError
 
-from raiden.ui.cli import run as cli_run
+from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
 from scenario_player.exceptions import ScenarioError
 from scenario_player.runner import ScenarioRunner
 from scenario_player.utils import HTTPExecutor
@@ -68,10 +68,6 @@ MANAGED_CONFIG_OPTIONS_OVERRIDABLE = {
     "service-registry-contract-address",
     "pathfinding-service-address",
 }
-
-
-KNOWN_OPTIONS = {param.name.replace("_", "-") for param in cli_run.params}
-FLAG_OPTIONS = {param.name.replace("_", "-") for param in cli_run.params if param.is_flag}
 
 
 class NodeState(Enum):
