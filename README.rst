@@ -123,3 +123,8 @@ Scenario Examples
 
 For example scenarios have a look at the ``Raiden`` repository's scenarios. These
 can be found `here <https://github.com/raiden-network/raiden/tree/develop/raiden/tests/scenarios>`_.
+
+Tools
+=================
+With the `Performance Analysis Tool <https://github.com/raiden-network/performance-analysis-tool>`_ 
+the logs of the scenario player can be analyzed and visualized.
