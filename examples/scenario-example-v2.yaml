@@ -116,6 +116,7 @@ scenario:
             - assert: {from: 2, to: 1, total_deposit: 0,  balance: 0,  state: "opened"}
       - stop_node: 2
       - start_node: 2
+      - kill_node: 2
       - parallel:
           name: "Deposit reverse"
           tasks:
@@ -158,6 +159,8 @@ scenario:
 #      - stop_node: 0
 #      - update_node_options: {node: 0, options: {matrix-server: "https://..."}}
 #      - start_node: 0
+#      ## Kill a node to emulate unexpected shut down
+#      - kill_node: 0
 #      ## Assert on multiple channels without knowing the explicit peers
 #      - assert_all: {from: 0, count: 2, balances: [10, 10], total_deposits: [10, 10], states: ['opened', 'opened']}
 #      ## Open channel to arbitrary address

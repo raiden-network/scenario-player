@@ -112,21 +112,28 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
         If set to true the list of routes is de-duplicated before being checked against
         ``expected_routes``.
 
+      - ``expected_fees``
+        Explicit list of expected fees per request.
+
     Example usages:
 
-        # 4 requests where made from source node 0
+        # 4 requests were made from source node 0
         assert_pfs_history: {source: 0, request_count: 4}
 
-        # 4 requests where made from source node 0 to target node 1
+        # 4 requests were made from source node 0 to target node 1
         assert_pfs_history: {source: 0, target: 1, request_count: 4}
 
-        # 4 requests where made from source node 0 to target node 1 and 3 routes each have been
+        # 4 requests were made from source node 0 to target node 1 and 3 routes each have been
         # returned
         assert_pfs_history: {source: 0, target: 1, request_count: 4, routes_count: 3}
 
-        # 4 requests where made from source node 0 to target node 1 and the specified number of
+        # 4 requests were made from source node 0 to target node 1 and the specified number of
         # routes have been returned
         assert_pfs_history: {source: 0, target: 1, request_count: 4, routes_count: [3, 2, 1, 2]}
+
+        # 2 requests were made from source node 0 to target node 1 and the expected fees of
+        # 100 tokens for each request have been returned.
+        assert_pfs_history: {source: 0, target: 1, request_count: 2, expected_fees: [100, 100]}
 
         # The listed routes have been returned for requests from source node 0 to target node 1
         assert_pfs_history:
