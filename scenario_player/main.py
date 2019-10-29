@@ -174,6 +174,23 @@ def run(
     enable_ui,
     password_file,
 ):
+    """Execute a scenario as defined in scenario definiiotn file.
+
+    Calls :func:`exit` when done, with the following status codes:
+
+        Exit code 1x
+        There was a problem when starting up the SP, nodes, deploying tokens
+        or setting up services. This points at an issue in the SP and of of its
+        components.
+
+        Exit code 2x
+        There was an error when parsing or evaluating the given scenario definition file.
+        This may be a syntax- or logic-related issue.
+
+        Exit code 3x
+        There was an assertion error while executing the scenario. This points
+        to an error in a `raiden` component (the client, services or contracts).
+    """
     scenario_file = Path(scenario_file.name).absolute()
     data_path = ctx.obj["data_path"]
     chain_rpc_urls = ctx.obj["chain_rpc_urls"]
@@ -224,12 +241,14 @@ def run(
         ui = ScenarioUI(runner, log_buffer, log_file_name)
         ui_greenlet = ui.run()
     success = False
+    exit_code = 1
 
     try:
         try:
             runner.run_scenario()
         except ScenarioAssertionError as ex:
             log.error("Run finished", result="assertion errors")
+            exit_code = 30
             send_notification_mail(
                 runner.definition.settings.notify,
                 f"Assertion mismatch in {scenario_file.name}",
@@ -238,6 +257,7 @@ def run(
             )
         except ScenarioError:
             log.exception("Run finished", result="scenario error")
+            exit_code = 20
             send_notification_mail(
                 runner.definition.settings.notify,
                 f"Invalid scenario {scenario_file.name}",
@@ -246,6 +266,7 @@ def run(
             )
         else:
             success = True
+            exit_code = 0
             log.info("Run finished", result="success")
             send_notification_mail(
                 runner.definition.settings.notify,
@@ -255,6 +276,7 @@ def run(
             )
     except Exception:
         log.exception("Exception while running scenario")
+        exit_code = 10
         send_notification_mail(
             runner.definition.settings.notify,
             f"Error running scenario {scenario_file.name}",
@@ -276,6 +298,7 @@ def run(
             if ui_greenlet is not None and not ui_greenlet.dead:
                 ui_greenlet.kill(ExitMainLoop)
                 ui_greenlet.join()
+            exit(exit_code)
 
 
 @main.command(name="reclaim-eth")
