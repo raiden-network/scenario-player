@@ -17,10 +17,14 @@ API_URL_TOKEN_NETWORK_ADDRESS = "{protocol}://{target_host}/api/v1/tokens/{token
 SUPPORTED_SCENARIO_VERSIONS = {2}
 
 #: Available gas price strategies selectable by passing their key to the
-#: settings.gas_price config option in the scenario yaml.
+#: settings.gas_price config option in the scenario definition.
 GAS_STRATEGIES = {"FAST": fast_gas_price_strategy, "MEDIUM": medium_gas_price_strategy}
 
 GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL = 100_000
+
+# DO NOT CHANGE THIS! It would break backwards compatibility, since i.e. wallet generation
+# depends on it!!!
+RUN_NUMBER_FILENAME = "run_number.txt"
 
 
 class NodeMode(enum.Enum):

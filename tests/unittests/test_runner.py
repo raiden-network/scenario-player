@@ -96,3 +96,26 @@ class TestScenarioRunner:
                 # Should have raised the TypeError, all good.
                 return
             pytest.fail(f"DID RAISE {e!r}")
+
+    @mock.patch("scenario_player.runner.ScenarioRunner.wait_for_token_network_discovery")
+    def test_ensure_token_network_discovery_checks_all_nodes_for_discovery(self, mock_wait_for_token_network_discovery, _, runner):
+        """All nodes must have discovered the token network - make sure it checks
+        all of them accordingly."""
+        runner.node_controller = [mock.MagicMock(base_url="node1"), mock.MagicMock(base_url="node2"), mock.MagicMock(base_url="node3")]
+        runner.ensure_token_network_discovery()
+
+        for node in runner.node_controller:
+            mock_wait_for_token_network_discovery.assert_any_call(node.base_url)
+
+
+def test_runner_local_seed(runner, tmp_path):
+    """Ensure the ``.local_seed`` property creates the seed file inside the ``.base_path``."""
+    runner.base_path = tmp_path
+    seed_file = tmp_path.joinpath("seed.txt")
+
+    assert not seed_file.exists()
+
+    runner_seed = runner.local_seed
+
+    assert seed_file.exists()
+    assert runner_seed == seed_file.read_text().strip()

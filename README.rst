@@ -33,23 +33,18 @@ various scenarios, and is an integral component of the Raiden test suite.
 Installation
 ============
 
+For Users
+---------
+
 Using  ``git`` & ``pip``::
 
     # Clone the scenario-player repository
-    git clone http://github.com/raiden-network/scenario-player
-
-    # Install Raiden's dev requirements.https://github.com/raiden-network/scenario-player/pull/122
-    pip install -r https://raw.githubusercontent.com/raiden-network/raiden/develop/requirements/requirements-dev.txt
+    ~/ $git clone http://github.com/raiden-network/scenario-player
 
     # Install the scenario-player.
-    pip install ./scenario-player
+    ~/ $pip install ./scenario-player
 
-Using ``pip``
--------------
-
-Using a ``pip`` installation::
-
-    $ scenario_player --help
+    ~/ $scenario_player --help
     Usage: scenario_player [OPTIONS] COMMAND [ARGS]...
 
     Options:
@@ -65,14 +60,32 @@ Using a ``pip`` installation::
       run
 
 
-Using ``docker``
-----------------
-Pulling an image is as simple as::
+You can also use `make`::
+
+    make install
+
+
+Or docker::
 
     docker pull raidennetwork/scenario-player:<tag>
 
 Where ``<tag>`` may be a specific version, git branch or ``latest`` for the last commit
 on ``dev``, or ``stable`` for the last release on ``master``.
+
+
+For Developers
+--------------
+
+`make` is your friend::
+
+    make install-dev
+
+Note that this installs a pypi version of `raiden` - if you'd like to run the SP against the latest
+commit on the `develop` branch of the `raiden` repository, addtionally run this command::
+
+    make install-raiden-develop
+
+For all other versions of `raiden`, you will have to manually install it.
 
 
 Usage
@@ -81,8 +94,6 @@ Usage
 Invoking the `scenario-player` from the cli can be done in one of the following
 ways, depending on how you installed the tool.
 
-``pip`` installation
---------------------
 Invoke the command directly on the cli::
 
     $ scenario-player --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
@@ -95,10 +106,8 @@ Reclaiming spent test ether::
     $ scenario-player --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
         reclaim-eth --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW}
 
-`docker` image
---------------
 
-If you're using docker, replace the ``scenario-player`` command with a ``docker run`` command, like so::
+If you're using docker, use the ``docker run`` command, like so::
 
     docker run -i -t \
        -v ${DATA_DIR}:/data \
@@ -114,3 +123,8 @@ Scenario Examples
 
 For example scenarios have a look at the ``Raiden`` repository's scenarios. These
 can be found `here <https://github.com/raiden-network/raiden/tree/develop/raiden/tests/scenarios>`_.
+
+Tools
+=================
+With the `Performance Analysis Tool <https://github.com/raiden-network/performance-analysis-tool>`_ 
+the logs of the scenario player can be analyzed and visualized.

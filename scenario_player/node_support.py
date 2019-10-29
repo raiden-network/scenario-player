@@ -29,7 +29,7 @@ from gevent import Greenlet
 from gevent.pool import Group, Pool
 from mirakuru import ProcessExitedWithError
 
-from raiden.ui.cli import run as cli_run
+from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
 from scenario_player.exceptions import ScenarioError
 from scenario_player.runner import ScenarioRunner
 from scenario_player.utils import HTTPExecutor
@@ -68,10 +68,6 @@ MANAGED_CONFIG_OPTIONS_OVERRIDABLE = {
     "service-registry-contract-address",
     "pathfinding-service-address",
 }
-
-
-KNOWN_OPTIONS = {param.name.replace("_", "-") for param in cli_run.params}
-FLAG_OPTIONS = {param.name.replace("_", "-") for param in cli_run.params if param.is_flag}
 
 
 class NodeState(Enum):
@@ -323,16 +319,25 @@ class NodeRunner:
                 # already handled above
                 continue
             if option_name in self._options:
-                cmd.extend([f"--{option_name}", self._options[option_name]])
+                option_value = self._options[option_name]
+                if isinstance(option_value, list):
+                    cmd.extend([f"--{option_name}", *self._options[option_name]])
+                else:
+                    cmd.extend([f"--{option_name}", self._options[option_name]])
 
         remaining_option_candidates = (
             KNOWN_OPTIONS - MANAGED_CONFIG_OPTIONS - MANAGED_CONFIG_OPTIONS_OVERRIDABLE
         )
         for option_name in remaining_option_candidates:
             if option_name in self._options:
-                cmd.append(f"--{option_name}")
                 if option_name not in FLAG_OPTIONS:
-                    cmd.append(self._options[option_name])
+                    option_value = self._options[option_name]
+                    if isinstance(option_value, list):
+                        cmd.extend([f"--{option_name}", *self._options[option_name]])
+                    else:
+                        cmd.extend([f"--{option_name}", self._options[option_name]])
+                else:
+                    cmd.append(f"--{option_name}")
 
         # Ensure path instances are converted to strings
         cmd = [str(c) for c in cmd]
@@ -355,9 +360,13 @@ class NodeRunner:
         if not keystore_file.exists():
             log.debug("Initializing keystore", node=self._index)
             gevent.sleep()
-            privkey = hashlib.sha256(
-                f"{self._runner.yaml.name}-{self._runner.run_number}-{self._index}".encode()
-            ).digest()
+            seed = (
+                f"{self._runner.local_seed}"
+                f"-{self._runner.definition.name}"
+                f"-{self._runner.run_number}"
+                f"-{self._index}"
+            ).encode()
+            privkey = hashlib.sha256(seed).digest()
             keystore_file.write_text(json.dumps(create_keyfile_json(privkey, b"")))
         return keystore_file
 
@@ -394,7 +403,7 @@ class NodeRunner:
     @property
     def _pfs_address(self):
         local_pfs = self._options.get("pathfinding-service-address")
-        global_pfs = self._runner.yaml.settings.services.pfs.url
+        global_pfs = self._runner.definition.settings.services.pfs.url
         if local_pfs:
             if global_pfs:
                 log.warning(
@@ -488,6 +497,10 @@ class NodeController:
     @property
     def addresses(self) -> Set[ChecksumAddress]:
         return {runner.address for runner in self._node_runners}
+
+    @property
+    def address_to_index(self) -> Dict[ChecksumAddress, int]:
+        return {runner.address: i for i, runner in enumerate(self._node_runners)}
 
     def start_node_monitor(self):
         def _monitor(runner: NodeRunner):

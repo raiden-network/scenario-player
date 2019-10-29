@@ -174,6 +174,23 @@ def run(
     enable_ui,
     password_file,
 ):
+    """Execute a scenario as defined in scenario definiiotn file.
+
+    Calls :func:`exit` when done, with the following status codes:
+
+        Exit code 1x
+        There was a problem when starting up the SP, nodes, deploying tokens
+        or setting up services. This points at an issue in the SP and of of its
+        components.
+
+        Exit code 2x
+        There was an error when parsing or evaluating the given scenario definition file.
+        This may be a syntax- or logic-related issue.
+
+        Exit code 3x
+        There was an assertion error while executing the scenario. This points
+        to an error in a `raiden` component (the client, services or contracts).
+    """
     scenario_file = Path(scenario_file.name).absolute()
     data_path = ctx.obj["data_path"]
     chain_rpc_urls = ctx.obj["chain_rpc_urls"]
@@ -224,39 +241,44 @@ def run(
         ui = ScenarioUI(runner, log_buffer, log_file_name)
         ui_greenlet = ui.run()
     success = False
+    exit_code = 1
 
     try:
         try:
             runner.run_scenario()
         except ScenarioAssertionError as ex:
             log.error("Run finished", result="assertion errors")
+            exit_code = 30
             send_notification_mail(
-                runner.yaml.settings.notify,
+                runner.definition.settings.notify,
                 f"Assertion mismatch in {scenario_file.name}",
                 str(ex),
                 mailgun_api_key,
             )
         except ScenarioError:
             log.exception("Run finished", result="scenario error")
+            exit_code = 20
             send_notification_mail(
-                runner.yaml.settings.notify,
+                runner.definition.settings.notify,
                 f"Invalid scenario {scenario_file.name}",
                 traceback.format_exc(),
                 mailgun_api_key,
             )
         else:
             success = True
+            exit_code = 0
             log.info("Run finished", result="success")
             send_notification_mail(
-                runner.yaml.settings.notify,
+                runner.definition.settings.notify,
                 f"Scenario successful {scenario_file.name}",
                 "Success",
                 mailgun_api_key,
             )
     except Exception:
         log.exception("Exception while running scenario")
+        exit_code = 10
         send_notification_mail(
-            runner.yaml.settings.notify,
+            runner.definition.settings.notify,
             f"Error running scenario {scenario_file.name}",
             traceback.format_exc(),
             mailgun_api_key,
@@ -276,6 +298,7 @@ def run(
             if ui_greenlet is not None and not ui_greenlet.dead:
                 ui_greenlet.kill(ExitMainLoop)
                 ui_greenlet.join()
+            exit(exit_code)
 
 
 @main.command(name="reclaim-eth")
@@ -376,12 +399,14 @@ def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
         rc_message = {"msg": None, "description": None}
         if pack_n_latest == 1:
             # Index 0 will always return the latest log file for the scenario.
-            rc_message["text"] = construct_rc_message(target_dir, archive_fpath, files[0])
+            rc_message["text"] = construct_rc_message(
+                target_dir, archive_fpath, files[0], scenario_name
+            )
             rc_message["description"] = f"Log files for scenario {scenario_name}"
         post_to_rocket_chat(archive_fpath, **rc_message)
 
 
-def construct_rc_message(base_dir, packed_log, log_fpath) -> str:
+def construct_rc_message(base_dir, packed_log, log_fpath, scenario_name) -> str:
     """Check the result of the log file at the given `log_fpath`."""
     result = None
     exc = None
@@ -392,17 +417,25 @@ def construct_rc_message(base_dir, packed_log, log_fpath) -> str:
                 result = json_obj["result"]
                 exc = json_obj.get("exception", None)
     if result == "success":
-        return ":white_check_mark: Succesfully ran scenario!"
+        return f":white_check_mark: Successfully ran {scenario_name}!"
     elif result is None:
-        message = f":skull_and_crossbones: Scenario incomplete. No result found in log file."
+        message = (
+            f":skull_and_crossbones: {scenario_name} incomplete. No result found in log file."
+        )
     else:
-        message = f":x: Error while running scenario: {result}!"
+        message = f":x: Error while running {scenario_name}: {result}!"
         if exc:
             message += "\n```\n" + exc + "\n```"
-    message += (
-        f"\nLog can be downloaded from:\n"
-        f"http://scenario-player.ci.raiden.network/{packed_log.relative_to(base_dir)}"
-    )
+    if scenario_name.startswith("ms"):
+        message += (
+            f"\nLog can be downloaded from:\n"
+            f"http://scenario-player.ci.raiden.network/{packed_log.relative_to(base_dir)}"
+        )
+    else:
+        message += (
+            f"\nLog can be downloaded from:\n"
+            f"http://68.183.70.168/{packed_log.relative_to(base_dir)}"
+        )
     return message
 
 

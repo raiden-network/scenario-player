@@ -16,7 +16,7 @@ log = structlog.get_logger(__name__)
 class PFSSettingsConfig(ConfigMapping):
     """UDC Service Settings interface.
 
-    Example scenario yaml::
+    Example scenario definition::
 
         >my_scenario.yaml
         version: 2
@@ -30,9 +30,9 @@ class PFSSettingsConfig(ConfigMapping):
             ...
     """
 
-    def __init__(self, loaded_yaml: dict):
+    def __init__(self, loaded_definition: dict):
         super(PFSSettingsConfig, self).__init__(
-            loaded_yaml.get("settings").get("services", {}).get("pfs", {})
+            loaded_definition.get("settings").get("services", {}).get("pfs", {})
         )
         self.validate()
 
@@ -44,7 +44,7 @@ class PFSSettingsConfig(ConfigMapping):
 class UDCTokenSettings(ConfigMapping):
     """UDC Token Settings Interface.
 
-    Example scenario yaml::
+    Example scenario definition::
 
         >my_scenario.yaml
           ---
@@ -59,8 +59,10 @@ class UDCTokenSettings(ConfigMapping):
 
     CONFIGURATION_ERROR = UDCTokenConfigError
 
-    def __init__(self, loaded_yaml: dict):
-        udc_settings = ((loaded_yaml.get("settings") or {}).get("services") or {}).get("udc") or {}
+    def __init__(self, loaded_definition: dict):
+        udc_settings = ((loaded_definition.get("settings") or {}).get("services") or {}).get(
+            "udc"
+        ) or {}
         super(UDCTokenSettings, self).__init__(udc_settings.get("token"))
         self.validate()
 
@@ -80,8 +82,10 @@ class UDCTokenSettings(ConfigMapping):
 
         If this is set to False or not given, the attributes :attr:`.max_funding` and
         :attr:`.balance_per_node` will not be used.
+
+        Defaults to True.
         """
-        return self.get("deposit", False)
+        return self.get("deposit", True)
 
     @property
     def balance_per_node(self) -> int:
@@ -100,7 +104,7 @@ class UDCTokenSettings(ConfigMapping):
 class UDCSettingsConfig(ConfigMapping):
     """UDC Service Settings interface.
 
-    Example scenario yaml::
+    Example scenario definition::
 
         >my_scenario.yaml
         version: 2
@@ -116,11 +120,11 @@ class UDCSettingsConfig(ConfigMapping):
             ...
     """
 
-    def __init__(self, loaded_yaml: dict):
-        services_dict = (loaded_yaml.get("settings") or {}).get("services") or {}
+    def __init__(self, loaded_definition: dict):
+        services_dict = (loaded_definition.get("settings") or {}).get("services") or {}
         super(UDCSettingsConfig, self).__init__(services_dict.get("udc", {}))
         self.validate()
-        self.token = UDCTokenSettings(loaded_yaml)
+        self.token = UDCTokenSettings(loaded_definition)
 
     @property
     def enable(self) -> bool:
@@ -140,12 +144,12 @@ class ServiceSettingsConfig(ConfigMapping):
 
     CONFIGURATION_ERROR = ServiceConfigurationError
 
-    def __init__(self, loaded_yaml: dict):
+    def __init__(self, loaded_definition: dict):
         super(ServiceSettingsConfig, self).__init__(
-            (loaded_yaml.get("settings") or {}).get("services") or {}
+            (loaded_definition.get("settings") or {}).get("services") or {}
         )
-        self.pfs = PFSSettingsConfig(loaded_yaml)
-        self.udc = UDCSettingsConfig(loaded_yaml)
+        self.pfs = PFSSettingsConfig(loaded_definition)
+        self.udc = UDCSettingsConfig(loaded_definition)
         self.validate()
 
 
@@ -157,7 +161,7 @@ class SettingsConfig(ConfigMapping):
     The configuration present at the given path will automatically be checked for
     critical errors, such as missing or mutually exclusive keys.
 
-    Example scenario yaml::
+    Example scenario definition::
 
         >my_scenario.yaml
         version: 2
@@ -175,9 +179,9 @@ class SettingsConfig(ConfigMapping):
 
     CONFIGURATION_ERROR = ScenarioConfigurationError
 
-    def __init__(self, loaded_yaml: dict) -> None:
-        super(SettingsConfig, self).__init__(loaded_yaml.get("settings") or {})
-        self.services = ServiceSettingsConfig(loaded_yaml)
+    def __init__(self, loaded_definition: dict) -> None:
+        super(SettingsConfig, self).__init__(loaded_definition.get("settings") or {})
+        self.services = ServiceSettingsConfig(loaded_definition)
         self.validate()
 
     def validate(self):

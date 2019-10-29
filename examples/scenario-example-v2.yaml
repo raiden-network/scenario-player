@@ -45,14 +45,14 @@ token:
   #name: "Some token"
   #symbol: "STKN"
   #decimals: 18
+  # Set the minimum required balance of each node
   #balance_min: 5000
+  # Set the max number of tokens sent to each node - if you plan on rerunning the scenarios, this allows skipping
+  # the mint stage, as the nodes may still have sufficient funds.
+  #balance_fund: 15000
   #reuse: true
 
 nodes:
-  ## Mode, either `managed` or `external`
-  # - managed: The scenario player will manage the Raiden nodes
-  # - external: The nodes need to be managed externally (see v1 for examples)
-  mode: managed
   count: 3
   ## Raiden version to use, default: 'LATEST' uses the latest nightly release
   #raiden_version: LATEST
@@ -67,6 +67,10 @@ nodes:
     #registry-contract-address: "0xbfa863Ac58a3E0A82B58a8e958F2752Bfb573388"
     #discovery-contract-address: "0xb2646EB8270a4de7451f6F7b259FdE17DBCeedc9"
     #secret-registry-contract-address: "0xA5c882f09c3DE551d76dcDE08890fAa0dD1F29E3"
+    # If an option takes multiple arguments, pass them as a list
+    #flat-fee:
+    #  - "0x62083c80353Df771426D209eF578619EE68D5C7A"
+    #  - 100
   ## Per-node option overrides
   #node_options:
   #  0:
@@ -112,6 +116,7 @@ scenario:
             - assert: {from: 2, to: 1, total_deposit: 0,  balance: 0,  state: "opened"}
       - stop_node: 2
       - start_node: 2
+      - kill_node: 2
       - parallel:
           name: "Deposit reverse"
           tasks:
@@ -154,6 +159,8 @@ scenario:
 #      - stop_node: 0
 #      - update_node_options: {node: 0, options: {matrix-server: "https://..."}}
 #      - start_node: 0
+#      ## Kill a node to emulate unexpected shut down
+#      - kill_node: 0
 #      ## Assert on multiple channels without knowing the explicit peers
 #      - assert_all: {from: 0, count: 2, balances: [10, 10], total_deposits: [10, 10], states: ['opened', 'opened']}
 #      ## Open channel to arbitrary address

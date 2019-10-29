@@ -14,7 +14,7 @@ class NodesConfig(ConfigMapping):
     Validates the givne config for missing values and mutually exclusive options.
 
 
-    Example scenario yaml::
+    Example scenario definition::
 
         >my_scenario.yaml
         version: 2
@@ -32,8 +32,8 @@ class NodesConfig(ConfigMapping):
 
     CONFIGURATION_ERROR = NodeConfigurationError
 
-    def __init__(self, loaded_yaml: dict):
-        super(NodesConfig, self).__init__(loaded_yaml.get("nodes") or {})
+    def __init__(self, loaded_definition: dict):
+        super(NodesConfig, self).__init__(loaded_definition.get("nodes") or {})
         self.validate()
 
     @property

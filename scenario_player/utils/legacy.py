@@ -16,7 +16,7 @@ import mirakuru
 import requests
 import structlog
 from eth_keyfile import decode_keyfile_json
-from eth_utils import encode_hex, to_checksum_address
+from eth_utils import to_checksum_address
 from mirakuru import AlreadyRunning, TimeoutExpired
 from mirakuru.base import ENV_UUID, IGNORED_ERROR_CODES
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
@@ -27,7 +27,7 @@ from web3 import HTTPProvider, Web3
 from raiden.accounts import Account
 from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
 from raiden.network.rpc.smartcontract_proxy import ContractProxy
-from raiden.settings import RAIDEN_CONTRACT_VERSION 
+from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.typing import TransactionHash
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
 
@@ -211,12 +211,12 @@ def wait_for_txs(
             if tx and tx["blockNumber"] is not None:
                 status = tx.get("status")
                 if status is not None and status == 0:
-                    raise ScenarioTxError(f"Transaction {encode_hex(txhash)} failed.")
+                    raise ScenarioTxError(f"Transaction {txhash} failed.")
                 txhashes.remove(txhash)
             time.sleep(0.1)
         time.sleep(1)
     if len(txhashes):
-        txhashes_str = ", ".join(encode_hex(txhash) for txhash in txhashes)
+        txhashes_str = ", ".join(txhash for txhash in txhashes)
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
 
 
@@ -224,7 +224,7 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
     """ Deploy or reuse  """
     token_contract = runner.contract_manager.get_contract(CONTRACT_CUSTOM_TOKEN)
 
-    token_config = runner.yaml.token
+    token_config = runner.definition.token
     if not token_config:
         token_config = {}
     address = token_config.get("address")
@@ -281,7 +281,7 @@ def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[Contrac
 
     assert isinstance(runner, ScenarioRunner)
 
-    udc_config = runner.yaml.settings.services.udc
+    udc_config = runner.definition.settings.services.udc
 
     if not udc_config.enable:
         return None, None

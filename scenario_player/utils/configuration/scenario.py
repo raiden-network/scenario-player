@@ -14,7 +14,7 @@ class ScenarioConfig(ConfigMapping):
     The configuration will automatically be checked for
     critical errors, such as missing or mutually exclusive keys.
 
-    Example scenario yaml::
+    Example scenario definition::
 
         >my_scenario.yaml
         version: 2

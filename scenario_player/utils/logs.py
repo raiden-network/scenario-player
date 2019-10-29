@@ -1,13 +1,15 @@
 from pathlib import Path
 from typing import List
 
+from scenario_player.constants import RUN_NUMBER_FILENAME
+
 
 def pack_n_latest_node_logs_in_dir(scenario_dir: Path, n: int) -> List[Path]:
     """Return the node log folder paths for the `n` last runs."""
     if n == 0:
         return []
     # Get the number of runs that have been conducted
-    run_num_file = scenario_dir.joinpath("run_num.txt")
+    run_num_file = scenario_dir.joinpath(RUN_NUMBER_FILENAME)
     latest_run = 0
     if run_num_file.exists():
         latest_run = int(run_num_file.read_text())

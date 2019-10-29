@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List, Union
 
 import structlog
+from eth_typing import ChecksumAddress
 
 from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.tasks.api_base import RESTAPIActionTask
 from scenario_player.tasks.base import Task
+from scenario_player.utils.datastructures import FrozenList
 
 log = structlog.get_logger(__name__)
 
@@ -58,7 +60,7 @@ class AssertPFSRoutesTask(RESTAPIActionTask):
 
     @property
     def _url_params(self):
-        pfs_url = self._runner.yaml.settings.services.pfs.url
+        pfs_url = self._runner.definition.settings.services.pfs.url
         if not pfs_url:
             raise ScenarioError("PFS tasks require settings.services.pfs.url to be set.")
 
@@ -83,21 +85,55 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
     """
     Assert PFS history task
 
+    Config options:
+
+    Required:
+
+      - ``source``:
+        The node (address or index) of the source of the requested route(s).
+
+    Optional:
+      - ``target``:
+        The node (address or index) of the target of the requested route(s).
+
+      - ``request_count``
+        The expected number of requests performed to the PFS with the given ``source``
+        (and ``target`` if given).
+
+      - ``routes_count``
+        The expected number of routes returned.
+        This can either be a list of counts for each expected responses or an integer in which case
+        all responses must have the given route count.
+
+      - ``expected_routes``
+        Explicit list of expected routes.
+
+      - ``distinct_routes_only``
+        If set to true the list of routes is de-duplicated before being checked against
+        ``expected_routes``.
+
+      - ``expected_fees``
+        Explicit list of expected fees per request.
+
     Example usages:
 
-        # 4 requests where made from source node 0
+        # 4 requests were made from source node 0
         assert_pfs_history: {source: 0, request_count: 4}
 
-        # 4 requests where made from source node 0 to target node 1
+        # 4 requests were made from source node 0 to target node 1
         assert_pfs_history: {source: 0, target: 1, request_count: 4}
 
-        # 4 requests where made from source node 0 to target node 1 and 3 routes each have been
+        # 4 requests were made from source node 0 to target node 1 and 3 routes each have been
         # returned
         assert_pfs_history: {source: 0, target: 1, request_count: 4, routes_count: 3}
 
-        # 4 requests where made from source node 0 to target node 1 and the specified number of
+        # 4 requests were made from source node 0 to target node 1 and the specified number of
         # routes have been returned
         assert_pfs_history: {source: 0, target: 1, request_count: 4, routes_count: [3, 2, 1, 2]}
+
+        # 2 requests were made from source node 0 to target node 1 and the expected fees of
+        # 100 tokens for each request have been returned.
+        assert_pfs_history: {source: 0, target: 1, request_count: 2, expected_fees: [100, 100]}
 
         # The listed routes have been returned for requests from source node 0 to target node 1
         assert_pfs_history:
@@ -106,6 +142,16 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
           expected_routes:
             - ['0x00[...]01', '0x00[...]04']
             - ['0x00[...]01', '0x00[...]02', '0x00[...]04']
+
+        # The listed *distinct* routes have been returned for requests from source node 0 to
+        # target node 1.
+        assert_pfs_history:
+          source: 0
+          target: 2
+          distinct_routes_only: true
+          expected_routes:
+            - [0, 2]
+            - [0, 1, 2]
 
     Expected response from PFS debug endpoint:
         {
@@ -134,7 +180,7 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
 
     @property
     def _url_params(self):
-        pfs_url = self._runner.yaml.settings.services.pfs.url
+        pfs_url = self._runner.definition.settings.services.pfs.url
         if not pfs_url:
             raise ScenarioError("PFS tasks require settings.services.pfs.url to be set.")
 
@@ -191,25 +237,41 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                         f"at index {i}"
                     )
 
-        actual_routes = [
-            route["path"]
+        # We use a ``FrozenList`` because ``set`` (see below) doesn't accepts unhashable types
+        actual_routes = FrozenList(
+            FrozenList(route["path"])
             for response in response_dict["responses"]
             for route in response["routes"]
             if response["routes"]
+        )
+
+        if self._config.get("distinct_routes_only", False):
+            # We only want distinct routes
+            actual_routes = list(set(actual_routes))
+        else:
+            actual_routes = list(actual_routes)
+
+        node_address_to_index = self._runner.node_controller.address_to_index
+        actual_routes_indices = [
+            [node_address_to_index.get(hop, hop) for hop in actual_route]
+            for actual_route in actual_routes
         ]
 
-        exp_routes = self._config.get("expected_routes")
+        exp_routes: List[List[Union[ChecksumAddress, int]]] = self._config.get("expected_routes")
         if exp_routes:
             if len(exp_routes) != len(actual_routes):
                 raise ScenarioAssertionError(
                     f"Expected {len(exp_routes)} routes but got {len(actual_routes)}."
                 )
-            for i, (exp_route, actual_route) in enumerate(zip(exp_routes, actual_routes)):
+            for exp_route in exp_routes:
                 exp_route_addr = [self._runner.get_node_address(node) for node in exp_route]
-                if exp_route_addr != actual_route:
+                try:
+                    actual_routes.remove(exp_route_addr)
+                except ValueError as ex:
                     raise ScenarioAssertionError(
-                        f"Expected route {exp_route} but got {actual_route} at index {i}"
-                    )
+                        f"Expected route {exp_route} not found. "
+                        f"Actual routes: {actual_routes_indices}."
+                    ) from ex
 
         exp_fees = self._config.get("expected_fees")
         if exp_fees:
@@ -228,6 +290,7 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                     raise ScenarioAssertionError(
                         f"Expected fee {exp_fee} but got {actual_fee} at index {i}"
                     )
+        return response_dict
 
 
 class AssertPFSIoUTask(RESTAPIActionTask):
@@ -271,7 +334,7 @@ class AssertPFSIoUTask(RESTAPIActionTask):
 
     @property
     def _url_params(self):
-        pfs_url = self._runner.yaml.settings.services.pfs.url
+        pfs_url = self._runner.definition.settings.services.pfs.url
         if not pfs_url:
             raise ScenarioError("PFS tasks require settings.services.pfs.url to be set.")
 

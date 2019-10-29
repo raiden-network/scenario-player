@@ -102,7 +102,7 @@ class TransferTask(ChannelActionTask):
         if str(self._config.get("identifier", "")).lower() == "generate":
             transfer_count = self.__class__._transfer_count
             scenario_hash = int.from_bytes(
-                hashlib.sha256(self._runner.yaml.name.encode()).digest()[:2], "little"
+                hashlib.sha256(self._runner.definition.name.encode()).digest()[:2], "little"
             )
             self._config["identifier"] = int(
                 f"1{scenario_hash}1{self._runner.run_number:04d}{transfer_count:06d}"
@@ -113,6 +113,9 @@ class TransferTask(ChannelActionTask):
         params = dict(amount=self._config["amount"])
         if "identifier" in self._config:
             params["identifier"] = self._config["identifier"]
+        if "lock_timeout" in self._config:
+            params["lock_timeout"] = self._config["lock_timeout"]
+
         return params
 
 
@@ -150,7 +153,17 @@ class AssertTask(ChannelActionTask):
                 raise ScenarioAssertionError(
                     f'Field "{field}" is missing in channel: {response_dict}'
                 )
-            if response_dict[field] != self._config[field]:
+            allow_error = self._config.get("allow_" + field + "_error")
+            if allow_error:
+                success = (
+                    response_dict[field] - allow_error
+                    <= self._config[field]
+                    <= response_dict[field] + allow_error
+                )
+                log.info("allow_error", allow_error=allow_error, error_success=success)
+            else:
+                success = response_dict[field] == self._config[field]
+            if not success:
                 raise ScenarioAssertionError(
                     f'Value mismatch for "{field}". '
                     f'Should: "{self._config[field]}" '
