@@ -17,13 +17,15 @@ import gevent
 import requests
 import structlog
 from eth_utils import to_checksum_address
+from raiden_contracts.constants import CONTRACTS_VERSION
 from urwid import ExitMainLoop
 from web3.utils.transactions import TRANSACTION_DEFAULTS
 
 from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
+from raiden.utils import get_system_spec as raiden_system_spec
 from raiden.utils.cli import EnumChoiceType
-from scenario_player import tasks
+from scenario_player import __version__, tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.exceptions.services import ServiceProcessException
@@ -484,6 +486,20 @@ def post_to_rocket_chat(fpath, **rc_payload_fields):
         data=rc_payload_fields,
     )
     resp.raise_for_status()
+
+
+@main.command(name="version", help="Show versions of scenario_player and raiden environment.")
+@click.option(
+    "--short", is_flag=True, help="Only display scenario_player version string.", default=False
+)
+def version(short):
+    if short:
+        click.secho(message=__version__)
+    else:
+        spec = raiden_system_spec()
+        spec["scenario_player"] = __version__
+        spec["raiden-contracts"] = CONTRACTS_VERSION
+        click.secho(message=json.dumps(spec, indent=2))
 
 
 if __name__ == "__main__":

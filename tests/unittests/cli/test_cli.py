@@ -1,10 +1,11 @@
+import json
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
 
-from scenario_player import main
+from scenario_player import __version__, main
 from scenario_player.exceptions.cli import WrongPassword
 
 KEYSTORE_PATH = Path(__file__).resolve().parent.joinpath("keystore")
@@ -91,3 +92,11 @@ class TestPasswordHandling:
         )
         assert result.exc_info[0] == expected_exc
         assert result.exit_code == 1
+
+    def test_version_subcommand(self, runner):
+        result = runner.invoke(main.version)
+        assert json.loads(result.output)["scenario_player"] == __version__
+        assert result.exit_code == 0
+        short = runner.invoke(main.version, "--short")
+        assert short.output.strip() == __version__
+        assert short.exit_code == 0
