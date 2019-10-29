@@ -11,12 +11,11 @@ python_deps_cache_key: &python_deps_cache_key
   key: python-deps-{{ checksum "pyproject.toml" }}
 
 # Short-cut to define a main-branches only filter.
-master_dev_only: &master_dev_only
+master_only: &master_only
   filters:
     branches:
       only:
         - master
-        - dev
 
 # Short-cut to define a tags-only filter.
 tags_only: &tags_only
@@ -32,7 +31,6 @@ PR_branches_only: &PR_branches_only
     branches:
       ignore:
         - master
-        - dev
     tags:
       ignore:
         - /^\d+\.\d+.*/
@@ -322,7 +320,7 @@ workflows:
   Merge-Commit-Workflow:
     jobs:
       - prep-system:
-          <<: *master_dev_only
+          <<: *master_only
 
       - test-harness:
           context: Raiden-SP-Context

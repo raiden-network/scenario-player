@@ -80,7 +80,7 @@ For Developers
 
     make install-dev
 
-Note that this installs a pypi version - if you'd like to run the SP against the latest
+Note that this installs a pypi version of `raiden` - if you'd like to run the SP against the latest
 commit on the `develop` branch of the `raiden` repository, addtionally run this command::
 
     make install-raiden-develop

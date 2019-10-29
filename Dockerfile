@@ -13,7 +13,7 @@ LABEL maintainer=devops@brainbot.com
 #   - RAIDEN_VERSION (default: develop)
 #     The version of the Raiden client to run the nightlies against.
 #
-#   - SP_VERSION (default: dev)
+#   - SP_VERSION (default: master)
 #     The version of the SP to run the nightlies with.
 #
 #   - SCENARIOS_VERSION (default: develop)
@@ -25,7 +25,7 @@ LABEL maintainer=devops@brainbot.com
 # in order to reduce image size.
 
 ARG RAIDEN_VERSION=develop
-ARG SP_VERSION=dev
+ARG SP_VERSION=master
 ARG SCENARIOS_VERSION=develop
 
 # Set up the build stage
