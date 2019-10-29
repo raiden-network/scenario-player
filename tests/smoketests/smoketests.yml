@@ -26,6 +26,8 @@ token:
 nodes:
   count: 3
   raiden_version: latest
+  default_options:
+      environment-type: development
 
 scenario:
   serial:
