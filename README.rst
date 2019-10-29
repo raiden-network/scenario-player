@@ -44,20 +44,11 @@ Using  ``git`` & ``pip``::
     # Install the scenario-player.
     ~/ $pip install ./scenario-player
 
+    # Show available commands:
     ~/ $scenario_player --help
-    Usage: scenario_player [OPTIONS] COMMAND [ARGS]...
 
-    Options:
-      --data-path DIRECTORY           [default: $HOME/.raiden/scenario-player]
-      --chain <chain-name>:<eth-node-rpc-url>
-                                      Chain name to eth rpc url mapping, multiple allowed
-                                      [required]
-      --help                          Show this message and exit.
-
-    Commands:
-      pack-logs (experimental)
-      reclaim-eth
-      run
+    # Show help for subcommand, e.g.:
+    ~/ $scenario_player run --help
 
 
 You can also use `make`::
@@ -96,15 +87,14 @@ ways, depending on how you installed the tool.
 
 Invoke the command directly on the cli::
 
-    $ scenario-player --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
-
-        run --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW} \
+    $ scenario-player run --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
+        --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW} \
         /path/to/scenario.yaml
 
 Reclaiming spent test ether::
 
-    $ scenario-player --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
-        reclaim-eth --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW}
+    $ scenario-player reclaim --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
+        --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW}
 
 
 If you're using docker, use the ``docker run`` command, like so::
