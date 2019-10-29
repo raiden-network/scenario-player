@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import json
 import os
 import sys
@@ -107,47 +108,73 @@ def get_account(keystore_file, password):
     return account
 
 
-@click.group(invoke_without_command=True, context_settings={"max_content_width": 120})
-@click.option(
-    "--data-path",
-    default=str(Path.home().joinpath(".raiden", "scenario-player")),
-    type=click.Path(exists=False, dir_okay=True, file_okay=False),
-    show_default=True,
-)
-@click.option(
-    "--chain",
-    "chains",
-    type=ChainConfigType(),
-    multiple=True,
-    required=True,
-    help="Chain name to eth rpc url mapping, multiple allowed",
-)
-@click.pass_context
-def main(ctx, chains, data_path):
-    gevent.get_hub().exception_stream = DummyStream()
-    chain_rpc_urls = parse_chain_rpc_urls(chains)
+def key_password_options(func):
+    """Decorator for adding '--keystore-file', '--password/--password-file' to subcommands."""
 
-    if ctx.invoked_subcommand:
-        ctx.obj = dict(chain_rpc_urls=chain_rpc_urls, data_path=Path(data_path))
+    @click.option("--keystore-file", required=True, type=click.Path(exists=True, dir_okay=False))
+    @click.option(
+        "--password-file",
+        type=click.Path(exists=True, dir_okay=False),
+        cls=MutuallyExclusiveOption,
+        mutually_exclusive=["password"],
+        default=None,
+    )
+    @click.option(
+        "--password",
+        envvar="ACCOUNT_PASSWORD",
+        cls=MutuallyExclusiveOption,
+        mutually_exclusive=["password-file"],
+        default=None,
+    )
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def data_path_option(func):
+    """Decorator for adding '--data-path' to subcommands."""
+
+    @click.option(
+        "--data-path",
+        default=Path(str(Path.home().joinpath(".raiden", "scenario-player"))),
+        type=click.Path(exists=False, dir_okay=True, file_okay=False),
+        show_default=True,
+    )
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def chain_option(func):
+    """Decorator for adding '--chain' to subcommands."""
+
+    @click.option(
+        "--chain",
+        "chains",
+        type=ChainConfigType(),
+        multiple=True,
+        required=True,
+        help="Chain name to eth rpc url mapping, multiple allowed",
+    )
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@click.group(invoke_without_command=True, context_settings={"max_content_width": 120})
+@click.pass_context
+def main(ctx):
+    gevent.get_hub().exception_stream = DummyStream()
 
 
 @main.command(name="run")
 @click.argument("scenario-file", type=click.File(), required=False)
-@click.option("--keystore-file", required=True, type=click.Path(exists=True, dir_okay=False))
-@click.option(
-    "--password-file",
-    type=click.Path(exists=True, dir_okay=False),
-    cls=MutuallyExclusiveOption,
-    mutually_exclusive=["password"],
-    default=None,
-)
-@click.option(
-    "--password",
-    envvar="ACCOUNT_PASSWORD",
-    cls=MutuallyExclusiveOption,
-    mutually_exclusive=["password-file"],
-    default=None,
-)
 @click.option("--auth", default="")
 @click.option("--mailgun-api-key")
 @click.option(
@@ -162,9 +189,14 @@ def main(ctx, chains, data_path):
     default=sys.stdout.isatty(),
     help="En-/disable console UI. [default: auto-detect]",
 )
+@key_password_options
+@chain_option
+@data_path_option
 @click.pass_context
 def run(
     ctx,
+    chains,
+    data_path,
     mailgun_api_key,
     auth,
     password,
@@ -174,7 +206,7 @@ def run(
     enable_ui,
     password_file,
 ):
-    """Execute a scenario as defined in scenario definiiotn file.
+    """Execute a scenario as defined in scenario definition file.
 
     Calls :func:`exit` when done, with the following status codes:
 
@@ -191,10 +223,9 @@ def run(
         There was an assertion error while executing the scenario. This points
         to an error in a `raiden` component (the client, services or contracts).
     """
-    scenario_file = Path(scenario_file.name).absolute()
-    data_path = ctx.obj["data_path"]
-    chain_rpc_urls = ctx.obj["chain_rpc_urls"]
+    chain_rpc_urls = parse_chain_rpc_urls(chains)
 
+    scenario_file = Path(scenario_file.name).absolute()
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
 
@@ -302,33 +333,20 @@ def run(
 
 
 @main.command(name="reclaim-eth")
-@click.option("--keystore-file", required=True, type=click.Path(exists=True, dir_okay=False))
-@click.option(
-    "--password-file",
-    type=click.Path(exists=True, dir_okay=False),
-    cls=MutuallyExclusiveOption,
-    mutually_exclusive=["password"],
-    default=None,
-)
-@click.option(
-    "--password",
-    envvar="ACCOUNT_PASSWORD",
-    cls=MutuallyExclusiveOption,
-    mutually_exclusive=["password-file"],
-    default=None,
-)
 @click.option(
     "--min-age",
     default=72,
     show_default=True,
     help="Minimum account non-usage age before reclaiming eth. In hours.",
 )
+@key_password_options
+@chain_option
+@data_path_option
 @click.pass_context
-def reclaim_eth(ctx, min_age, password, password_file, keystore_file):
+def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chains, data_path):
     from scenario_player.utils import reclaim_eth
 
-    data_path = ctx.obj["data_path"]
-    chain_rpc_urls = ctx.obj["chain_rpc_urls"]
+    chain_rpc_urls = parse_chain_rpc_urls(chains)
     password = get_password(password, password_file)
     account = get_account(keystore_file, password)
 
@@ -354,9 +372,10 @@ def reclaim_eth(ctx, min_age, password, password_file, keystore_file):
 )
 @click.option("--post-to-rocket/--no-post-to-rocket", default=True)
 @click.argument("scenario-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@data_path_option
 @click.pass_context
-def pack_logs(ctx, scenario_file, post_to_rocket, pack_n_latest, target_dir):
-    data_path: Path = ctx.obj["data_path"].absolute()
+def pack_logs(ctx, scenario_file, data_path, post_to_rocket, pack_n_latest, target_dir):
+    data_path: Path = data_path.absolute()
     scenario_file = Path(scenario_file).absolute()
     target_dir = Path(target_dir)
     scenario_name = scenario_file.stem
