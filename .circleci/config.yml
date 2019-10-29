@@ -116,6 +116,9 @@ commands:
       - restore_cache:
           <<: *python_deps_cache_key
 
+      - restore_cache:
+          key: smoketest-cache
+
       - install_tools_for_ci
 
       - run:
@@ -157,6 +160,23 @@ commands:
           name: Upload coverage report
           command: codecov
 
+  run_smoketests:
+    description: Execute Smoketests to verify build.
+    steps:
+      - run:
+          name: Reclaim ether spent on previous smoketests
+          command: scenario_player --data-path=${PROJECT_ROOT} --chain goerli:https://${SMOKETEST_NODE} reclaim-eth --keystore-file=${CI_CONFIG_DIR}/smoketest.keystore --password=${SMOKETEST_PW} --min-age=1
+      - run:
+          name: Run smoketests
+          command: |
+            scenario_player \
+            --data-path=${PROJECT_ROOT} \
+            --chain goerli:https://${SMOKETEST_NODE} \
+            run ${PROJECT_ROOT}/tests/smoketests/smoketests.yml \
+            --keystore-file=${CI_CONFIG_DIR}/smoketest.keystore \
+            --password=${SMOKETEST_PW} \
+            --no-ui
+
   # ===================== #
   # CI Tear-down commands #
   # ===================== #
@@ -173,6 +193,11 @@ commands:
           key: pip-cache
           paths:
             - "/home/circleci/.cache/pip"
+
+      - save_cache:
+          key: smoketest-cache
+          paths:
+            - "/tmp/smoketests"
 
 ################################################################################
 #                                                                              #
@@ -213,6 +238,12 @@ jobs:
       - setup-job
       - lint_codebase
       - run_test_harness
+
+  smoketests:
+    executor: default-executor
+    steps:
+      - setup-job
+      - run_smoketests
 
   # Bump the iteration of the current branch. This will always add the dev
   # release type to the version.
@@ -282,6 +313,12 @@ workflows:
           requires:
             - prep-system
 
+      - smoketests:
+          context: Raiden-SP-Context
+          requires:
+            - test-harness
+            - style-check-and-lint
+
   Merge-Commit-Workflow:
     jobs:
       - prep-system:
@@ -292,11 +329,17 @@ workflows:
           requires:
             - prep-system
 
+      - smoketests:
+          context: Raiden-SP-Context
+          requires:
+            - prep-system
+
       # Bump the minor or patch for `master` on each merge commit.
       - bump-versions:
           context: Raiden-SP-Context
           requires:
             - test-harness
+            - smoketests
 
       # ======== #
       # Clean-up #
