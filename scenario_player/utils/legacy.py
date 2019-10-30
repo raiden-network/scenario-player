@@ -88,7 +88,7 @@ class ChainConfigType(click.ParamType):
 
     def convert(self, value, param, ctx):  # pylint: disable=unused-argument
         name, _, rpc_url = value.partition(":")
-        if name.startswith("http"):
+        if name.startswith("http") or "" in (name, rpc_url):
             self.fail(f"Invalid value: {value}. Use {self.get_metavar(None)}.")
         return name, rpc_url
 

@@ -163,14 +163,20 @@ commands:
     steps:
       - run:
           name: Reclaim ether spent on previous smoketests
-          command: scenario_player --data-path=${PROJECT_ROOT} --chain goerli:https://${SMOKETEST_NODE} reclaim-eth --keystore-file=${CI_CONFIG_DIR}/smoketest.keystore --password=${SMOKETEST_PW} --min-age=1
+          command: |
+           scenario_player reclaim-eth \
+           --data-path=${PROJECT_ROOT} \
+           --chain goerli:https://${SMOKETEST_NODE} \
+           --keystore-file=${CI_CONFIG_DIR}/smoketest.keystore \
+           --password=${SMOKETEST_PW} \
+           --min-age=1 \
       - run:
           name: Run smoketests
           command: |
             scenario_player \
+            run ${PROJECT_ROOT}/tests/smoketests/smoketests.yml \
             --data-path=${PROJECT_ROOT} \
             --chain goerli:https://${SMOKETEST_NODE} \
-            run ${PROJECT_ROOT}/tests/smoketests/smoketests.yml \
             --keystore-file=${CI_CONFIG_DIR}/smoketest.keystore \
             --password=${SMOKETEST_PW} \
             --no-ui

@@ -74,4 +74,4 @@ COPY --from=compile-image /scenarios /scenarios
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /scenarios
-ENTRYPOINT ["scenario_player", "--data-path", "/raw"]
+ENTRYPOINT ["scenario_player"]
