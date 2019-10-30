@@ -347,6 +347,7 @@ def run(
 @click.pass_context
 def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chains, data_path):
     from scenario_player.utils import reclaim_eth
+
     data_path = Path(data_path)
 
     chain_rpc_urls = parse_chain_rpc_urls(chains)
