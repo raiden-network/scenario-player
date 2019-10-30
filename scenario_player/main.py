@@ -17,13 +17,11 @@ import gevent
 import requests
 import structlog
 from eth_utils import to_checksum_address
-from raiden_contracts.constants import CONTRACTS_VERSION
 from urwid import ExitMainLoop
 from web3.utils.transactions import TRANSACTION_DEFAULTS
 
 from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
-from raiden.utils import get_system_spec as raiden_system_spec
 from raiden.utils.cli import EnumChoiceType
 from scenario_player import __version__, tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
@@ -40,6 +38,7 @@ from scenario_player.utils import (
     send_notification_mail,
 )
 from scenario_player.utils.legacy import MutuallyExclusiveOption
+from scenario_player.utils.version import get_complete_spec
 from scenario_player.utils.logs import (
     pack_n_latest_logs_for_scenario_in_dir,
     pack_n_latest_node_logs_in_dir,
@@ -496,9 +495,7 @@ def version(short):
     if short:
         click.secho(message=__version__)
     else:
-        spec = raiden_system_spec()
-        spec["scenario_player"] = __version__
-        spec["raiden-contracts"] = CONTRACTS_VERSION
+        spec = get_complete_spec()
         click.secho(message=json.dumps(spec, indent=2))
 
 
