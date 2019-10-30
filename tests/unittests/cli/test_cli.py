@@ -1,19 +1,22 @@
+import json
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
 
-from scenario_player import main
+from scenario_player import __version__, main
 from scenario_player.exceptions.cli import WrongPassword
 
-KEYSTORE_PATH = str(Path(__file__).resolve().parents[0].joinpath("keystore"))
+KEYSTORE_PATH = Path(__file__).resolve().parent.joinpath("keystore")
 SCENARIO = f"{Path(__file__).parent.joinpath('scenario', 'join-network-scenario-J1.yaml')}"
-CLI_ARGS = f"--chain goerli:http://geth.goerli.ethnodes.brainbot.com:8545 run " \
-               f"--keystore-file " + KEYSTORE_PATH + "/UTC--1 " \
-               f"--no-ui " \
-               f"{{pw_option}} " \
-               f"{SCENARIO}"
+CLI_ARGS = (
+    f"--chain goerli:http://geth.goerli.ethnodes.brainbot.com:8545 "
+    f"--keystore-file {KEYSTORE_PATH.joinpath('UTC--1')} "
+    f"--no-ui "
+    f"{{pw_option}} "
+    f"{SCENARIO}"
+)
 
 
 @pytest.fixture(scope="module")
@@ -38,30 +41,31 @@ class TestPasswordHandling:
     def test_password_file_not_existent(self, runner):
         """A not existing password file should raise error"""
         result = runner.invoke(
-            main.main,
-            CLI_ARGS.format(pw_option=f"--password-file /does/not/exist").split(" ")
+            main.run, CLI_ARGS.format(pw_option=f"--password-file /does/not/exist").split(" ")
         )
         assert result.exit_code == 2
         assert '"--password-file": File "/does/not/exist" does not exist.' in result.output
 
     def test_mutually_exclusive(self, runner):
         result = runner.invoke(
-            main.main,
+            main.run,
             CLI_ARGS.format(
-                pw_option=
-                f"--password-file {KEYSTORE_PATH}" + "/password " + "--password 123").split(" ")
+                pw_option=f"--password-file {KEYSTORE_PATH.joinpath('password')} --password 123"
+            ).split(" "),
         )
         assert result.exit_code == 2
-        assert 'Error: Illegal usage: password_file is mutually exclusive' in result.output
+        assert "Error: Illegal usage: password_file is mutually exclusive" in result.output
 
     @pytest.mark.parametrize(
         "password_file, expected_exec",
-        argvalues=[("/wrong_password", WrongPassword), ("/password", Sentinel)],
+        argvalues=[("wrong_password", WrongPassword), ("password", Sentinel)],
         ids=["wrong password", "correct password"],
     )
     def test_password_file(self, password_file, expected_exec, runner):
-        result = runner.invoke(main.main, CLI_ARGS.format(
-            pw_option=f"--password-file {KEYSTORE_PATH + password_file}"))
+        result = runner.invoke(
+            main.run,
+            CLI_ARGS.format(pw_option=f"--password-file {KEYSTORE_PATH.joinpath(password_file)}"),
+        )
         assert result.exc_info[0] == expected_exec
         assert result.exit_code == 1
 
@@ -71,8 +75,9 @@ class TestPasswordHandling:
         ids=["wrong password", "correct password"],
     )
     def test_password(self, password, expected_exc, runner):
-        result = runner.invoke(main.main,
-                               CLI_ARGS.format(pw_option=f"--password {password}").split(" "))
+        result = runner.invoke(
+            main.run, CLI_ARGS.format(pw_option=f"--password {password}").split(" ")
+        )
         assert result.exc_info[0] == expected_exc
         assert result.exit_code == 1
 
@@ -82,7 +87,23 @@ class TestPasswordHandling:
         ids=["wrong password", "correct password"],
     )
     def test_manual_password_validation(self, user_input, expected_exc, runner):
-        result = runner.invoke(main.main,
-                               CLI_ARGS.format(pw_option=f"--password {user_input}").split(" "))
+        result = runner.invoke(
+            main.run, CLI_ARGS.format(pw_option=f"--password {user_input}").split(" ")
+        )
         assert result.exc_info[0] == expected_exc
         assert result.exit_code == 1
+
+
+class TestVersionInformation:
+    def test_version_subcommand(self, runner):
+        result = runner.invoke(main.version)
+        assert json.loads(result.output)["scenario_player"] == __version__
+        assert result.exit_code == 0
+        short = runner.invoke(main.version, "--short")
+        assert short.output.strip() == __version__
+        assert short.exit_code == 0
+
+    def test_version_in_log(self, runner):
+        result = runner.invoke(main.run, CLI_ARGS.format(pw_option="--password 'does not matter'"))
+        assert "version_info" in result.output
+        assert __version__ in result.output
