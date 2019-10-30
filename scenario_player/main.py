@@ -225,7 +225,7 @@ def run(
         to an error in a `raiden` component (the client, services or contracts).
     """
     chain_rpc_urls = parse_chain_rpc_urls(chains)
-
+    data_path = Path(data_path)
     scenario_file = Path(scenario_file.name).absolute()
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
@@ -348,6 +348,8 @@ def run(
 def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chains, data_path):
     from scenario_player.utils import reclaim_eth
 
+    data_path = Path(data_path)
+
     chain_rpc_urls = parse_chain_rpc_urls(chains)
     password = get_password(password, password_file)
     account = get_account(keystore_file, password)
@@ -377,6 +379,7 @@ def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chains, da
 @data_path_option
 @click.pass_context
 def pack_logs(ctx, scenario_file, data_path, post_to_rocket, pack_n_latest, target_dir):
+    data_path = Path(data_path)
     data_path: Path = data_path.absolute()
     scenario_file = Path(scenario_file).absolute()
     target_dir = Path(target_dir)
