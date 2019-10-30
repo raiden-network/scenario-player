@@ -229,6 +229,7 @@ def run(
     scenario_file = Path(scenario_file.name).absolute()
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
+    log.info("Scenario Player version:", version_info=get_complete_spec())
 
     password = get_password(password, password_file)
 
