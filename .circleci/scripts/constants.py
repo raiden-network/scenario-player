@@ -17,7 +17,7 @@ BUMPVERSION_CFG = os.environ.get("BUMPVERSION_CFG")
 PROJECT_ROOT = os.environ["PROJECT_ROOT"]
 COMMIT_SHA = os.environ["CIRCLE_SHA1"]
 
-COMMIT_PATTERN = r"^\[(?P<TYPE>(FEAT|FIX))-(?P<ISSUE>#\d+)\]\w?(?P<SUBJECT>.*$)"
+COMMIT_PATTERN = r"^\w*\[(?P<TYPE>(FEAT|FIX))-(?P<ISSUE>#\d+)\]\w*(?P<SUBJECT>.*$)"
 BUMPVERSION_PREFIX = "Cut New Release:"
 CURRENT_BRANCH = os.environ.get("CIRCLE_BRANCH")
 
