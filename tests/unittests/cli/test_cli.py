@@ -93,6 +93,8 @@ class TestPasswordHandling:
         assert result.exc_info[0] == expected_exc
         assert result.exit_code == 1
 
+
+class TestVersionInformation:
     def test_version_subcommand(self, runner):
         result = runner.invoke(main.version)
         assert json.loads(result.output)["scenario_player"] == __version__
