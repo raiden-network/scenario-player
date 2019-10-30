@@ -102,3 +102,8 @@ class TestVersionInformation:
         short = runner.invoke(main.version, "--short")
         assert short.output.strip() == __version__
         assert short.exit_code == 0
+
+    def test_version_in_log(self, runner):
+        result = runner.invoke(main.run, CLI_ARGS.format(pw_option="--password 'does not matter'"))
+        assert "version_info" in result.output
+        assert __version__ in result.output
