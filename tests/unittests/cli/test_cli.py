@@ -1,4 +1,6 @@
 import json
+import os
+import re
 from pathlib import Path
 from unittest.mock import patch
 
@@ -107,3 +109,26 @@ class TestVersionInformation:
         result = runner.invoke(main.run, CLI_ARGS.format(pw_option="--password 'does not matter'"))
         assert "version_info" in result.output
         assert __version__ in result.output
+
+
+class TestDataPathBehavior:
+    def test_reclaim_eth_data_path(self, runner, tmpdir):
+        """Regression test, to make sure '--data-path' is respected for
+        'reclaim-eth' subcommand."""
+        path_arg = str(tmpdir.mkdir("use_this"))
+        result = runner.invoke(
+            main.reclaim_eth,
+            f"--data-path {path_arg} "
+            f"--chain a:b "
+            f"--password-file {KEYSTORE_PATH.joinpath('password')} "
+            f"--keystore-file {KEYSTORE_PATH.joinpath('UTC--1')} ",
+        )
+        assert result.exit_code == 0
+        for line in result.output.split("\n"):
+            match = re.search(r"\/.*/use_this/.*.log", line)
+            if match:
+                logfile_path = match.group(0)
+                assert os.path.exists(logfile_path)
+                assert logfile_path.startswith(path_arg)
+                return
+        assert False
