@@ -264,7 +264,7 @@ def run(
             account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
         )
     except Exception as e:
-        # log anything that goes wrong during init of the runner and isnt handled.
+        # log anything that goes wrong during init of the runner and isn't handled.
         log.exception(e)
         raise
 
@@ -281,16 +281,22 @@ def run(
             runner.run_scenario()
         except ScenarioAssertionError as ex:
             log.error("Run finished", result="assertion errors")
-            exit_code = 30
+            if hasattr(ex, "exit_code"):
+                exit_code = ex.exit_code
+            else:
+                exit_code = 30
             send_notification_mail(
                 runner.definition.settings.notify,
                 f"Assertion mismatch in {scenario_file.name}",
                 str(ex),
                 mailgun_api_key,
             )
-        except ScenarioError:
+        except ScenarioError as ex:
             log.exception("Run finished", result="scenario error")
-            exit_code = 20
+            if hasattr(ex, "exit_code"):
+                exit_code = ex.exit_code
+            else:
+                exit_code = 20
             send_notification_mail(
                 runner.definition.settings.notify,
                 f"Invalid scenario {scenario_file.name}",
@@ -307,9 +313,12 @@ def run(
                 "Success",
                 mailgun_api_key,
             )
-    except Exception:
+    except Exception as ex:
         log.exception("Exception while running scenario")
-        exit_code = 10
+        if hasattr(ex, "exit_code"):
+            exit_code = ex.exit_code
+        else:
+            exit_code = 10
         send_notification_mail(
             runner.definition.settings.notify,
             f"Error running scenario {scenario_file.name}",
