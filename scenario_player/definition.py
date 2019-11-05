@@ -28,10 +28,11 @@ class ScenarioDefinition:
         self.path = yaml_path
         with yaml_path.open() as f:
             self._loaded = yaml.safe_load(f)
-        self.nodes = NodesConfig(self._loaded)
+        self.token = TokenConfig(self._loaded, data_path.joinpath("token.info"))
+        deploy_token = self.token.address is None
+        self.nodes = NodesConfig(self._loaded, environment="development" if deploy_token else None)
         self.settings = SettingsConfig(self._loaded)
         self.scenario = ScenarioConfig(self._loaded)
-        self.token = TokenConfig(self._loaded, data_path.joinpath("token.info"))
         self.spaas = SPaaSConfig(self._loaded)
 
         self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
