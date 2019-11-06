@@ -43,6 +43,10 @@ class RPCClient(JSONRPCClient):
         )
         self.client_id = generate_hash_key(chain_url, privkey, strategy)
 
+    def send_transaction(self, to, startgas: int, value: int = 0, data: bytes = b""):
+        transaction_slot = super(RPCClient, self).get_next_transaction()
+        return transaction_slot.send_transaction(to, startgas, value, data)
+
 
 class RPCRegistry(Mapping):
     """Custom mapping, allowing dynamic creation of JSONRPCClient instances.
