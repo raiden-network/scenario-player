@@ -333,17 +333,20 @@ def send_notification_mail(target_mail, subject, message, api_key):
         return
 
     log.debug("Sending notification mail", subject=subject, message=message)
-    res = requests.post(
-        "https://api.mailgun.net/v3/notification.brainbot.com/messages",
-        auth=("api", api_key),
-        data={
-            "from": "Raiden Scenario Player <scenario-player@notification.brainbot.com>",
-            "to": [target_mail],
-            "subject": subject,
-            "text": message,
-        },
-    )
-    log.debug("Notification mail result", code=res.status_code, text=res.text)
+    try:
+        res = requests.post(
+            "https://api.mailgun.net/v3/notification.brainbot.com/messages",
+            auth=("api", api_key),
+            data={
+                "from": "Raiden Scenario Player <scenario-player@notification.brainbot.com>",
+                "to": [target_mail],
+                "subject": subject,
+                "text": message,
+            },
+        )
+        log.debug("Notification mail result", code=res.status_code, text=res.text)
+    except requests.exceptions.RequestException as e:
+        log.error("There was an error when sending the notification mail.", exception=str(e))
 
 
 def reclaim_eth(

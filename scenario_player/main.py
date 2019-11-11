@@ -264,8 +264,8 @@ def run(
             account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
         )
     except Exception as e:
-        # log anything that goes wrong during init of the runner and isnt handled.
-        log.exception(e)
+        # log anything that goes wrong during init of the runner and isn't handled.
+        log.exception("Error during startup", exception=e)
         raise
 
     ui = None
@@ -275,48 +275,48 @@ def run(
         ui_greenlet = ui.run()
     success = False
     exit_code = 1
+    subject = None
+    message = None
 
     try:
-        try:
-            runner.run_scenario()
-        except ScenarioAssertionError as ex:
-            log.error("Run finished", result="assertion errors")
-            exit_code = 30
-            send_notification_mail(
-                runner.definition.settings.notify,
-                f"Assertion mismatch in {scenario_file.name}",
-                str(ex),
-                mailgun_api_key,
-            )
-        except ScenarioError:
-            log.exception("Run finished", result="scenario error")
-            exit_code = 20
-            send_notification_mail(
-                runner.definition.settings.notify,
-                f"Invalid scenario {scenario_file.name}",
-                traceback.format_exc(),
-                mailgun_api_key,
-            )
+        runner.run_scenario()
+    except ScenarioAssertionError as ex:
+        log.error("Run finished", result="assertion errors")
+        if hasattr(ex, "exit_code"):
+            exit_code = ex.exit_code
         else:
-            success = True
-            exit_code = 0
-            log.info("Run finished", result="success")
-            send_notification_mail(
-                runner.definition.settings.notify,
-                f"Scenario successful {scenario_file.name}",
-                "Success",
-                mailgun_api_key,
-            )
-    except Exception:
+            exit_code = 30
+        subject = f"Assertion mismatch in {scenario_file.name}"
+        message = str(ex)
+    except ScenarioError as ex:
+        log.error("Run finished", result="scenario error")
+        if hasattr(ex, "exit_code"):
+            exit_code = ex.exit_code
+        else:
+            exit_code = 20
+        subject = f"Invalid scenario {scenario_file.name}"
+        message = traceback.format_exc()
+    except Exception as ex:
         log.exception("Exception while running scenario")
-        exit_code = 10
+        if hasattr(ex, "exit_code"):
+            exit_code = ex.exit_code
+        else:
+            exit_code = 10
+        subject = f"Error running scenario {scenario_file.name}"
+        message = traceback.format_exc()
+    else:
+        success = True
+        exit_code = 0
+        log.info("Run finished", result="success")
+        subject = f"Scenario successful {scenario_file.name}"
+        message = "Success"
+    finally:
         send_notification_mail(
             runner.definition.settings.notify,
-            f"Error running scenario {scenario_file.name}",
-            traceback.format_exc(),
+            subject or "Logic error in main.py",
+            message or "Message should not be empty.",
             mailgun_api_key,
         )
-    finally:
         try:
             if enable_ui and ui:
                 ui.set_success(success)

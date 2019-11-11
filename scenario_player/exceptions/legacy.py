@@ -1,57 +1,67 @@
 class ScenarioError(Exception):
-    pass
+    exit_code = 20
 
 
 class ScenarioTxError(ScenarioError):
-    pass
+    exit_code = 21
 
 
 class TokenRegistrationError(ScenarioTxError):
-    pass
+    exit_code = 22
+
+
+class TokenNetworkDiscoveryTimeout(TokenRegistrationError):
+    """If we waited a set time for the token network to be discovered, but it wasn't."""
+
+    exit_code = 22
 
 
 class ChannelError(ScenarioError):
-    pass
+    exit_code = 23
 
 
 class TransferFailed(ScenarioError):
-    pass
+    exit_code = 24
 
 
 class NodesUnreachableError(ScenarioError):
-    pass
+    exit_code = 25
 
 
 class RESTAPIError(ScenarioError):
-    pass
+    exit_code = 26
 
 
 class RESTAPIStatusMismatchError(ScenarioError):
-    pass
+    exit_code = 26
 
 
 class RESTAPITimeout(RESTAPIError):
-    pass
+    exit_code = 26
 
 
 class MultipleTaskDefinitions(ScenarioError):
     """Several root tasks were defined in the scenario configuration."""
 
+    exit_code = 27
+
 
 class InvalidScenarioVersion(ScenarioError):
-    pass
+    exit_code = 27
 
 
 class UnknownTaskTypeError(ScenarioError):
-    pass
+    exit_code = 27
 
 
 class MissingNodesConfiguration(ScenarioError, KeyError):
     """Could not find a key in the scenario file's 'nodes' section."""
 
+    exit_code = 28
+
 
 class ScenarioAssertionError(ScenarioError):
-    pass
+    exit_code = 30
 
 
 class BrokenArchive(Exception):
@@ -84,7 +94,3 @@ class FileOperationError(OSError):
     This is error is raised when we believe there may be a race condition causing
     our file to disappear.
     """
-
-
-class TokenNetworkDiscoveryTimeout(TokenRegistrationError):
-    """If we waited a set time for the token network to be discovered, but it wasn't."""
