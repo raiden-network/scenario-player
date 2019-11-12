@@ -32,8 +32,13 @@ class NodesConfig(ConfigMapping):
 
     CONFIGURATION_ERROR = NodeConfigurationError
 
-    def __init__(self, loaded_definition: dict):
+    def __init__(self, loaded_definition: dict, environment=None):
         super(NodesConfig, self).__init__(loaded_definition.get("nodes") or {})
+        if environment is not None:
+            default_options = self.dict.get("default_options", {})
+            if "environment-type" not in default_options:
+                default_options["environment-type"] = environment
+            self.dict["default_options"] = default_options
         self.validate()
 
     @property
