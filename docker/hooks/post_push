@@ -9,7 +9,8 @@ build_image () {
         --build-arg RAIDEN_VERSION=${raiden_version} \
         --build-arg SP_VERSION=master \
         --build-arg SCENARIOS_VERSION=${scenario_version} \
-        --tag ${HUB_REPO}:raiden-${raiden_version}-scenarios-${scenario_version}
+        --tag ${HUB_REPO}:raiden-${raiden_version}-scenarios-${scenario_version}\
+        .
 }
 push_image () {
     raiden_version=$1
