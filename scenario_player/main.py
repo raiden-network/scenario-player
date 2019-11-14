@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import traceback
+from collections import defaultdict
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -20,7 +21,6 @@ from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.utils.cli import EnumChoiceType
 from scenario_player import __version__, tasks
-from scenario_player.constants import DEFAULT_ETH_RPC_ADDRESS, DEFAULT_NETWORK
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.exceptions.services import ServiceProcessException
@@ -28,7 +28,12 @@ from scenario_player.runner import ScenarioRunner
 from scenario_player.services.common.app import ServiceProcess
 from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
-from scenario_player.utils import DummyStream, post_task_state_to_rc, send_notification_mail
+from scenario_player.utils import (
+    ChainConfigType,
+    DummyStream,
+    post_task_state_to_rc,
+    send_notification_mail,
+)
 from scenario_player.utils.legacy import MutuallyExclusiveOption
 from scenario_player.utils.version import get_complete_spec
 
@@ -64,6 +69,13 @@ def configure_logging_for_subcommand(log_file_name):
         _first_party_packages=_FIRST_PARTY_PACKAGES | frozenset(["scenario_player"]),
         _debug_log_file_additional_level_filters={"scenario_player": "DEBUG"},
     )
+
+
+def parse_chain_rpc_urls(list_of_urls):
+    chain_rpc_urls = defaultdict(list)
+    for chain_name, chain_rpc_url in list_of_urls:
+        chain_rpc_urls[chain_name].append(chain_rpc_url)
+    return chain_rpc_urls
 
 
 def load_account_obj(keystore_file, password):
@@ -135,10 +147,11 @@ def chain_option(func):
 
     @click.option(
         "--chain",
-        "chain",
-        multiple=False,
-        required=False,
-        help="Chain name to eth rpc url mapping.",
+        "chains",
+        type=ChainConfigType(),
+        multiple=True,
+        required=True,
+        help="Chain name to eth rpc url mapping, multiple allowed",
     )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -175,7 +188,7 @@ def main(ctx):
 @click.pass_context
 def run(
     ctx,
-    chain,
+    chains,
     data_path,
     mailgun_api_key,
     auth,
@@ -203,6 +216,7 @@ def run(
         There was an assertion error while executing the scenario. This points
         to an error in a `raiden` component (the client, services or contracts).
     """
+    chain_rpc_urls = parse_chain_rpc_urls(chains)
     data_path = Path(data_path)
     scenario_file = Path(scenario_file.name).absolute()
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
@@ -239,7 +253,7 @@ def run(
     # Run the scenario using the configurations passed.
     try:
         runner = ScenarioRunner(
-            account, chain, auth, data_path, scenario_file, notify_tasks_callable
+            account, chain_rpc_urls, auth, data_path, scenario_file, notify_tasks_callable
         )
     except Exception as e:
         # log anything that goes wrong during init of the runner and isn't handled.
@@ -323,16 +337,12 @@ def run(
 @chain_option
 @data_path_option
 @click.pass_context
-def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chain, data_path):
+def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chains, data_path):
     from scenario_player.utils import reclaim_eth
 
     data_path = Path(data_path)
-    if not chain:
-        chain_rpc_urls = {DEFAULT_NETWORK: DEFAULT_ETH_RPC_ADDRESS}
-    else:
-        network, url = chain.split(":", maxsplit=1)
-        chain_rpc_urls = {network: url}
 
+    chain_rpc_urls = parse_chain_rpc_urls(chains)
     password = get_password(password, password_file)
     account = get_account(keystore_file, password)
 

@@ -1,4 +1,8 @@
+import json
+
 import pytest
+
+from ..conftest import minimal_definition_dict, token_info_path
 
 
 @pytest.fixture
@@ -12,7 +16,7 @@ def expected_defaults():
             "gas_price": "FAST",
             "timeout": 200,
             "notify": None,
-            "chain": "goerli",
+            "chain": "any",
             "services": {},
         },
         "token": {"address": None, "block": 0, "reuse": False, "symbol": str(), "decimals": 0},

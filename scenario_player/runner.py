@@ -30,6 +30,7 @@ from scenario_player.constants import (
 from scenario_player.definition import ScenarioDefinition
 from scenario_player.exceptions import ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
+from scenario_player.services.rpc.utils import assign_rpc_instance_id
 from scenario_player.services.utils.interface import ServiceInterface
 from scenario_player.utils import TimeOutHTTPAdapter, get_udc_and_token, wait_for_txs
 from scenario_player.utils.token import Token, UserDepositContract
@@ -44,10 +45,10 @@ class ScenarioRunner:
     def __init__(
         self,
         account: Account,
+        chain_urls: Dict[str, List[str]],
         auth: str,
         data_path: Path,
         scenario_file: Path,
-        chain_url: Optional[str] = None,
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
@@ -65,28 +66,36 @@ class ScenarioRunner:
         # Storage for arbitrary data tasks might need to persist
         self.task_storage = defaultdict(dict)
 
-        self.definition = ScenarioDefinition(scenario_file, data_path)
+        scenario_name = scenario_file.stem
+        self.base_path = data_path
+        self.base_path.mkdir(exist_ok=True, parents=True)
 
         log.debug("Local seed", seed=self.local_seed)
 
+        self.data_path = self.base_path.joinpath("scenarios", scenario_name)
+        self.data_path.mkdir(exist_ok=True, parents=True)
+
+        self.definition = ScenarioDefinition(scenario_file, self.data_path)
+        log.debug("Data path", path=self.data_path)
+
+        # Determining the run number requires :attr:`.data_path`
         self.run_number = self.determine_run_number()
 
         self.node_controller = NodeController(self, self.definition.nodes)
 
         self.protocol = "http"
-        if chain_url:
-            name, endpoint = chain_url.split(":", maxsplit=1)
-            # Set CLI overrides.
-            self.definition.settings._cli_chain = name
-            self.definition.settings._cli_rpc_address = endpoint
 
+        self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
+
+        self.chain_name, chain_urls = self.select_chain(chain_urls)
+        self.eth_rpc_urls = chain_urls
         self.client = JSONRPCClient(
-            Web3(HTTPProvider(self.definition.settings.eth_client_rpc_address)),
+            Web3(HTTPProvider(chain_urls[0])),
             privkey=account.privkey,
             gas_price_strategy=self.definition.settings.gas_price_strategy,
         )
+        self.chain_id = int(self.client.web3.net.version)
 
-        self.definition.settings.chain_id = int(self.client.web3.net.version)
         self.contract_manager = ContractManager(contracts_precompiled_path())
 
         balance = self.client.balance(account.address)
@@ -105,10 +114,11 @@ class ScenarioRunner:
         self.session.mount("https", TimeOutHTTPAdapter(timeout=self.definition.settings.timeout))
 
         self.service_session = ServiceInterface(self.definition.spaas)
-        # Assign an RPC Client instance ID on the RPC service, for this run.
-        self.definition.spaas.rpc.assign_rpc_instance(
-            self, account.privkey, self.definition.settings.gas_price
+        # Request an RPC Client instance ID from the RPC service and assign it to the runner.
+        assign_rpc_instance_id(
+            self, chain_urls[0], account.privkey, self.definition.settings.gas_price
         )
+
         self.token = Token(self, data_path)
         self.udc = None
 
@@ -127,7 +137,7 @@ class ScenarioRunner:
         REFAC: Replace this with a property.
         """
         run_number = 0
-        run_number_file = self.definition.scenario_dir.joinpath(RUN_NUMBER_FILENAME)
+        run_number_file = self.data_path.joinpath(RUN_NUMBER_FILENAME)
         if run_number_file.exists():
             run_number = int(run_number_file.read_text()) + 1
         run_number_file.write_text(str(run_number))
@@ -142,9 +152,9 @@ class ScenarioRunner:
         This is used in the node private key generation to prevent re-use of node keys between
         multiple users of the scenario player.
 
-        The seed is stored in a file inside the ``.definition.settings.sp_root_dir``.
+        The seed is stored in a file inside the ``.base_path``.
         """
-        seed_file = self.definition.settings.sp_root_dir.joinpath("seed.txt")
+        seed_file = self.base_path.joinpath("seed.txt")
         if not seed_file.exists():
             seed = encode_hex(bytes(random.randint(0, 255) for _ in range(20)))
             seed_file.write_text(seed)
