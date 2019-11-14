@@ -2,20 +2,26 @@
 
 HUB_REPO=raidennetwork/scenario-player
 
+if [[ "${DOCKER_TAG}" == "latest" ]]; then
+    SP_VERSION=master
+else
+    SP_VERSION=${DOCKER_TAG}
+fi
+
 build_image () {
     raiden_version=$1
     scenario_version=$2
     docker build \
         --build-arg RAIDEN_VERSION=${raiden_version} \
-        --build-arg SP_VERSION=master \
+        --build-arg SP_VERSION=${SP_VERSION} \
         --build-arg SCENARIOS_VERSION=${scenario_version} \
-        --tag ${HUB_REPO}:raiden-${raiden_version}-scenarios-${scenario_version}\
+        --tag ${HUB_REPO}:sp-${SP_VERSION}-raiden-${raiden_version}-scenarios-${scenario_version}\
         .
 }
 push_image () {
     raiden_version=$1
     scenario_version=$2
-    docker push ${HUB_REPO}:raiden-${raiden_version}-scenarios-${scenario_version}
+    docker push ${HUB_REPO}:sp-${SP_VERSION}-raiden-${raiden_version}-scenarios-${scenario_version}
 }
 
 
