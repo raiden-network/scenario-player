@@ -1,4 +1,8 @@
-from tests.unittests.services.rpc.conftest import *
+import flask
+import pytest
+
+from scenario_player.services.rpc.schemas.tokens import TokenCreateSchema, ContractTransactSchema
+from scenario_player.services.rpc.utils import RPCRegistry, RPCClient
 
 
 @pytest.fixture

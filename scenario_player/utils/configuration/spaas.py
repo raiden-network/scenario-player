@@ -1,4 +1,5 @@
 import structlog
+from eth_utils import encode_hex
 
 from scenario_player.utils.configuration.base import ConfigMapping
 
@@ -59,3 +60,14 @@ class RPCServiceConfig(SPaaSServiceConfig):
     def __init__(self, spaas_config: dict):
         super(RPCServiceConfig, self).__init__(spaas_config.get("rpc") or {})
         self.client_id = None
+
+    def assign_rpc_instance(self, runner, privkey, gas_price):
+        """Assign this SP instance an RPC Client to use when making write-requests."""
+        params = {
+            "chain_url": runner.definition.settings.eth_client_rpc_address,
+            "privkey": encode_hex(privkey),
+            "gas_price": gas_price,
+        }
+        resp = runner.service_session.post("spaas://rpc/client", json=params)
+        client_id = resp.json()["client_id"]
+        self.client_id = client_id
