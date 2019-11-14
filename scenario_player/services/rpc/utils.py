@@ -4,11 +4,19 @@ from collections.abc import Mapping
 from typing import Callable, Tuple, Union
 
 import structlog
+from eth_utils import encode_hex
 from web3 import HTTPProvider, Web3
 
 from raiden.network.rpc.client import JSONRPCClient
 
 log = structlog.getLogger(__name__)
+
+
+def assign_rpc_instance_id(runner, chain_url, privkey, gas_price):
+    params = {"chain_url": chain_url, "privkey": encode_hex(privkey), "gas_price": gas_price}
+    resp = runner.service_session.post("spaas://rpc/client", json=params)
+    client_id = resp.json()["client_id"]
+    runner.definition.spaas.rpc.client_id = client_id
 
 
 def generate_hash_key(chain_url: str, privkey: bytes, strategy: Callable):

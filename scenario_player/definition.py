@@ -28,12 +28,10 @@ class ScenarioDefinition:
         self.path = yaml_path
         with yaml_path.open() as f:
             self._loaded = yaml.safe_load(f)
-        self._scenario_dir = None
         self.token = TokenConfig(self._loaded, data_path.joinpath("token.info"))
         deploy_token = self.token.address is None
         self.nodes = NodesConfig(self._loaded, environment="development" if deploy_token else None)
         self.settings = SettingsConfig(self._loaded)
-        self.settings.sp_root_dir = data_path
         self.scenario = ScenarioConfig(self._loaded)
         self.spaas = SPaaSConfig(self._loaded)
 
@@ -43,10 +41,3 @@ class ScenarioDefinition:
     def name(self) -> str:
         """Return the name of the scenario file, sans extension."""
         return self.path.stem
-
-    @property
-    def scenario_dir(self):
-        if not self._scenario_dir:
-            self._scenario_dir = self.settings.sp_scenario_root_dir.joinpath(self.name)
-            self._scenario_dir.mkdir(exist_ok=True, parents=True)
-        return self._scenario_dir

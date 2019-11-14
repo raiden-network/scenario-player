@@ -13,6 +13,7 @@ from scenario_player.exceptions.cli import WrongPassword
 KEYSTORE_PATH = Path(__file__).resolve().parent.joinpath("keystore")
 SCENARIO = f"{Path(__file__).parent.joinpath('scenario', 'join-network-scenario-J1.yaml')}"
 CLI_ARGS = (
+    f"--chain goerli:http://geth.goerli.ethnodes.brainbot.com:8545 "
     f"--keystore-file {KEYSTORE_PATH.joinpath('UTC--1')} "
     f"--no-ui "
     f"{{pw_option}} "
@@ -118,6 +119,7 @@ class TestDataPathBehavior:
         result = runner.invoke(
             main.reclaim_eth,
             f"--data-path {path_arg} "
+            f"--chain a:b "
             f"--password-file {KEYSTORE_PATH.joinpath('password')} "
             f"--keystore-file {KEYSTORE_PATH.joinpath('UTC--1')} ",
         )

@@ -20,7 +20,7 @@ style: isort black
 lint: flake8 black-check isort-check
 
 install:
-	pip install --force-reinstall -U .
+	pip install .
 
 install-dev:
 	pip install ".[dev]"
