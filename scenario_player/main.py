@@ -239,7 +239,7 @@ def run(
     # Run the scenario using the configurations passed.
     try:
         runner = ScenarioRunner(
-            account, chain, auth, data_path, scenario_file, notify_tasks_callable
+            account, auth, chain, data_path, scenario_file, notify_tasks_callable
         )
     except Exception as e:
         # log anything that goes wrong during init of the runner and isn't handled.

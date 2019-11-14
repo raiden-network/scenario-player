@@ -4,7 +4,7 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import gevent
 import structlog
@@ -45,9 +45,9 @@ class ScenarioRunner:
         self,
         account: Account,
         auth: str,
-        data_path: Path,
+        chain: str,
+        data_path: Union[Path, str],
         scenario_file: Path,
-        chain_url: Optional[str] = None,
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
@@ -74,8 +74,8 @@ class ScenarioRunner:
         self.node_controller = NodeController(self, self.definition.nodes)
 
         self.protocol = "http"
-        if chain_url:
-            name, endpoint = chain_url.split(":", maxsplit=1)
+        if chain:
+            name, endpoint = chain.split(":", maxsplit=1)
             # Set CLI overrides.
             self.definition.settings._cli_chain = name
             self.definition.settings._cli_rpc_address = endpoint
