@@ -27,6 +27,13 @@ GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL = 100_000
 RUN_NUMBER_FILENAME = "run_number.txt"
 
 
+#: Ethereum Nodes hosted by Brainbot
+BB_ETH_RPC_ADDRESS = "http://{client}.{network}.ethnodes.brainbot.com:5085"
+DEFAULT_CLIENT = "parity"
+DEFAULT_NETWORK = "goerli"
+DEFAULT_ETH_RPC_ADDRESS = BB_ETH_RPC_ADDRESS.format(client=DEFAULT_CLIENT, network=DEFAULT_NETWORK)
+
+
 class NodeMode(enum.Enum):
     EXTERNAL = 1
     MANAGED = 2
