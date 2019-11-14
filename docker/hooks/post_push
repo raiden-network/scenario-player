@@ -1,0 +1,28 @@
+#!/bin/bash
+
+HUB_REPO=raidennetwork/scenario-player
+
+build_image () {
+    raiden_version=$1
+    scenario_version=$2
+    docker build \
+        --build-arg RAIDEN_VERSION=${raiden_version} \
+        --build-arg SP_VERSION=master \
+        --build-arg SCENARIOS_VERSION=${scenario_version} \
+        --tag ${HUB_REPO}:raiden-${raiden_version}-scenarios-${scenario_version}
+}
+push_image () {
+    raiden_version=$1
+    scenario_version=$2
+    docker push ${HUB_REPO}:raiden-${raiden_version}-scenarios-${scenario_version}
+}
+
+
+for raiden_version in master develop; do
+    for scenario_version in master develop; do
+        build_image ${raiden_version} ${scenario_version};
+        push_image ${raiden_version} ${scenario_version};
+    done
+done
+
+
