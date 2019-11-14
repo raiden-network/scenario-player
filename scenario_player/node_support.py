@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import platform
-import random
 import shutil
 import socket
 import stat
@@ -175,7 +174,9 @@ class NodeRunner:
         self._index = index
         self._raiden_version = raiden_version
         self._options = options
-        self._datadir = runner.data_path.joinpath(f"node_{self._runner.run_number}_{index:03d}")
+        self._datadir = runner.definition.scenario_dir.joinpath(
+            f"node_{self._runner.run_number}_{index:03d}"
+        )
 
         self._address = None
         self._eth_rpc_endpoint = None
@@ -265,7 +266,7 @@ class NodeRunner:
     @property
     def eth_rpc_endpoint(self):
         if not self._eth_rpc_endpoint:
-            self._eth_rpc_endpoint = random.choice(self._runner.eth_rpc_urls)
+            self._eth_rpc_endpoint = self._runner.definition.settings.eth_client_rpc_address
             log.debug(
                 "Using endpoint for node", node=self._index, rpc_endpoint=self._eth_rpc_endpoint
             )
@@ -291,7 +292,7 @@ class NodeRunner:
             "--password-file",
             self._password_file,
             "--network-id",
-            self._runner.chain_id,
+            self._runner.definition.settings.chain_id,
             "--sync-check",  # FIXME: Disable sync check for private chains
             "--gas-price",
             self._options.get("gas-price", "normal"),

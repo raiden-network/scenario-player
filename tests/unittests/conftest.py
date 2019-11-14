@@ -51,11 +51,18 @@ class DummySPaaSConfig:
         self.rpc = DummyRPCConfig()
 
 
-class DummySettingsConfig:
-    def __init__(self):
-        self.timeout = 2
-        self.services = DummyServicesConfig()
-        self.spaas = DummySPaaSConfig()
+@pytest.fixture
+def dummy_settings_config(tmp_path):
+    class DummySettingsConfig:
+        def __init__(self):
+            self.timeout = 2
+            self.services = DummyServicesConfig()
+            self.spaas = DummySPaaSConfig()
+            self.sp_root_dir = tmp_path
+            self.sp_scenario_root_dir = tmp_path.joinpath("scenarios")
+            self.sp_scenario_root_dir.mkdir(exist_ok=True, parents=True)
+
+    return DummySettingsConfig()
 
 
 class DummyTokenConfig:
@@ -63,12 +70,17 @@ class DummyTokenConfig:
         self.address = "the_token_config_address"
 
 
-class DummyScenarioDefinition:
-    def __init__(self, scenario_name):
-        self.name = scenario_name
-        self.settings = DummySettingsConfig()
-        self.token = DummyTokenConfig()
-        self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
+@pytest.fixture
+def dummy_scenario_definition(dummy_settings_config):
+    class DummyScenarioDefinition:
+        def __init__(self, scenario_name):
+            self.name = scenario_name
+            self.settings = dummy_settings_config
+            self.token = DummyTokenConfig()
+            self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
+            self.scenario_dir = dummy_settings_config.sp_scenario_root_dir.joinpath(self.name)
+            self.scenario_dir.mkdir(parents=True, exist_ok=True)
+    return DummyScenarioDefinition
 
 
 class DummyNodeRunner:
@@ -97,39 +109,40 @@ class DummyNodeController:
     def address_to_index(self) -> Dict[ChecksumAddress, int]:
         return {runner.address: i for i, runner in enumerate(iter(self))}
 
+@pytest.fixture
+def mocked_scenario_runner(dummy_scenario_definition):
+    class DummyScenarioRunner:
+        def __init__(
+            self,
+            scenario_name: str,
+            token_address: ChecksumAddress,
+            token_network_address: ChecksumAddress = TEST_TOKEN_NETWORK_ADDRESS,
+            node_count: int = 4,
+        ):
+            self.client = MagicMock(spec=JSONRPCClient)
+            self.contract_manager = MagicMock(spec=ContractManager)
+            self.scenario_name = scenario_name
+            self.definition = dummy_scenario_definition(scenario_name)
+            self.session = requests.Session()
+            self.task_cache = {}
+            self.task_storage = defaultdict(dict)
+            self.task_count = 0
+            self.running_task_count = 0
+            self.run_number = 0
+            self.protocol = "http"
+            self.token = DummyTokenContract(token_address)
+            self.token_network_address = token_network_address
+            self.node_controller = DummyNodeController(node_count)
 
-class DummyScenarioRunner:
-    def __init__(
-        self,
-        scenario_name: str,
-        token_address: ChecksumAddress,
-        token_network_address: ChecksumAddress = TEST_TOKEN_NETWORK_ADDRESS,
-        node_count: int = 4,
-    ):
-        self.client = MagicMock(spec=JSONRPCClient)
-        self.contract_manager = MagicMock(spec=ContractManager)
-        self.scenario_name = scenario_name
-        self.definition = DummyScenarioDefinition(scenario_name)
-        self.session = requests.Session()
-        self.task_cache = {}
-        self.task_storage = defaultdict(dict)
-        self.task_count = 0
-        self.running_task_count = 0
-        self.run_number = 0
-        self.protocol = "http"
-        self.token = DummyTokenContract(token_address)
-        self.token_network_address = token_network_address
-        self.node_controller = DummyNodeController(node_count)
+        def task_state_changed(self, task, new_state):
+            pass
 
-    def task_state_changed(self, task, new_state):
-        pass
+        def get_node_baseurl(self, index):
+            return f"{index}"
 
-    def get_node_baseurl(self, index):
-        return f"{index}"
-
-    def get_node_address(self, index):
-        return self.node_controller[index].address
-
+        def get_node_address(self, index):
+            return self.node_controller[index].address
+    return DummyScenarioRunner
 
 @pytest.fixture
 def mocked_responses():
@@ -138,5 +151,5 @@ def mocked_responses():
 
 
 @pytest.fixture
-def dummy_scenario_runner(mocked_responses):
-    return DummyScenarioRunner("dummy_scenario", TEST_TOKEN_ADDRESS)
+def dummy_scenario_runner(mocked_responses, mocked_scenario_runner):
+    return mocked_scenario_runner("dummy_scenario", TEST_TOKEN_ADDRESS)

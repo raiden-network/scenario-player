@@ -231,7 +231,7 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
     block = token_config.get("block", 0)
     reuse = token_config.get("reuse", False)
 
-    token_address_file = runner.data_path.joinpath("token.infos")
+    token_address_file = runner.definition.settings.sp_scenario_dir.joinpath("token.infos")
     if reuse:
         if address:
             raise ScenarioError('Token settings "address" and "reuse" are mutually exclusive.')
@@ -289,7 +289,7 @@ def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[Contrac
     udc_address = udc_config.address
     if udc_address is None:
         contracts = get_contracts_deployment_info(
-            chain_id=runner.chain_id, version=RAIDEN_CONTRACT_VERSION
+            chain_id=runner.definition.settings.chain_id, version=RAIDEN_CONTRACT_VERSION
         )
         udc_address = contracts["contracts"][CONTRACT_USER_DEPOSIT]["address"]
     udc_abi = runner.contract_manager.get_contract_abi(CONTRACT_USER_DEPOSIT)
