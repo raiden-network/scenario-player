@@ -1,7 +1,3 @@
-FROM python:3.7-slim AS compile-image
-
-LABEL maintainer=devops@brainbot.com
-
 ################################################################################
 # COMPILATION STAGE (compile-image)                                            #
 ################################################################################
@@ -11,7 +7,8 @@ LABEL maintainer=devops@brainbot.com
 # This stage supports the following, optional build args:
 #
 #   - RAIDEN_VERSION (default: develop)
-#     The version of the Raiden client to run the nightlies against.
+#     The version of the Raiden client to run the nightlies against. This must be
+#     a valid docker tag available on the local machine or raidennetwork/raiden.
 #
 #   - SP_VERSION (default: master)
 #     The version of the SP to run the nightlies with.
@@ -25,30 +22,31 @@ LABEL maintainer=devops@brainbot.com
 # in order to reduce image size.
 
 ARG RAIDEN_VERSION=develop
+
+FROM raidennetwork/raiden:${RAIDEN_VERSION} AS raiden-image
+FROM python:3.7 AS compile-image
+
 ARG SP_VERSION=master
 ARG SCENARIOS_VERSION=develop
 
 # Set up the build stage
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends build-essential gcc git
-RUN python -m venv /opt/venv
+COPY --from=raiden-image /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+FROM python:3/7 AS sp-image
 # Install the Scenario Player
 RUN git clone https://github.com/raiden-network/scenario-player.git /sp
 WORKDIR /sp
 RUN git checkout ${SP_VERSION}
 RUN pip install .
 
-# Install the Raiden Client
+FROM python:3/7 AS scenarios-image
+# Install scenarios
 RUN git clone https://github.com/raiden-network/raiden.git /raiden
 WORKDIR /raiden
-RUN git checkout ${RAIDEN_VERSION}
-RUN pip install .
-
-# Install scenarios
 RUN git checkout ${SCENARIOS_VERSION}
 RUN cp -r /raiden/raiden/tests/scenarios /scenarios
+
 
 FROM python:3.7-slim as execution-image
 WORKDIR /
