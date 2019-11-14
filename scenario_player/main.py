@@ -4,17 +4,14 @@ import functools
 import json
 import os
 import sys
-import tarfile
 import traceback
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
-from itertools import chain
 from pathlib import Path
 
 import click
 import gevent
-import requests
 import structlog
 from eth_utils import to_checksum_address
 from urwid import ExitMainLoop
@@ -38,11 +35,6 @@ from scenario_player.utils import (
     send_notification_mail,
 )
 from scenario_player.utils.legacy import MutuallyExclusiveOption
-from scenario_player.utils.logs import (
-    pack_n_latest_logs_for_scenario_in_dir,
-    pack_n_latest_node_logs_in_dir,
-    verify_scenario_log_dir,
-)
 from scenario_player.utils.version import get_complete_spec
 
 log = structlog.get_logger(__name__)
@@ -359,136 +351,6 @@ def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chains, da
     reclaim_eth(
         min_age_hours=min_age, chain_rpc_urls=chain_rpc_urls, data_path=data_path, account=account
     )
-
-
-@main.command("pack-logs")
-@click.option(
-    "--target-dir",
-    default=os.environ.get("HOME", "./"),
-    show_default=True,
-    help="Target directory to pack logs to. Defaults to your home directory.",
-)
-@click.option(
-    "--pack-n-latest",
-    default=1,
-    help="Specify the max num of log history you would like to pack. Defaults to 1."
-    "Specifying 0 will pack all available logs for a scenario.",
-)
-@click.option("--post-to-rocket/--no-post-to-rocket", default=True)
-@click.argument("scenario-file", type=click.Path(exists=True, dir_okay=False), required=True)
-@data_path_option
-@click.pass_context
-def pack_logs(ctx, scenario_file, data_path, post_to_rocket, pack_n_latest, target_dir):
-    data_path = Path(data_path)
-    data_path: Path = data_path.absolute()
-    scenario_file = Path(scenario_file).absolute()
-    target_dir = Path(target_dir)
-    scenario_name = scenario_file.stem
-
-    log_file_name = construct_log_file_name("pack-logs", data_path, scenario_file)
-    configure_logging_for_subcommand(log_file_name)
-
-    # The logs are located at .raiden/scenario-player/scenarios/<scenario-name>
-    # - make sure the path exists.
-    scenarios_path, scenario_log_dir = verify_scenario_log_dir(scenario_name, data_path)
-
-    # List all node folders which fall into the range of pack_n_latest
-    folders = pack_n_latest_node_logs_in_dir(scenario_log_dir, pack_n_latest)
-    # List all files that match the filters `scenario_name` and the `pack_n_latest` counter.
-    files = pack_n_latest_logs_for_scenario_in_dir(scenario_name, scenario_log_dir, pack_n_latest)
-
-    # Now that we have all our files, create a tar archive at the requested location.
-    archive_fpath = target_dir.joinpath(
-        f'Scenario_player_Logs-{scenario_name}-{pack_n_latest or "all"}-latest'
-        f"-{datetime.today():%Y-%m-%d}.tar.gz"
-    )
-
-    # Ensure the target archive's parents exist
-    Path(archive_fpath.parent).mkdir(parents=True, exist_ok=True)
-
-    with tarfile.open(archive_fpath, mode="w:gz") as archive:
-        for obj in chain(folders, files):
-            archive.add(str(obj), arcname=str(obj.relative_to(scenarios_path)))
-
-    # Print some feedback to stdout. This is also a sanity check,
-    # asserting the archive is readable.
-    # Race conditions are ignored.
-    print(f"Created archive at {archive_fpath}")
-    print(f"- {archive_fpath}")
-    with tarfile.open(str(archive_fpath)) as f:
-        for name in f.getnames():
-            print(f"- - {name}")
-
-    if post_to_rocket:
-        rc_message = {"msg": None, "description": None}
-        if pack_n_latest == 1:
-            # Index 0 will always return the latest log file for the scenario.
-            rc_message["text"] = construct_rc_message(
-                target_dir, archive_fpath, files[0], scenario_name
-            )
-            rc_message["description"] = f"Log files for scenario {scenario_name}"
-        post_to_rocket_chat(archive_fpath, **rc_message)
-
-
-def construct_rc_message(base_dir, packed_log, log_fpath, scenario_name) -> str:
-    """Check the result of the log file at the given `log_fpath`."""
-    result = None
-    exc = None
-    with log_fpath.open("r") as f:
-        for line in f:
-            json_obj = json.loads(line.strip())
-            if "result" in json_obj:
-                result = json_obj["result"]
-                exc = json_obj.get("exception", None)
-    if result == "success":
-        return f":white_check_mark: Successfully ran {scenario_name}!"
-    elif result is None:
-        message = (
-            f":skull_and_crossbones: {scenario_name} incomplete. No result found in log file."
-        )
-    else:
-        message = f":x: Error while running {scenario_name}: {result}!"
-        if exc:
-            message += "\n```\n" + exc + "\n```"
-    if scenario_name.startswith("ms"):
-        message += (
-            f"\nLog can be downloaded from:\n"
-            f"http://scenario-player.ci.raiden.network/{packed_log.relative_to(base_dir)}"
-        )
-    else:
-        message += (
-            f"\nLog can be downloaded from:\n"
-            f"http://68.183.70.168/{packed_log.relative_to(base_dir)}"
-        )
-    return message
-
-
-def post_to_rocket_chat(fpath, **rc_payload_fields):
-    try:
-        user = os.environ["RC_USER"]
-        pw = os.environ["RC_PW"]
-        room_id = os.environ["RC_ROOM_ID"]
-        room_name = "#" + os.environ["RC_ROOM_NAME"]
-
-    except KeyError as e:
-        raise RuntimeError("Missing Rocket Char Env variables!") from e
-
-    resp = requests.post(
-        "https://chat.brainbot.com/api/v1/login", data={"username": user, "password": pw}
-    )
-
-    rc_payload_fields["room_id"] = room_id
-    rc_payload_fields["channel"] = room_name
-    token = resp.json()["data"]["authToken"]
-    user_id = resp.json()["data"]["userId"]
-    headers = {"X-Auth-Token": token, "X-User-Id": user_id}
-
-    resp = requests.post(
-        f"https://chat.brainbot.com/api/v1/chat.postMessage",
-        headers=headers,
-        data=rc_payload_fields,
-    )
-    resp.raise_for_status()
 
 
 @main.command(name="version", help="Show versions of scenario_player and raiden environment.")
