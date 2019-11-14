@@ -194,6 +194,7 @@ class SettingsConfig(ConfigMapping):
         # definition values. These attributes store these overrides.
         self._cli_rpc_address = None
         self._cli_chain = None
+        self.chain_id = None
         self.sp_root_dir = None
         self._sp_scenario_root_dir = None
 
@@ -238,15 +239,6 @@ class SettingsConfig(ConfigMapping):
         Defaults to :var:`DEFAULT_NETWORK` test net.
         """
         return self._cli_chain or self.get("chain", DEFAULT_NETWORK)
-
-    @property
-    def chain_id(self):
-        """Return the chain ID for the configured chain.
-
-        This is set by the scenario player, and overridden if given
-        in the scenario definition file.
-        """
-        return self.get("chain_id")
 
     @property
     def eth_client(self) -> str:

@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import platform
-import random
 import shutil
 import socket
 import stat
@@ -267,7 +266,7 @@ class NodeRunner:
     @property
     def eth_rpc_endpoint(self):
         if not self._eth_rpc_endpoint:
-            self._eth_rpc_endpoint = random.choice(self._runner.eth_rpc_urls)
+            self._eth_rpc_endpoint = self._runner.definition.settings.eth_client_rpc_address
             log.debug(
                 "Using endpoint for node", node=self._index, rpc_endpoint=self._eth_rpc_endpoint
             )
