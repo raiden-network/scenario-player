@@ -1,75 +1,144 @@
 ################################################################################
-# COMPILATION STAGE (compile-image)                                            #
+# Scenario-Player Executable Docker Image                                      #
 ################################################################################
 #
-# Install the raiden client and scenario player from their github repositoires.
+# Builds an executable image of the scenario-player, offering options to customize
+# the raiden and scenario versions to run against.
+ARG SP_VERSION=master
+ARG RAIDEN_VERSION=develop
+ARG SCENARIOS_VERSION=develop
+
+
+################################################################################
+# COMPILE & INSTALL SCENARIO-PLAYER (sp-image)                                 #
+################################################################################
+#
+# Install the scenario player at version ${SP_VERSION} from its github
+# repository.
+#
+# This stage supports the following, optional build args:
+#
+#   - SP_VERSION (default: master)
+#     The version of the SP to run the nightlies with. It must be a `git ref`
+#     (tag, branch name, commit sha) present on the github repository.
+#
+# This stage also pulls the virtual environment from the raiden-image stage,
+# as it installs the scenario-player via pip.
+
+
+FROM python:3.7 AS sp-image
+ARG SP_VERSION
+
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Pull the Git repository for the scenario-player, and install it to the venv
+RUN git clone https://github.com/raiden-network/scenario-player.git /sp
+WORKDIR /sp
+RUN git checkout ${SP_VERSION}
+RUN pip freeze | grep raiden
+RUN pip install .
+RUN pip freeze | grep raiden
+
+
+################################################################################
+# COMPILE & INSTALL RAIDEN (raiden-image)                                                #
+################################################################################
+#
+# Install the Raiden client from the `raidennetwork/raiden` GitHub repository.
 #
 # This stage supports the following, optional build args:
 #
 #   - RAIDEN_VERSION (default: develop)
 #     The version of the Raiden client to run the nightlies against. This must be
-#     a valid docker tag available on the local machine or raidennetwork/raiden.
+#     a valid git-ref.
 #
-#   - SP_VERSION (default: master)
-#     The version of the SP to run the nightlies with.
+# This stage comes with a virtual environment; it needs to be copied to
+# sub-sequent build stages if they install one or more packages via `pip`.
+# It also always needs to be copied in the `execution-image` build stage.
+
+FROM python:3.7 AS raiden-image
+ARG RAIDEN_VERSION
+
+# Copy the virtual env from the sp-image build stage.
+COPY --from=sp-image /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN git clone https://github.com/raiden-network/raiden.git /raiden
+WORKDIR /raiden
+RUN git checkout ${RAIDEN_VERSION}
+RUN make install
+
+
+################################################################################
+# DOWNLOAD SCENARIOS (scenarios-image)                                         #
+################################################################################
+#
+# Download scenarios provisioned by the raiden github repository.
+#
+# This stage supports the following, optional build args:
 #
 #   - SCENARIOS_VERSION (default: develop)
 #     The branch or commit from which the scenarios should be checked out of the
 #     raiden repository.
 #
-# The build stage uses a virtual environment to install the raiden client
-# and scenario player tool, which can be copied to subsequent build stages,
-# in order to reduce image size.
 
-ARG RAIDEN_VERSION=develop
+FROM python:3.7 AS scenarios-image
+ARG SCENARIOS_VERSION
 
-FROM raidennetwork/raiden:${RAIDEN_VERSION} AS raiden-image
-FROM python:3.7 AS compile-image
-
-ARG SP_VERSION=master
-ARG SCENARIOS_VERSION=develop
-
-# Set up the build stage
-COPY --from=raiden-image /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-FROM python:3/7 AS sp-image
-# Install the Scenario Player
-RUN git clone https://github.com/raiden-network/scenario-player.git /sp
-WORKDIR /sp
-RUN git checkout ${SP_VERSION}
-RUN pip install .
-
-FROM python:3/7 AS scenarios-image
-# Install scenarios
-RUN git clone https://github.com/raiden-network/raiden.git /raiden
+# Fetch and copy scenarios
+COPY --from=raiden-image /raiden /raiden
 WORKDIR /raiden
-RUN git checkout ${SCENARIOS_VERSION}
+RUN git checkout . && git checkout ${SCENARIOS_VERSION}
 RUN cp -r /raiden/raiden/tests/scenarios /scenarios
 
 
-FROM python:3.7-slim as execution-image
-WORKDIR /
-
 ################################################################################
-# PREPARATION STEP (execution-image)                                           #
+# BUILD EXECUTION IMAGE (execution-image)                                      #
 ################################################################################
 #
-# Copies the raiden client, scenario player and scenario defnition files from the
-# compilation stage, and configure further environment variables required to run
-# the nightlies.
+# This stage copies the virtual environment from the build stage the venv was
+# last modified in and prepends its path to the $PATH environment variable.
 #
-# This stage copies the virtual environment created in the previous stage,
-# and prepends its location to the $PATH environment variable.
-#
-# Scenario definition files are also copied from the previous stage, and the
+# Scenario definition files are copied from the scenarios-image, and the
 # working directory is set to /scenarios, allowing users to specify the name
 # of the scenario yaml without a path.
+#
+# Finally, it sets the entrypoint for this image at the `scenario_player` command.
+#
 
-# Copy virtual env and scenario definition files.
-COPY --from=compile-image /opt/venv /opt/venv
-COPY --from=compile-image /scenarios /scenarios
+FROM python:3.7 as execution-image
+ARG SP_VERSION
+ARG RAIDEN_VERSION
+ARG SCENARIOS_VERSION
+
+LABEL maintainer=devops@brainbot.com
+LABEL org.label-schema.name="Raide Network Scenario Player"
+LABEL org.label-schema.description="An executable Scenario-player instance, complete with a raiden client and scenarios."
+LABEL org.label-schema.version=0.5.0
+LABEL org.label-schema.vcs-url="https://github.com/raiden-network/scenario-player"
+LABEL org.label-schema.vendor="Brainbot Laboratories"
+
+LABEL org.label-schema.build-args.raiden_version=${RAIDEN_VERSION}
+LABEL org.label-schema.build-args.sp_version=${SP_VERSION}
+LABEL org.label-schema.build-args.scenarios_version=${SCENARIOS_VERSION}
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
+    && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+    && dpkg-reconfigure --frontend=noninteractive locales \
+    && update-locale LANG=en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+
+
+# Copy virtual environment and update $PATH
+COPY --from=sp-image /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Copy scenarios
+COPY --from=scenarios-image /scenarios /scenarios
+
+# Set the workdir and entrypoint.
 WORKDIR /scenarios
 ENTRYPOINT ["scenario_player"]
