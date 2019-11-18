@@ -7,7 +7,7 @@ import time
 import uuid
 from collections import defaultdict, deque
 from datetime import datetime
-from itertools import chain, islice
+from itertools import chain as iter_chain, islice
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
 
@@ -349,18 +349,16 @@ def send_notification_mail(target_mail, subject, message, api_key):
         log.error("There was an error when sending the notification mail.", exception=str(e))
 
 
-def reclaim_eth(
-    account: Account, chain_rpc_urls: dict, data_path: pathlib.Path, min_age_hours: int
-):
-    web3s: Dict[str, Web3] = {
-        name: Web3(HTTPProvider(urls[0])) for name, urls in chain_rpc_urls.items()
-    }
+def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_age_hours: int):
+    chain_name, chain_url = chain_str.split(":", maxsplit=1)
+    log.info("in cmd", chain=chain_str, chain_name=chain_name, chain_url=chain_url)
 
+    web3s: Dict[str, Web3] = {chain_name: Web3(HTTPProvider(chain_url))}
     log.info("Starting eth reclaim", data_path=data_path)
 
     address_to_keyfile = dict()
     address_to_privkey = dict()
-    for node_dir in chain(data_path.glob("**/node_???"), data_path.glob("**/node_*_???")):
+    for node_dir in iter_chain(data_path.glob("**/node_???"), data_path.glob("**/node_*_???")):
         scenario_name: Path = node_dir.parent.name
         last_run = next(
             iter(
@@ -409,7 +407,7 @@ def reclaim_eth(
                 reclaim_amount[chain_name] += drain_amount
                 client = JSONRPCClient(web3, privkey)
                 txs[chain_name].add(
-                    client.send_transaction(
+                    client.get_next_transaction().send_transaction(
                         to=account.address, value=drain_amount, startgas=VALUE_TX_GAS_COST
                     )
                 )
