@@ -19,6 +19,7 @@ CI_CONFIG_DIR = os.environ["CI_CONFIG_DIR"]
 parts = {
     COMMIT_TYPES.FEAT: "minor",
     COMMIT_TYPES.FIX: "patch",
+    COMMIT_TYPES.BUMP: "bump_version",
 }
 
 PART = parts[COMMIT_TYPE]
