@@ -113,7 +113,7 @@ ARG SCENARIOS_VERSION
 LABEL maintainer=devops@brainbot.com
 LABEL org.label-schema.name="Raide Network Scenario Player"
 LABEL org.label-schema.description="An executable Scenario-player instance, complete with a raiden client and scenarios."
-LABEL org.label-schema.version=0.6.0
+LABEL org.label-schema.version=0.6.1
 LABEL org.label-schema.vcs-url="https://github.com/raiden-network/scenario-player"
 LABEL org.label-schema.vendor="Brainbot Laboratories"
 
