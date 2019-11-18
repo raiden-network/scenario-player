@@ -2,12 +2,6 @@
 
 HUB_REPO=raidennetwork/scenario-player
 
-if [[ "${DOCKER_TAG}" == "latest" ]]; then
-    SP_VERSION=master
-else
-    SP_VERSION=${DOCKER_TAG}
-fi
-
 build_image () {
     raiden_version=$1
     scenario_version=$2
@@ -24,12 +18,15 @@ push_image () {
     docker push ${HUB_REPO}:sp-${SP_VERSION}-raiden-${raiden_version}-scenarios-${scenario_version}
 }
 
-
-for raiden_version in master develop; do
-    for scenario_version in master develop; do
-        build_image ${raiden_version} ${scenario_version};
-        push_image ${raiden_version} ${scenario_version};
+if [[ "${DOCKER_TAG}" == "latest" ]]; then
+    # Don't build additional tags on `latest`
+    exit 0
+else
+    SP_VERSION=${DOCKER_TAG}
+    for raiden_version in master develop; do
+        for scenario_version in master develop; do
+            build_image ${raiden_version} ${scenario_version};
+            push_image ${raiden_version} ${scenario_version};
+        done
     done
-done
-
-
+fi
