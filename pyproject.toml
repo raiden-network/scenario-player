@@ -32,7 +32,7 @@ requires = [
     'raiden',
     'structlog',
     'simplejson',
-    'urwid',
+    'urwid!=2.1.0',
     'waitress',
 ]
 
