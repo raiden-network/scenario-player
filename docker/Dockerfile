@@ -36,9 +36,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN git clone https://github.com/raiden-network/scenario-player.git /sp
 WORKDIR /sp
 RUN git checkout ${SP_VERSION}
-RUN pip freeze | grep raiden
 RUN pip install .
-RUN pip freeze | grep raiden
 
 
 ################################################################################
