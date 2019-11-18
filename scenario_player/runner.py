@@ -93,7 +93,8 @@ class ScenarioRunner:
         if balance < OWN_ACCOUNT_BALANCE_MIN:
             raise ScenarioError(
                 f"Insufficient balance ({balance / 10 ** 18} Eth) "
-                f'in account {to_checksum_address(account.address)} on chain "{self.chain_name}"'
+                f"in account {to_checksum_address(account.address)} "
+                f'on chain "{self.definition.settings.chain}"'
                 f" - it needs additional {(OWN_ACCOUNT_BALANCE_MIN - balance) / 10 ** 18} Eth ("
                 f"that is {OWN_ACCOUNT_BALANCE_MIN - balance} Wei)."
             )
