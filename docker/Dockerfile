@@ -121,15 +121,6 @@ LABEL org.label-schema.build-args.raiden_version=${RAIDEN_VERSION}
 LABEL org.label-schema.build-args.sp_version=${SP_VERSION}
 LABEL org.label-schema.build-args.scenarios_version=${SCENARIOS_VERSION}
 
-#RUN apt-get update \
-#    && DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
-#    && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
-#    && dpkg-reconfigure --frontend=noninteractive locales \
-#    && update-locale LANG=en_US.UTF-8
-#ENV LANG en_US.UTF-8
-#ENV LC_ALL en_US.UTF-8
-
-
 # Copy virtual environment and update $PATH
 COPY --from=sp-image /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
