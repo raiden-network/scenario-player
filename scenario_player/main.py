@@ -326,21 +326,19 @@ def run(
 def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chain, data_path):
     from scenario_player.utils import reclaim_eth
 
+    log.info("start cmd", chain=chain)
+
     data_path = Path(data_path)
     if not chain:
-        chain_rpc_urls = {DEFAULT_NETWORK: DEFAULT_ETH_RPC_ADDRESS}
-    else:
-        network, url = chain.split(":", maxsplit=1)
-        chain_rpc_urls = {network: url}
+        chain = f"{DEFAULT_NETWORK}:{DEFAULT_ETH_RPC_ADDRESS}"
+    log.info("using chain", chain=chain)
 
     password = get_password(password, password_file)
     account = get_account(keystore_file, password)
 
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
-
-    reclaim_eth(
-        min_age_hours=min_age, chain_rpc_urls=chain_rpc_urls, data_path=data_path, account=account
-    )
+    log.info("start reclaim", chain=chain)
+    reclaim_eth(min_age_hours=min_age, chain_str=chain, data_path=data_path, account=account)
 
 
 @main.command(name="version", help="Show versions of scenario_player and raiden environment.")

@@ -121,6 +121,7 @@ class TestDataPathBehavior:
             f"--password-file {KEYSTORE_PATH.joinpath('password')} "
             f"--keystore-file {KEYSTORE_PATH.joinpath('UTC--1')} ",
         )
+        print(result.output)
         assert result.exit_code == 0
         for line in result.output.split("\n"):
             match = re.search(r"\/.*/use_this/.*.log", line)
