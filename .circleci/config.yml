@@ -83,6 +83,12 @@ commands:
           name: Add Environment variables to bash env.
           command: |
             echo 'export PATH=/home/circleci/ci/venv/bin:$PATH' >> ${BASH_ENV}
+            echo 'export LANGUAGE=en_US.UTF-8' >> ${BASH_ENV}
+            echo 'export LANG=en_US.UTF-8' >> ${BASH_ENV}
+            echo 'export LC_ALL=en_US.UTF-8' >> ${BASH_ENV}
+            locale-gen en_US.UTF-8
+            sudo dpkg-reconfigure locales
+
       - run:
           name: Setup git config.
           command: |
