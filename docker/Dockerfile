@@ -113,7 +113,7 @@ ARG SCENARIOS_VERSION
 LABEL maintainer=devops@brainbot.com
 LABEL org.label-schema.name="Raide Network Scenario Player"
 LABEL org.label-schema.description="An executable Scenario-player instance, complete with a raiden client and scenarios."
-LABEL org.label-schema.version=0.6.0
+LABEL org.label-schema.version="0.6.1"
 LABEL org.label-schema.vcs-url="https://github.com/raiden-network/scenario-player"
 LABEL org.label-schema.vendor="Brainbot Laboratories"
 
@@ -121,13 +121,13 @@ LABEL org.label-schema.build-args.raiden_version=${RAIDEN_VERSION}
 LABEL org.label-schema.build-args.sp_version=${SP_VERSION}
 LABEL org.label-schema.build-args.scenarios_version=${SCENARIOS_VERSION}
 
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
-    && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
-    && dpkg-reconfigure --frontend=noninteractive locales \
-    && update-locale LANG=en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
+#RUN apt-get update \
+#    && DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
+#    && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+#    && dpkg-reconfigure --frontend=noninteractive locales \
+#    && update-locale LANG=en_US.UTF-8
+#ENV LANG en_US.UTF-8
+#ENV LC_ALL en_US.UTF-8
 
 
 # Copy virtual environment and update $PATH
