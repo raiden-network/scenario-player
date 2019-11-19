@@ -38,7 +38,6 @@ WORKDIR /sp
 RUN git checkout ${SP_VERSION}
 RUN pip install .
 
-
 ################################################################################
 # COMPILE & INSTALL RAIDEN (raiden-image)                                                #
 ################################################################################
@@ -65,6 +64,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN git clone https://github.com/raiden-network/raiden.git /raiden
 WORKDIR /raiden
 RUN git checkout ${RAIDEN_VERSION}
+
+# Remove raiden installed in SP Image
+RUN pip uninstall raiden
 RUN make install
 
 
