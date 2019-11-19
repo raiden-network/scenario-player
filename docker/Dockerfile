@@ -66,7 +66,7 @@ WORKDIR /raiden
 RUN git checkout ${RAIDEN_VERSION}
 
 # Remove raiden installed in SP Image
-RUN pip uninstall raiden
+RUN pip uninstall --yes raiden
 RUN make install
 
 
