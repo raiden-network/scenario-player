@@ -61,13 +61,9 @@ ARG RAIDEN_VERSION
 COPY --from=sp-image /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN git clone https://github.com/raiden-network/raiden.git /raiden
-WORKDIR /raiden
-RUN git checkout ${RAIDEN_VERSION}
-
-# Remove raiden installed in SP Image
-RUN pip uninstall --yes raiden
-RUN make install
+# Install raiden from Github
+RUN pip uninstall raiden -y
+RUN pip install git+https://github.com/raiden-network/raiden.git@${RAIDEN_VERSION}
 
 
 ################################################################################
@@ -87,9 +83,9 @@ FROM python:3.7 AS scenarios-image
 ARG SCENARIOS_VERSION
 
 # Fetch and copy scenarios
-COPY --from=raiden-image /raiden /raiden
+RUN git clone https://github.com/raiden-network/raiden.git /raiden
 WORKDIR /raiden
-RUN git checkout . && git checkout ${SCENARIOS_VERSION}
+RUN git checkout ${SCENARIOS_VERSION}
 RUN cp -r /raiden/raiden/tests/scenarios /scenarios
 
 
