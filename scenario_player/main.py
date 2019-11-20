@@ -60,7 +60,7 @@ def configure_logging_for_subcommand(log_file_name):
     click.secho(f"Writing log to {log_file_name}", fg="yellow")
     configure_logging(
         {"": "INFO", "raiden": "DEBUG", "scenario_player": "DEBUG"},
-        debug_log_file_name=log_file_name,
+        debug_log_file_path=log_file_name,
         _first_party_packages=_FIRST_PARTY_PACKAGES | frozenset(["scenario_player"]),
         _debug_log_file_additional_level_filters={"scenario_player": "DEBUG"},
     )
