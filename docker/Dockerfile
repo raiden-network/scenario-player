@@ -33,9 +33,10 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Pull the Git repository for the scenario-player, and install it to the venv
-RUN git clone https://github.com/raiden-network/scenario-player.git /sp
+# RUN git clone https://github.com/raiden-network/scenario-player.git /sp
+COPY . /sp
 WORKDIR /sp
-RUN git checkout ${SP_VERSION}
+# RUN git checkout ${SP_VERSION}
 RUN pip install .
 
 ################################################################################
@@ -54,12 +55,12 @@ RUN pip install .
 # sub-sequent build stages if they install one or more packages via `pip`.
 # It also always needs to be copied in the `execution-image` build stage.
 
-FROM python:3.7 AS raiden-image
+# FROM python:3.7 AS raiden-image
 ARG RAIDEN_VERSION
 
 # Copy the virtual env from the sp-image build stage.
-COPY --from=sp-image /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+# COPY --from=sp-image /opt/venv /opt/venv
+# ENV PATH="/opt/venv/bin:$PATH"
 
 # Install raiden from Github
 RUN pip uninstall raiden -y
@@ -79,7 +80,7 @@ RUN pip install --force-reinstall urwid!=2.1.0
 #     raiden repository.
 #
 
-FROM python:3.7 AS scenarios-image
+# FROM python:3.7 AS scenarios-image
 ARG SCENARIOS_VERSION
 
 # Fetch and copy scenarios
@@ -103,7 +104,7 @@ RUN cp -r /raiden/raiden/tests/scenarios /scenarios
 # Finally, it sets the entrypoint for this image at the `scenario_player` command.
 #
 
-FROM python:3.7 as execution-image
+# FROM python:3.7 as execution-image
 ARG SP_VERSION
 ARG RAIDEN_VERSION
 ARG SCENARIOS_VERSION
@@ -120,11 +121,11 @@ LABEL org.label-schema.build-args.sp_version=${SP_VERSION}
 LABEL org.label-schema.build-args.scenarios_version=${SCENARIOS_VERSION}
 
 # Copy virtual environment and update $PATH
-COPY --from=sp-image /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+# COPY --from=sp-image /opt/venv /opt/venv
+# ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy scenarios
-COPY --from=scenarios-image /scenarios /scenarios
+# COPY --from=scenarios-image /scenarios /scenarios
 
 # Set the workdir and entrypoint.
 WORKDIR /scenarios
