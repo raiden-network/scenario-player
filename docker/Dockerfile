@@ -33,10 +33,9 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Pull the Git repository for the scenario-player, and install it to the venv
-# RUN git clone https://github.com/raiden-network/scenario-player.git /sp
-COPY . /sp
+RUN git clone https://github.com/raiden-network/scenario-player.git /sp
 WORKDIR /sp
-# RUN git checkout ${SP_VERSION}
+RUN git checkout ${SP_VERSION}
 RUN pip install .
 
 ################################################################################
