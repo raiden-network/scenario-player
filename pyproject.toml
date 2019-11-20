@@ -29,7 +29,7 @@ requires = [
     'pyyaml',
     'requests==2.22.0',
     'redis',
-    'raiden>=0.200.0.rc1',
+    'raiden',
     'structlog==19.1.0',
     'simplejson',
     'urwid!=2.1.0',
