@@ -47,7 +47,7 @@ class ScenarioRunner:
         auth: str,
         chain: str,
         data_path: Union[Path, str],
-        scenario_file: Path,
+        scenario_definition: ScenarioDefinition,
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
@@ -65,7 +65,7 @@ class ScenarioRunner:
         # Storage for arbitrary data tasks might need to persist
         self.task_storage = defaultdict(dict)
 
-        self.definition = ScenarioDefinition(scenario_file, data_path)
+        self.definition = scenario_definition
 
         log.debug("Local seed", seed=self.local_seed)
 

@@ -236,6 +236,15 @@ def run(
     if enable_ui:
         log_buffer = attach_urwid_logbuffer()
 
+    overrides = {
+        "spaas": {
+            "rpc": {
+                "port": service_port
+            }
+        }
+    }
+    scenario_definition = ScenarioDefinition(scenario_file, data_path, overrides)
+
     # Dynamically import valid Task classes from sceanrio_player.tasks package.
     collect_tasks(tasks)
 
@@ -247,7 +256,7 @@ def run(
     # Run the scenario using the configurations passed.
     try:
         runner = ScenarioRunner(
-            account, auth, chain, data_path, scenario_file, notify_tasks_callable
+            account, auth, chain, data_path, scenario_definition, notify_tasks_callable,
         )
     except Exception as e:
         # log anything that goes wrong during init of the runner and isn't handled.

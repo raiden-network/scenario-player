@@ -4,6 +4,7 @@ import pathlib
 
 import structlog
 import yaml
+from typing import Any, Dict
 
 from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from scenario_player.utils.configuration import (
@@ -24,10 +25,17 @@ class ScenarioDefinition:
     its contents.
     """
 
-    def __init__(self, yaml_path: pathlib.Path, data_path: pathlib.Path) -> None:
+    def __init__(
+            self,
+            yaml_path: pathlib.Path,
+            data_path: pathlib.Path,
+            overrides: Dict[str, Any]
+    ) -> None:
         self.path = yaml_path
         with yaml_path.open() as f:
             self._loaded = yaml.safe_load(f)
+        self._loaded.update(overrides)
+
         self._scenario_dir = None
         self.token = TokenConfig(self._loaded, data_path.joinpath("token.info"))
         deploy_token = self.token.address is None
