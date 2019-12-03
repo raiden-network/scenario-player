@@ -24,6 +24,7 @@ from scenario_player.constants import DEFAULT_ETH_RPC_ADDRESS, DEFAULT_NETWORK
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.exceptions.services import ServiceProcessException
+from scenario_player.definition import ScenarioDefinition
 from scenario_player.runner import ScenarioRunner
 from scenario_player.services.common.app import ServiceProcess
 from scenario_player.tasks.base import collect_tasks
@@ -169,6 +170,12 @@ def main(ctx):
     default=sys.stdout.isatty(),
     help="En-/disable console UI. [default: auto-detect]",
 )
+@click.option(
+    "--service-port",
+    type=click.INT,
+    default=5000,
+    help="HTTP service port"
+)
 @key_password_options
 @chain_option
 @data_path_option
@@ -185,6 +192,7 @@ def run(
     notify_tasks,
     enable_ui,
     password_file,
+    service_port,
 ):
     """Execute a scenario as defined in scenario definition file.
 
@@ -232,7 +240,7 @@ def run(
     collect_tasks(tasks)
 
     # Start our Services
-    service_process = ServiceProcess()
+    service_process = ServiceProcess(port=service_port)
 
     service_process.start()
 
