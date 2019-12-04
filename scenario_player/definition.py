@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import pathlib
+from typing import Any, Dict
 
 import structlog
 import yaml
-from typing import Any, Dict
 
 from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from scenario_player.utils.configuration import (

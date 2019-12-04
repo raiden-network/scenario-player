@@ -21,10 +21,10 @@ from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.utils.cli import EnumChoiceType
 from scenario_player import __version__, tasks
 from scenario_player.constants import DEFAULT_ETH_RPC_ADDRESS, DEFAULT_NETWORK
+from scenario_player.definition import ScenarioDefinition
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.exceptions.services import ServiceProcessException
-from scenario_player.definition import ScenarioDefinition
 from scenario_player.runner import ScenarioRunner
 from scenario_player.services.common.app import ServiceProcess
 from scenario_player.tasks.base import collect_tasks
@@ -249,7 +249,7 @@ def run(
     collect_tasks(tasks)
 
     # Start our Services
-    service_process = ServiceProcess(port=service_port)
+    service_process = ServiceProcess(port=scenario_definition.spaas.rpc.port)
 
     service_process.start()
 
