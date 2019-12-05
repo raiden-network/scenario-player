@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+import gevent
 import structlog
 from toolz import first
 
@@ -143,6 +144,7 @@ class StoreChannelInfoTask(ChannelActionTask):
 class AssertTask(ChannelActionTask):
     _name = "assert"
     _method = "get"
+    _timeout = 30
 
     def _process_response(self, response_dict: dict):
         response_dict = super()._process_response(response_dict)
@@ -171,6 +173,22 @@ class AssertTask(ChannelActionTask):
                     f"Channel: {response_dict}"
                 )
         return response_dict
+
+    def _run(self, *args, **kwargs):
+        exception = None
+        try:
+            with gevent.Timeout(self._timeout):
+                try:
+                    result = super()._run(*args, **kwargs)
+                except ScenarioError as ex:
+                    exception = ex
+
+                if result:
+                    return result
+
+                gevent.sleep(1)
+        except gevent.Timeout:
+            raise exception
 
 
 class AssertAllTask(ChannelActionTask):
