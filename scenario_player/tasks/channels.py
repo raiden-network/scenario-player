@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+from gevent import Timeout, sleep
 import structlog
 from toolz import first
 
@@ -163,6 +164,7 @@ class AssertTask(ChannelActionTask):
                 log.info("allow_error", allow_error=allow_error, error_success=success)
             else:
                 success = str(response_dict[field]) == str(self._config[field])
+
             if not success:
                 raise ScenarioAssertionError(
                     f'Value mismatch for "{field}". '
@@ -171,6 +173,25 @@ class AssertTask(ChannelActionTask):
                     f"Channel: {response_dict}"
                 )
         return response_dict
+
+    def _run(self, *args, **kwargs):
+        exception = None
+        try:
+            print(self._config)
+            with Timeout(self._config.get("timeout", 30)):
+                result = None
+                while True:
+                    try:
+                        result = super()._run(*args, **kwargs)
+                    except ScenarioError as ex:
+                        exception = ex
+
+                    if result:
+                        return result
+
+                    sleep(1)
+        except Timeout:
+            raise exception
 
 
 class AssertAllTask(ChannelActionTask):
