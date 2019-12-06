@@ -262,7 +262,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {},
             200,
-            {"balance": 100},
+            {"balance": "100"},
             id="assert-balance",
         ),
         pytest.param(
@@ -274,7 +274,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {},
             200,
-            {"balance": 101},
+            {"balance": "101"},
             id="assert-balance-with-allowed-error",
         ),
         pytest.param(
@@ -286,7 +286,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {},
             200,
-            {"total_deposit": 100},
+            {"total_deposit": "100"},
             id="assert-total_deposit",
         ),
         pytest.param(
@@ -310,7 +310,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
             {},
             200,
-            {"balance": 101},
+            {"balance": "101"},
             id="assert-balance-mismatch",
         ),
         pytest.param(
@@ -346,7 +346,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
-            [{"balance": 100}, {"balance": 50}],
+            [{"balance": "100"}, {"balance": "50"}],
             id="assert_all-balance-simple",
         ),
         pytest.param(
@@ -358,7 +358,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
-            [{"total_deposit": 100}, {"total_deposit": 50}],
+            [{"total_deposit": "100"}, {"total_deposit": "50"}],
             id="assert_all-total_deposit-simple",
         ),
         pytest.param(
@@ -382,7 +382,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
-            [{"balance": 100}, {}],
+            [{"balance": "100"}, {}],
             id="assert_all-balance-missing-field",
         ),
         pytest.param(
@@ -394,7 +394,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
-            [{"balance": 100}, {"balance": 50}],
+            [{"balance": "100"}, {"balance": "50"}],
             id="assert_all-balance-too-many-values",
         ),
         pytest.param(
@@ -406,7 +406,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
-            [{"balance": 100}, {"balance": 50}],
+            [{"balance": "100"}, {"balance": "50"}],
             id="assert_all-balance-not-found",
         ),
         pytest.param(
@@ -418,7 +418,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
-            [{"balance": 50}, {"balance": 50}],
+            [{"balance": "50"}, {"balance": "50"}],
             id="assert_sum-balance-simple",
         ),
         pytest.param(
@@ -430,7 +430,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
-            [{"total_deposit": 50}, {"total_deposit": 50}],
+            [{"total_deposit": "50"}, {"total_deposit": "50"}],
             id="assert_sum-total_deposit-simple",
         ),
         pytest.param(
@@ -454,7 +454,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
             {},
             200,
-            [{"balance": 50}, {"balance": 40}],
+            [{"balance": "50"}, {"balance": "40"}],
             id="assert_sum-balance-mismatch",
         ),
         pytest.param(
