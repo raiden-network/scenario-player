@@ -228,7 +228,7 @@ class AssertMSClaimTask(Task):
         reward_id = bytes(
             Web3.soliditySha3(  # pylint: disable=no-value-for-parameter
                 ["uint256", "address"],
-                [channel_infos["channel_identifier"], channel_infos["token_network_address"]],
+                [int(channel_infos["channel_identifier"]), channel_infos["token_network_address"]],
             )
         )
 

@@ -156,13 +156,13 @@ class AssertTask(ChannelActionTask):
             allow_error = self._config.get("allow_" + field + "_error")
             if allow_error:
                 success = (
-                    response_dict[field] - allow_error
+                    int(response_dict[field]) - allow_error
                     <= self._config[field]
-                    <= response_dict[field] + allow_error
+                    <= int(response_dict[field]) + allow_error
                 )
                 log.info("allow_error", allow_error=allow_error, error_success=success)
             else:
-                success = response_dict[field] == self._config[field]
+                success = str(response_dict[field]) == str(self._config[field])
             if not success:
                 raise ScenarioAssertionError(
                     f'Value mismatch for "{field}". '
@@ -206,7 +206,7 @@ class AssertAllTask(ChannelActionTask):
             channel_field_values_all = channel_field_values[:]
             for value in self._config[assert_field]:
                 try:
-                    channel_field_values.remove(value)
+                    channel_field_values.remove(str(value))
                 except ValueError:
                     channel_field_values_str = ", ".join(
                         str(val) for val in channel_field_values_all
@@ -248,7 +248,7 @@ class AssertSumTask(AssertAllTask):
                     )
                 channel_value_sum = first(channel_states)
             else:
-                channel_value_sum = sum(channel[field] for channel in response_dict)
+                channel_value_sum = sum(int(channel[field]) for channel in response_dict)
             if assert_value != channel_value_sum:
                 raise ScenarioAssertionError(
                     f'Expected sum value "{assert_value}" for channel fields "{field}". '
