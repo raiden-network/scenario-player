@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-import gevent
+from gevent import Timeout, sleep
 import structlog
 from toolz import first
 
@@ -144,7 +144,6 @@ class StoreChannelInfoTask(ChannelActionTask):
 class AssertTask(ChannelActionTask):
     _name = "assert"
     _method = "get"
-    _timeout = 30
 
     def _process_response(self, response_dict: dict):
         response_dict = super()._process_response(response_dict)
@@ -165,6 +164,7 @@ class AssertTask(ChannelActionTask):
                 log.info("allow_error", allow_error=allow_error, error_success=success)
             else:
                 success = str(response_dict[field]) == str(self._config[field])
+
             if not success:
                 raise ScenarioAssertionError(
                     f'Value mismatch for "{field}". '
@@ -177,17 +177,20 @@ class AssertTask(ChannelActionTask):
     def _run(self, *args, **kwargs):
         exception = None
         try:
-            with gevent.Timeout(self._timeout):
-                try:
-                    result = super()._run(*args, **kwargs)
-                except ScenarioError as ex:
-                    exception = ex
+            print(self._config)
+            with Timeout(self._config.get("timeout", 30)):
+                result = None
+                while True:
+                    try:
+                        result = super()._run(*args, **kwargs)
+                    except ScenarioError as ex:
+                        exception = ex
 
-                if result:
-                    return result
+                    if result:
+                        return result
 
-                gevent.sleep(1)
-        except gevent.Timeout:
+                    sleep(1)
+        except Timeout:
             raise exception
 
 
