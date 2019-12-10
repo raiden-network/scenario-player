@@ -29,6 +29,7 @@ class AssertPFSRoutesTask(RESTAPIActionTask):
     _name = "assert_pfs_routes"
     _method = "post"
     _url_template = "{pfs_url}/api/v1/{token_network_address}/paths"
+    DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
 
     @property
     def _request_params(self):
@@ -174,6 +175,7 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
     _url_template = (
         "{pfs_url}/api/v1/_debug/routes/{token_network_address}/{source_address}{extra_params}"
     )
+    DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
 
     @property
     def _url_params(self):
@@ -314,6 +316,7 @@ class AssertPFSIOUTask(RESTAPIActionTask):
 
     _name = "assert_pfs_iou"
     _url_template = "{pfs_url}/api/v1/_debug/ious/{source_address}"
+    DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
 
     def __init__(
         self, runner: scenario_runner.ScenarioRunner, config: Any, parent: Task = None

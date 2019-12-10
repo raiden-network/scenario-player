@@ -2,7 +2,6 @@ import hashlib
 from typing import Any
 
 import structlog
-from gevent import Timeout, sleep
 from toolz import first
 
 from raiden.utils.formatting import to_checksum_address
@@ -143,6 +142,7 @@ class AssertTask(ChannelActionTask):
     _name = "assert"
     _method = "get"
     SYNCHRONIZATION_TIME_SECONDS = 0
+    DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
 
     def _process_response(self, response_dict: dict):
         response_dict = super()._process_response(response_dict)
@@ -173,28 +173,12 @@ class AssertTask(ChannelActionTask):
                 )
         return response_dict
 
-    def _run(self, *args, **kwargs):
-        try:
-            with Timeout(self._config.get("timeout", 30)):
-                result = None
-                while True:
-                    try:
-                        result = super()._run(*args, **kwargs)
-                    except ScenarioError as ex:
-                        exception = ex
-
-                    if result:
-                        return result
-
-                    sleep(1)
-        except Timeout:
-            raise exception
-
 
 class AssertAllTask(ChannelActionTask):
     _name = "assert_all"
     _url_template = "{protocol}://{target_host}/api/v1/channels/{token_address}"
     _method = "get"
+    DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
 
     @property
     def _url_params(self):
