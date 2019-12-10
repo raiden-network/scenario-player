@@ -115,6 +115,7 @@ class AssertBlockchainEventsTask(Task):
 
     _name = "assert_events"
     SYNCHRONIZATION_TIME_SECONDS = 0
+    DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
 
     def __init__(
         self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
@@ -188,6 +189,7 @@ class AssertBlockchainEventsTask(Task):
 class AssertMSClaimTask(Task):
     _name = "assert_ms_claim"
     SYNCHRONIZATION_TIME_SECONDS = 0
+    DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
 
     def __init__(
         self, runner: scenario_runner.ScenarioRunner, config: Any, parent: Task = None

@@ -10,9 +10,10 @@ from typing import Any, Dict, Optional, Type
 import click
 import gevent
 import structlog
+from gevent import Timeout, sleep
 
 from scenario_player import runner as scenario_runner
-from scenario_player.exceptions import UnknownTaskTypeError
+from scenario_player.exceptions import ScenarioError, UnknownTaskTypeError
 
 log = structlog.get_logger(__name__)
 
@@ -82,6 +83,7 @@ class Task:
     #
     # Ref.: https://github.com/raiden-network/raiden/issues/6149#issuecomment-627387624
     SYNCHRONIZATION_TIME_SECONDS = 30
+    DEFAULT_TIMEOUT = 0  # 5 * 60  # 5 minutes
 
     def __init__(
         self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
@@ -108,8 +110,28 @@ class Task:
         self._runner.running_task_count += 1
         self._start_time = time.monotonic()
         try:
-            return_val = self._run(*args, **kwargs)
-            gevent.sleep(self.SYNCHRONIZATION_TIME_SECONDS)
+            # Zero means no timeout is desired
+            timeout_s = self._config.get("timeout", self.DEFAULT_TIMEOUT)
+            if timeout_s > 0:
+                exception: Optional[Exception] = None
+                try:
+                    with Timeout(self._config.get("timeout", self.DEFAULT_TIMEOUT)):
+                        return_val = None
+                        while True:
+                            try:
+                                return_val = self._run(*args, **kwargs)
+                            except ScenarioError as ex:
+                                exception = ex
+
+                            if return_val:
+                                return return_val
+
+                            sleep(timeout_s / 10)
+                except Timeout:
+                    if exception:
+                        raise exception
+            else:
+                return_val = self._run(*args, **kwargs)
         except BaseException as ex:
             self.state = TaskState.ERRORED
             log.exception("Task errored", task=self)
