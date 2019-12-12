@@ -216,7 +216,7 @@ class NodeRunner:
         try:
             ret = self.executor.start(**self._output_files)
         except ProcessExitedWithError as ex:
-            raise ScenarioError(f"Failed to start Raiden node {self._index}") from ex
+            raise ScenarioError(f"Failed to start Raiden node {self._index}: {ex}") from ex
         self.state = NodeState.STARTED
         duration = str(timedelta(seconds=time.monotonic() - begin))
         log.info("Node started", node=self._index, duration=duration)
@@ -225,24 +225,51 @@ class NodeRunner:
     def stop(self, timeout=60):
         log.info("Stopping node", node=self._index)
         begin = time.monotonic()
-        self.state = NodeState.STOPPED
-        ret = self.executor.stop(timeout=timeout)
-        duration = str(timedelta(seconds=time.monotonic() - begin))
-        for file in self._output_files.values():
-            file.write("--------- Stopped ---------\n")
-            file.close()
-        self._output_files = {}
-        log.info("Node stopped", node=self._index, duration=duration)
+
+        try:
+            # Check the node one last time to avoid clobbering an unclean exit status
+            self.check()
+            # If `check()` raises an exception `stop()` will not be called, but that's ok since
+            # the node will be dead already.
+            ret = self.executor.stop(timeout=timeout)
+        finally:
+            self.state = NodeState.STOPPED
+            duration = str(timedelta(seconds=time.monotonic() - begin))
+            for file in self._output_files.values():
+                file.write("--------- Stopped ---------\n")
+                file.close()
+            self._output_files = {}
+            log.info("Node stopped", node=self._index, duration=duration)
         return ret
 
     def kill(self):
         log.info("Killing node", node=self._index)
-        for file in self._output_files.values():
-            file.write("--------- Killed ---------\n")
-            file.close()
-        self._output_files = {}
-        self.state = NodeState.STOPPED
+        try:
+            # Check the node one last time to avoid clobbering an unclean exit status
+            self.check()
+        finally:
+            for file in self._output_files.values():
+                file.write("--------- Killed ---------\n")
+                file.close()
+            self._output_files = {}
+            self.state = NodeState.STOPPED
         return self.executor.kill()
+
+    def check(self):
+        if self.state is not NodeState.STARTED:
+            return
+        try:
+            try:
+                self.executor.check_subprocess()
+            except ProcessExitedWithError as ex:
+                raise ScenarioError(
+                    f"Raiden node {self._index} died with non-zero exit status: {ex.exit_code}"
+                ) from ex
+        except BaseException:
+            # We do this nested handling to log the proper re-raised ScenarioError
+            # exception and message.
+            log.exception("Node error")
+            raise
 
     def update_options(self, new_options: Dict[str, Any]):
         if self.state is not NodeState.STOPPED:
@@ -507,16 +534,7 @@ class NodeController:
         def _monitor(runner: NodeRunner):
             while not self._runner.root_task.done:
                 if runner.state is NodeState.STARTED:
-                    try:
-                        runner.executor.check_subprocess()
-                    except ProcessExitedWithError as ex:
-                        log.exception("Node Error - Process", exception=ex)
-                        raise ScenarioError(
-                            f"Raiden node {runner._index} died with non-zero exit status"
-                        ) from ex
-                    except BaseException as ex:
-                        log.exception("Node Error - Other", exception=ex)
-                        raise
+                    runner.check()
                 gevent.sleep(0.5)
 
         monitor_group = Group()
