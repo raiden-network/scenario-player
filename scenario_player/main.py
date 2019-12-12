@@ -267,7 +267,7 @@ def run(
         subject = f"Assertion mismatch in {scenario_file.name}"
         message = str(ex)
     except ScenarioError as ex:
-        log.error("Run finished", result="scenario error")
+        log.error("Run finished", result="scenario error", message=str(ex))
         if hasattr(ex, "exit_code"):
             exit_code = ex.exit_code
         else:
