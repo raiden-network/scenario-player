@@ -510,12 +510,12 @@ class NodeController:
                     try:
                         runner.executor.check_subprocess()
                     except ProcessExitedWithError as ex:
-                        log.error("Node Error - Process", exception=ex)
+                        log.exception("Node Error - Process", exception=ex)
                         raise ScenarioError(
                             f"Raiden node {runner._index} died with non-zero exit status"
                         ) from ex
                     except BaseException as ex:
-                        log.error("Node Error - Other", exception=ex)
+                        log.exception("Node Error - Other", exception=ex)
                         raise
                 gevent.sleep(0.5)
 

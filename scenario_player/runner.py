@@ -284,7 +284,7 @@ class ScenarioRunner:
         try:
             gevent.joinall(greenlets, raise_error=True)
         except BaseException as exc:
-            log.error("Greenlet Error", exception=exc)
+            log.exception("Greenlet Error", exception=exc)
             if not root_task_greenlet.dead:
                 # Make sure we kill the tasks if a node dies
                 root_task_greenlet.kill()
