@@ -3,8 +3,8 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from gevent import Timeout, sleep
 import structlog
+from gevent import Timeout, sleep
 from toolz import first
 
 from scenario_player import runner as scenario_runner
