@@ -1,6 +1,6 @@
 from raiden_contracts.constants import CONTRACTS_VERSION
 
-from raiden.utils import get_system_spec as raiden_system_spec
+from raiden.utils.system import get_system_spec as raiden_system_spec
 from scenario_player import __version__
 
 
