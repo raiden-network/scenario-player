@@ -176,6 +176,16 @@ class HTTPExecutor(mirakuru.HTTPExecutor):
         self._clear_process()
         return self
 
+    def wait_for(self, wait_for):
+        while self.check_timeout():
+            if wait_for():
+                return self
+            time.sleep(self._sleep)
+
+        log.fatal("Killing node", cmd=self._shell)
+        self.kill()
+        raise TimeoutExpired(self, timeout=self._timeout)
+
     def _set_timeout(self, timeout=None):
         """
         Forward ported from mirakuru==1.0.0:mirakuru.base::SimpleExecutor._set_timeout() since
