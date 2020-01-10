@@ -267,7 +267,8 @@ class ScenarioRunner:
                 code, msg = self.register_token(self.token.checksum_address, first_node)
                 if 199 < code < 300:
                     break
-                gevent.sleep(1)
+                # FIXME: Remove long sleep and instead intelligently handle Raiden 5 block wait
+                gevent.sleep(15)
             else:
                 log.error("Couldn't register token with network", code=code, message=msg)
                 raise TokenRegistrationError(msg)
