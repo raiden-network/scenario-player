@@ -222,7 +222,8 @@ class NodeRunner:
         log.info("Node started", node=self._index, duration=duration)
         return ret
 
-    def stop(self, timeout=60):
+    # FIXME: Make node stop configurable?
+    def stop(self, timeout=180):
         log.info("Stopping node", node=self._index)
         begin = time.monotonic()
 
