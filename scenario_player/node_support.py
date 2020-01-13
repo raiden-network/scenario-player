@@ -224,6 +224,10 @@ class NodeRunner:
 
     # FIXME: Make node stop configurable?
     def stop(self, timeout=180):
+        if self.state is not NodeState.STARTED:
+            log.warning("Can't stop already stopped node", node=self._index, state=self.state)
+            return
+
         log.info("Stopping node", node=self._index)
         begin = time.monotonic()
 
@@ -232,9 +236,9 @@ class NodeRunner:
             self.check()
             # If `check()` raises an exception `stop()` will not be called, but that's ok since
             # the node will be dead already.
+            self.state = NodeState.STOPPED
             ret = self.executor.stop(timeout=timeout)
         finally:
-            self.state = NodeState.STOPPED
             duration = str(timedelta(seconds=time.monotonic() - begin))
             for file in self._output_files.values():
                 file.write("--------- Stopped ---------\n")
@@ -244,17 +248,26 @@ class NodeRunner:
         return ret
 
     def kill(self):
+        if self.state is not NodeState.STARTED:
+            log.warning("Can't kill already stopped node", node=self._index, state=self.state)
+            return
+
         log.info("Killing node", node=self._index)
+
         try:
             # Check the node one last time to avoid clobbering an unclean exit status
             self.check()
+            # If `check()` raises an exception `kill()` will not be called, but that's ok since
+            # the node will be dead already.
+            self.state = NodeState.STOPPED
+            ret = self.executor.kill()
         finally:
             for file in self._output_files.values():
                 file.write("--------- Killed ---------\n")
                 file.close()
             self._output_files = {}
-            self.state = NodeState.STOPPED
-        return self.executor.kill()
+            log.info("Node killed", node=self._index)
+        return ret
 
     def check(self):
         if self.state is not NodeState.STARTED:
