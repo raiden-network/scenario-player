@@ -278,7 +278,10 @@ class Token(Contract):
 
         try:
             check_address_has_code(
-                self._local_rpc_client, address=address, contract_name=contract_name
+                client=self._local_rpc_client,
+                address=address,
+                contract_name=contract_name,
+                given_block_identifier="latest",
             )
         except AddressWithoutCode as e:
             raise TokenSourceCodeDoesNotExist(
