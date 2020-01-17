@@ -19,6 +19,8 @@ style: isort black
 
 lint: flake8 black-check isort-check
 
+format: isort black
+
 install:
 	pip install --force-reinstall -U .
 

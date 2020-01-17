@@ -250,7 +250,12 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
             address = token_data["address"]
             block = token_data["block"]
     if address:
-        check_address_has_code(runner.client, address, "Token")
+        check_address_has_code(
+            client=runner.client,
+            address=address,
+            contract_name="Token",
+            given_block_identifier="latest",
+        )
         token_ctr = runner.client.new_contract_proxy(token_contract["abi"], address)
 
         log.debug(
