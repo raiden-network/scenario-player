@@ -22,7 +22,7 @@ requires = [
     'eth-utils==1.6.4',
     'flask==1.0.3',
     'flask_marshmallow',
-    'gevent==1.3.7',
+    'gevent',
     'marshmallow==3.2.2',
     'pluggy',
     'prometheus_client',
