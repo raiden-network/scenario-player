@@ -84,6 +84,7 @@ class ScenarioRunner:
             Web3(HTTPProvider(self.definition.settings.eth_client_rpc_address)),
             privkey=account.privkey,
             gas_price_strategy=self.definition.settings.gas_price_strategy,
+            block_num_confirmations=2,
         )
 
         self.definition.settings.chain_id = int(self.client.web3.net.version)
@@ -248,7 +249,6 @@ class ScenarioRunner:
             should_deposit_ud_token=should_deposit_ud_token,
             gas_limit=mint_gas,
         )
-
         wait_for_txs(self.client, fund_tx | ud_token_tx | mint_tx)
 
         if node_starter is not None:

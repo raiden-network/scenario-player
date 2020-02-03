@@ -16,7 +16,7 @@ import mirakuru
 import requests
 import structlog
 from eth_keyfile import decode_keyfile_json
-from eth_utils import to_checksum_address
+from eth_utils import to_checksum_address, remove_0x_prefix
 from mirakuru import AlreadyRunning, TimeoutExpired
 from mirakuru.base import ENV_UUID, IGNORED_ERROR_CODES
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
@@ -197,35 +197,36 @@ class HTTPExecutor(mirakuru.HTTPExecutor):
             self._endtime = time.time() + timeout
 
 
-def wait_for_txs(
-    client_or_web3: Union[Web3, JSONRPCClient], txhashes: Set[TransactionHash], timeout: int = 360
-):
-    if isinstance(client_or_web3, Web3):
-        web3 = client_or_web3
-    else:
-        web3 = client_or_web3.web3
+def wait_for_txs(client: JSONRPCClient, txhashes: Set[TransactionHash], timeout: int = 360):
+
     start = time.monotonic()
     outstanding = False
-    txhashes = set(txhashes)
-    while txhashes and time.monotonic() - start < timeout:
+    txhashes_bytes = []
+
+    ## for some reason txhashes is a set of str, not bytes
+    for txhash in txhashes:
+        if isinstance(txhash, str):
+            txhashes_bytes.append(bytes.fromhex(remove_0x_prefix(txhash)))
+
+    while txhashes_bytes and time.monotonic() - start < timeout:
         remaining_timeout = timeout - (time.monotonic() - start)
-        if outstanding != len(txhashes) or int(remaining_timeout) % 10 == 0:
-            outstanding = len(txhashes)
+        if outstanding != len(txhashes_bytes) or int(remaining_timeout) % 10 == 0:
+            outstanding = len(txhashes_bytes)
             log.debug(
                 "Waiting for tx confirmations",
                 outstanding=outstanding,
                 timeout_remaining=int(remaining_timeout),
             )
-        for txhash in txhashes.copy():
-            tx = web3.eth.getTransactionReceipt(txhash)
+        for txhash in txhashes_bytes.copy():
+            tx = client.poll(txhash)
             if tx and tx["blockNumber"] is not None:
                 status = tx.get("status")
                 if status is not None and status == 0:
                     raise ScenarioTxError(f"Transaction {txhash} failed.")
-                txhashes.remove(txhash)
+                txhashes_bytes.remove(txhash)
             time.sleep(0.1)
         time.sleep(1)
-    if len(txhashes):
+    if len(txhashes_bytes):
         txhashes_str = ", ".join(txhash for txhash in txhashes)
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
 
@@ -404,6 +405,7 @@ def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_a
 
     txs = defaultdict(set)
     reclaim_amount = defaultdict(int)
+    map_chain_name_to_client = dict()
     for chain_name, web3 in web3s.items():
         log.info("Checking chain", chain=chain_name)
         for address, keyfile_content in address_to_keyfile.items():
@@ -426,8 +428,9 @@ def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_a
                         to=account.address, value=drain_amount, startgas=VALUE_TX_GAS_COST
                     )
                 )
+                map_chain_name_to_client[chain_name] = client
     for chain_name, chain_txs in txs.items():
-        wait_for_txs(web3s[chain_name], chain_txs, 1000)
+        wait_for_txs(map_chain_name_to_client[chain_name], chain_txs, 1000)
     for chain_name, amount in reclaim_amount.items():
         log.info("Reclaimed", chain=chain_name, amount=amount.__format__(",d"))
 
