@@ -223,7 +223,7 @@ def wait_for_txs(
                 if status is not None and status == 0:
                     raise ScenarioTxError(f"Transaction {txhash} failed.")
                 ## we want to add 2 blocks as confirmation
-                if tx["blockNumber"] + 2 >= web3.eth.getBlock("latest")['number']:
+                if tx["blockNumber"] + 2 < web3.eth.getBlock("latest")['number']:
                     txhashes.remove(txhash)
             time.sleep(0.1)
         time.sleep(1)
