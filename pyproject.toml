@@ -23,7 +23,7 @@ requires = [
     'flask==1.0.3',
     'flask_marshmallow',
     'gevent',
-    'marshmallow==3.2.2',
+    'marshmallow',
     'pluggy',
     'prometheus_client',
     'pyyaml',
