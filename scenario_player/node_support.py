@@ -223,7 +223,7 @@ class NodeRunner:
         return ret
 
     # FIXME: Make node stop configurable?
-    def stop(self, timeout=180):
+    def stop(self, timeout=600):  # 10 mins
         if self.state is not NodeState.STARTED:
             log.warning("Can't stop already stopped node", node=self._index, state=self.state)
             return
