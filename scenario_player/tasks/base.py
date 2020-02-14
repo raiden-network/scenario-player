@@ -84,7 +84,8 @@ class Task:
             self._stop_time = time.monotonic()
             self._runner.running_task_count -= 1
             if self.state is TaskState.RUNNING:
-                log.info("Task successful", task=self)
+                runtime = self._stop_time - self._start_time
+                log.info("Task successful", task=self, runtime=runtime)
                 self.state = TaskState.FINISHED
 
     def _run(self, *args, **kwargs):  # pylint: disable=unused-argument,no-self-use
