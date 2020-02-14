@@ -178,7 +178,7 @@ class Token(Contract):
         It is an error to access this property before the token is deployed.
         """
         if self.deployed:
-            return self.contract_proxy.contract.functions.balanceOf(self.address).call()
+            return self.contract_proxy.functions.balanceOf(self.address).call()
         else:
             raise TokenNotDeployed
 
@@ -305,7 +305,7 @@ class Token(Contract):
             "Reusing token",
             address=checksummed_address,
             name=contract_name,
-            symbol=self.contract_proxy.contract.functions.symbol().call(),
+            symbol=self.contract_proxy.functions.symbol().call(),
         )
         return checksummed_address, block
 
@@ -371,34 +371,34 @@ class UserDepositContract(Contract):
     """
 
     def __init__(self, scenario_runner, contract_proxy, token_proxy):
-        super().__init__(scenario_runner, address=contract_proxy.contract_address)
+        super().__init__(scenario_runner, address=contract_proxy.address)
         self.contract_proxy = contract_proxy
         self.token_proxy = token_proxy
         self.tx_hashes = set()
 
     @property
     def ud_token_address(self) -> ChecksumAddress:
-        return to_checksum_address(self.token_proxy.contract_address)
+        return to_checksum_address(self.token_proxy.address)
 
     @property
     def allowance(self):
         """Return the currently configured allowance of the UDToken Contract."""
-        return self.token_proxy.contract.functions.allowance(
+        return self.token_proxy.functions.allowance(
             self._local_rpc_client.address, self.address
         ).call()
 
     @property
     def balance(self):
         """Proxy the balance call to the UDTC."""
-        return self.token_proxy.contract.functions.balanceOf(self.ud_token_address).call()
+        return self.token_proxy.functions.balanceOf(self.ud_token_address).call()
 
     def effective_balance(self, at_target):
         """Get the effective balance of the target address."""
-        return self.contract_proxy.contract.functions.effectiveBalance(at_target).call()
+        return self.contract_proxy.functions.effectiveBalance(at_target).call()
 
     def total_deposit(self, at_target):
         """"Get the so far deposted amount"""
-        return self.contract_proxy.contract.functions.total_deposit(at_target).call()
+        return self.contract_proxy.functions.total_deposit(at_target).call()
 
     def mint(
         self, target_address, required_balance=None, max_fund_amount=None, **kwargs

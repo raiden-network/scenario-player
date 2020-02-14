@@ -17,8 +17,9 @@ from web3 import HTTPProvider, Web3
 from raiden.accounts import Account
 from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import JSONRPCClient
-from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from raiden.utils.typing import TransactionHash
+from web3.contract import Contract
+
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
     API_URL_TOKENS,
@@ -294,7 +295,7 @@ class ScenarioRunner:
     def _initialize_scenario_token(
         self,
         node_addresses: Set[ChecksumAddress],
-        udc_ctr: Optional[ContractProxy],
+        udc_ctr: Optional[Contract],
         should_deposit_ud_token: bool,
         gas_limit: int,
     ) -> Set[TransactionHash]:
@@ -318,7 +319,7 @@ class ScenarioRunner:
 
     def _initialize_udc(
         self, gas_limit: int, node_count: int
-    ) -> Tuple[Set[TransactionHash], Optional[ContractProxy], bool]:
+    ) -> Tuple[Set[TransactionHash], Optional[Contract], bool]:
         our_address = to_checksum_address(self.client.address)
         udc_settings = self.definition.settings.services.udc
         udc_enabled = udc_settings.enable
@@ -330,8 +331,8 @@ class ScenarioRunner:
 
         udc_ctr, ud_token_ctr = get_udc_and_token(self)
 
-        ud_token_address = to_checksum_address(ud_token_ctr.contract_address)
-        udc_address = to_checksum_address(udc_ctr.contract_address)
+        ud_token_address = to_checksum_address(ud_token_ctr.address)
+        udc_address = to_checksum_address(udc_ctr.address)
 
         log.info("UDC enabled", contract_address=udc_address, token_address=ud_token_address)
 

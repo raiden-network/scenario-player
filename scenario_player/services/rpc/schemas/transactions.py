@@ -8,7 +8,7 @@ class SendTransactionSchema(RPCCreateResourceSchema):
     """Validator for POST /rpc/transactions requests"""
 
     # Serialization fields.
-    to = String(required=True, load_only=True)
+    to = BytesField(required=True, load_only=True)
     startgas = Integer(required=True, load_only=True)
     value = Integer(required=True, load_only=True, as_string=False)
 

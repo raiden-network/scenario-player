@@ -26,9 +26,10 @@ from web3 import HTTPProvider, Web3
 
 from raiden.accounts import Account
 from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
-from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.typing import TransactionHash
+from web3.contract import Contract
+
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
 
 RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)
@@ -232,7 +233,7 @@ def wait_for_txs(
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
 
 
-def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
+def get_or_deploy_token(runner) -> Tuple[Contract, int]:
     """ Deploy or reuse  """
     token_contract = runner.contract_manager.get_contract(CONTRACT_CUSTOM_TOKEN)
 
@@ -282,7 +283,7 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
         constructor_parameters=(1, decimals, name, symbol),
     )
     contract_deployment_block = receipt["blockNumber"]
-    contract_checksum_address = to_checksum_address(token_ctr.contract_address)
+    contract_checksum_address = to_checksum_address(token_ctr.address)
     if reuse:
         token_address_file.write_text(
             json.dumps({"address": contract_checksum_address, "block": contract_deployment_block})
@@ -292,7 +293,7 @@ def get_or_deploy_token(runner) -> Tuple[ContractProxy, int]:
     return token_ctr, contract_deployment_block
 
 
-def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[ContractProxy]]:
+def get_udc_and_token(runner) -> Tuple[Optional[Contract], Optional[Contract]]:
     """ Return contract proxies for the UserDepositContract and associated token """
     from scenario_player.runner import ScenarioRunner
 
@@ -312,7 +313,7 @@ def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[Contrac
     udc_abi = runner.contract_manager.get_contract_abi(CONTRACT_USER_DEPOSIT)
     udc_proxy = runner.client.new_contract_proxy(udc_abi, udc_address)
 
-    ud_token_address = udc_proxy.contract.functions.token().call()
+    ud_token_address = udc_proxy.functions.token().call()
     # FIXME: We assume the UD token is a CustomToken (supporting the `mint()` function)
     custom_token_abi = runner.contract_manager.get_contract_abi(CONTRACT_CUSTOM_TOKEN)
     ud_token_proxy = runner.client.new_contract_proxy(custom_token_abi, ud_token_address)
@@ -321,7 +322,7 @@ def get_udc_and_token(runner) -> Tuple[Optional[ContractProxy], Optional[Contrac
 
 
 def mint_token_if_balance_low(
-    token_contract: ContractProxy,
+    token_contract: Contract,
     target_address: str,
     min_balance: int,
     fund_amount: int,

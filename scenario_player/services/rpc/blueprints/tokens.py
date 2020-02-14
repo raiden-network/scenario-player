@@ -18,6 +18,7 @@ The following endpoints are supplied by this blueprint:
 import structlog
 from eth_utils.address import to_checksum_address
 from flask import Blueprint, Response, jsonify, request
+from raiden.network.rpc.client import JSONRPCClient
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
 
@@ -111,7 +112,7 @@ def deploy_token():
             constructor_parameters=(1, decimals, name, symbol),
         )
 
-        contract_address = to_checksum_address(token_contract.contract_address)
+        contract_address = to_checksum_address(token_contract.address)
         log.debug(
             "Received deployment receipt", receipt=receipt, contract_address=contract_address
         )
@@ -192,7 +193,7 @@ def call_contract(action):
 
 
 def transact_call(key, data):
-    rpc_client = data["client"]
+    rpc_client: JSONRPCClient = data["client"]
     contract_manager = ContractManager(contracts_precompiled_path())
 
     action, contract = TRANSACT_ACTIONS[key]
@@ -215,4 +216,4 @@ def transact_call(key, data):
         # The deposit function expects the address first, amount second.
         args = (data["target_address"], data["amount"])
 
-    return contract_proxy.transact(action, data["gas_limit"], *args)
+    return rpc_client.transact(contract_proxy, action, data["gas_limit"], *args)
