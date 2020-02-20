@@ -287,7 +287,7 @@ class NodeRunner:
         except BaseException:
             # We do this nested handling to log the proper re-raised ScenarioError
             # exception and message.
-            log.exception("Node error")
+            log.exception(f"Node ({self._index}) error")
             raise
 
     def update_options(self, new_options: Dict[str, Any]):

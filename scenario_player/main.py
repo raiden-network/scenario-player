@@ -3,6 +3,8 @@ import json
 import os
 import sys
 import traceback
+from collections import namedtuple
+from contextlib import contextmanager, nullcontext
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -11,8 +13,10 @@ import click
 import gevent
 import structlog
 from eth_utils import to_checksum_address
+from mirakuru.exceptions import ProcessExitedWithError
 from urwid import ExitMainLoop
 from web3._utils.transactions import TRANSACTION_DEFAULTS
+from gevent.event import AsyncResult
 
 from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
@@ -220,94 +224,168 @@ def run(
             )
         notify_tasks_callable = post_task_state_to_rc
 
-    log_buffer = None
-
-    # If the output is a terminal, beautify our output.
-    if enable_ui:
-        log_buffer = attach_urwid_logbuffer()
-
     # Dynamically import valid Task classes from sceanrio_player.tasks package.
     collect_tasks(tasks)
 
     # Start our Services
-    service_process = ServiceProcess()
 
-    service_process.start()
-
-    # Run the scenario using the configurations passed.
+    report = dict()
+    success = AsyncResult()
+    success.set_result(False)
     try:
-        runner = ScenarioRunner(
-            account, auth, chain, data_path, scenario_file, notify_tasks_callable
+        orchestrate(
+            report,
+            success,
+            enable_ui,
+            log_file_name,
+            mailgun_api_key,
+            ScenarioRunnerArgs(
+                account,
+                auth,
+                chain,
+                data_path,
+                scenario_file,
+                notify_tasks_callable,
+            )
         )
-    except Exception as e:
-        # log anything that goes wrong during init of the runner and isn't handled.
-        log.exception("Error during startup", exception=e)
-        raise
-
-    ui = None
-    ui_greenlet = None
-    if enable_ui:
-        ui = ScenarioUI(runner, log_buffer, log_file_name)
-        ui_greenlet = ui.run()
-    success = False
-    exit_code = 1
-    subject = None
-    message = None
-
-    try:
-        runner.run_scenario()
     except ScenarioAssertionError as ex:
         log.error("Run finished", result="assertion errors")
         if hasattr(ex, "exit_code"):
             exit_code = ex.exit_code
         else:
             exit_code = 30
-        subject = f"Assertion mismatch in {scenario_file.name}"
-        message = str(ex)
+        report.update(dict(subject=f"Assertion mismatch in {scenario_file.name}", message=str(ex)))
+        exit(exit_code)
     except ScenarioError as ex:
         log.error("Run finished", result="scenario error", message=str(ex))
         if hasattr(ex, "exit_code"):
             exit_code = ex.exit_code
         else:
             exit_code = 20
-        subject = f"Invalid scenario {scenario_file.name}"
-        message = traceback.format_exc()
+        report.update(
+            dict(subject=f"Invalid scenario {scenario_file.name}", message=traceback.format_exc())
+        )
+        exit(exit_code)
     except Exception as ex:
         log.exception("Exception while running scenario")
         if hasattr(ex, "exit_code"):
             exit_code = ex.exit_code
         else:
             exit_code = 10
-        subject = f"Error running scenario {scenario_file.name}"
-        message = traceback.format_exc()
+        report.update(
+            dict(
+                subject=f"Error running scenario {scenario_file.name}",
+                message=traceback.format_exc(),
+            )
+        )
+        exit(exit_code)
     else:
-        success = True
+        success.set_result(True)
         exit_code = 0
         log.info("Run finished", result="success")
-        subject = f"Scenario successful {scenario_file.name}"
-        message = "Success"
-    finally:
-        send_notification_mail(
-            runner.definition.settings.notify,
-            subject or "Logic error in main.py",
-            message or "Message should not be empty.",
-            mailgun_api_key,
-        )
+        report.update(dict(subject=f"Scenario successful {scenario_file.name}", message="Success"))
+        log.info("Scenario player unwind complete")
+        exit(exit_code)
+
+
+ScenarioRunnerArgs = namedtuple(
+    "ScenarioRunnerArgs",
+    ["account", "auth", "chain", "data_path", "scenario_file", "notify_tasks_callable"],
+)
+
+
+def orchestrate(
+    report_container,
+    success,
+    enable_ui,
+    log_file_name,
+    mailgun_api_key,
+    scenario_runner_args,
+):
+    try:
+        service_manager = ServiceProcessManager()
+        scenario_runner = ScenarioRunner(*scenario_runner_args)
+        runner_manager = ScenarioRunnerManager(scenario_runner)
+        notify_setting = runner_manager.scenario_runner.definition.settings.notify
+        reporter = report_result(report_container, notify_setting, mailgun_api_key)
+        with reporter, runner_manager as runner, service_manager:
+            log.info("Startup complete")
+            if enable_ui:
+                log_buffer = attach_urwid_logbuffer()
+                ui = ScenarioUIManager(runner, log_buffer, log_file_name, success)
+            else:
+                ui = nullcontext()
+            with ui:
+                runner.run_scenario()
+    except Exception:
+        raise
+
+
+class ScenarioUIManager:
+    def __init__(self, runner, log_buffer, log_file_name, success):
+        self.ui = ScenarioUI(runner, log_buffer, log_file_name)
+        self.success = success
+        self.ui_greenlet = self.ui.run()
+
+    def __enter__(self):
+        return self.success
+
+    def __exit__(self, type, value, traceback):
         try:
-            if enable_ui and ui:
-                ui.set_success(success)
-                log.warning("Press q to exit")
-                while not ui_greenlet.dead:
-                    gevent.sleep(1)
-            service_process.stop()
-        except ServiceProcessException:
-            service_process.kill()
+            self.ui.set_success(self.success.get())
+            log.warning("Press q to exit")
+            while not self.ui_greenlet.dead:
+                gevent.sleep(1)
         finally:
-            runner.node_controller.stop()
-            if ui_greenlet is not None and not ui_greenlet.dead:
-                ui_greenlet.kill(ExitMainLoop)
-                ui_greenlet.join()
-            exit(exit_code)
+            if self.ui_greenlet is not None and not self.ui_greenlet.dead:
+                self.ui_greenlet.kill(ExitMainLoop)
+                self.ui_greenlet.join()
+
+
+class ServiceProcessManager:
+    def __init__(self):
+        self.service_process = ServiceProcess()
+        self.service_process.start()
+
+    def __enter__(self):
+        return self.service_process
+
+    def __exit__(self, type, value, traceback):
+        try:
+            self.service_process.stop()
+        except ServiceProcessException:
+            log.exception("ServiceProcessManager died")
+        except Exception:
+            self.service_process.kill()
+
+
+class ScenarioRunnerManager:
+    def __init__(self, scenario_runner: ScenarioRunner):
+        self.scenario_runner = scenario_runner
+
+    def __enter__(self):
+        return self.scenario_runner
+
+    def __exit__(self, type, value, traceback):
+        try:
+            self.scenario_runner.node_controller.stop()
+        except ProcessExitedWithError:
+            log.exception("ScenarioRunnerManager close died")
+        except Exception:
+            self.scenario_runner.node_controller.kill()
+
+
+@contextmanager
+def report_result(container, runner, mailgun_api_key):
+    container.update
+    ({"subject": "Logic error in main.py", "msg": "Message should not be empty."})
+    yield container
+    send_notification_mail(
+        runner.definition.settings.notify,
+        container["subject"],
+        container["message"],
+        mailgun_api_key,
+    )
 
 
 @main.command(name="reclaim-eth")
