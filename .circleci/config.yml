@@ -74,7 +74,6 @@ commands:
       - attach_workspace:
           at: "/home/circleci"
       - export_env_vars
-      - skip_bad_commit_format
 
   export_env_vars:
     description: Export ENV variables used by our script.
@@ -125,14 +124,6 @@ commands:
           command: |
             make install-dev
             make install-raiden-develop
-
-
-  skip_bad_commit_format:
-    description: Validate the first line of the commit message against a REGEX.
-    steps:
-      - run:
-          name: Validate the commit's title description.
-          command: python3 ${CI_SCRIPTS_DIR}/skip-on-bad-commit-message.py
 
   # ================================== #
   # Linter and test execution commands #
@@ -256,7 +247,6 @@ jobs:
     steps:
       - checkout
       - export_env_vars
-      - skip_bad_commit_format
       - run:
           name: Publish to pypi using flit.
           command: |
