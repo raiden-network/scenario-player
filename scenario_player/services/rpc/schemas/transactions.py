@@ -1,4 +1,4 @@
-from marshmallow.fields import Integer, String
+from marshmallow.fields import Integer
 
 from scenario_player.services.common.schemas import BytesField
 from scenario_player.services.rpc.schemas.base import RPCCreateResourceSchema

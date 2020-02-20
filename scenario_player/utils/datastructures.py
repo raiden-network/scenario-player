@@ -50,13 +50,13 @@ class FrozenList(list, Generic[T]):
     def __hash__(self) -> int:
         return hash(repr(self))
 
-    def __add__(self, x: List[T]) -> FrozenList[T]:
+    def __add__(self, x: List[T]) -> "FrozenList[T]":
         return self.__class__(super().__add__(x))
 
-    def __mul__(self, n: int) -> FrozenList[T]:
+    def __mul__(self, n: int) -> "FrozenList[T]":
         return self.__class__(super().__mul__(n))
 
-    def __rmul__(self, n: int) -> FrozenList[T]:
+    def __rmul__(self, n: int) -> "FrozenList[T]":
         return self.__class__(super().__rmul__(n))
 
     def __repr__(self) -> str:
