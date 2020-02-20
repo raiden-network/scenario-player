@@ -211,7 +211,6 @@ commands:
 ################################################################################
 
 jobs:
-
   prep-system:
     executor: default-executor
     steps:
@@ -223,31 +222,12 @@ jobs:
             - ci
           root: "/home/circleci"
 
-  # Run all test suites (aka the test harness) of the repository and lint-check
-  # our code base.
-  test-harness:
-    executor: default-executor
-    steps:
-      - setup-job
-      - run_test_harness
-
-  style-check-and-lint:
-    executor: default-executor
-    steps:
-      - setup-job
-      - lint_codebase
-
   lint-and-test:
     executor: default-executor
     steps:
       - setup-job
       - lint_codebase
       - run_test_harness
-
-  smoketests:
-    executor: default-executor
-    steps:
-      - setup-job
       - run_smoketests
 
   # Bump the iteration of the current branch. This will always add the dev
@@ -308,33 +288,17 @@ workflows:
       - prep-system:
           <<: *PR_branches_only
 
-      - test-harness:
+      - lint-and-test:
           context: Raiden-SP-Context
           requires:
             - prep-system
-
-      - style-check-and-lint:
-          context: Raiden-SP-Context
-          requires:
-            - prep-system
-
-      - smoketests:
-          context: Raiden-SP-Context
-          requires:
-            - test-harness
-            - style-check-and-lint
 
   Merge-Commit-Workflow:
     jobs:
       - prep-system:
           <<: *master_only
 
-      - test-harness:
-          context: Raiden-SP-Context
-          requires:
-            - prep-system
-
-      - smoketests:
+      - lint-and-test:
           context: Raiden-SP-Context
           requires:
             - prep-system
@@ -343,17 +307,12 @@ workflows:
       - bump-versions:
           context: Raiden-SP-Context
           requires:
-            - test-harness
-            - smoketests
-
-      # ======== #
-      # Clean-up #
-      # ======== #
+            - lint-and-test
 
       # Save our packages to the cache.
       - tear-down:
           requires:
-            - test-harness
+            - lint-and-test
 
   Deploy-Release-Workflow:
     jobs:
