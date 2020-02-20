@@ -109,7 +109,7 @@ class TestSendTransactionSchema:
     @pytest.mark.parametrize(
         "field, field_type",
         argvalues=[
-            ("to", String),
+            ("to", BytesField),
             ("startgas", Integer),
             ("value", Integer),
             ("tx_hash", BytesField),

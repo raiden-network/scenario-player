@@ -23,13 +23,13 @@ from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPO
 from raiden_contracts.contract_manager import get_contracts_deployment_info
 from requests.adapters import HTTPAdapter
 from web3 import HTTPProvider, Web3
+from web3.contract import Contract
+from web3.exceptions import TransactionNotFound
 
 from raiden.accounts import Account
 from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
 from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.typing import TransactionHash
-from web3.contract import Contract
-
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
 
 RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)
@@ -218,13 +218,18 @@ def wait_for_txs(
                 timeout_remaining=int(remaining_timeout),
             )
         for txhash in txhashes.copy():
-            tx = web3.eth.getTransactionReceipt(txhash)
+            # TODO: use `JsonRpcClient.poll_transaction` here?
+            try:
+                tx = web3.eth.getTransactionReceipt(txhash)
+            except TransactionNotFound:
+                tx = None
+
             if tx and tx["blockNumber"] is not None:
                 status = tx.get("status")
                 if status is not None and status == 0:
                     raise ScenarioTxError(f"Transaction {txhash} failed.")
                 ## we want to add 2 blocks as confirmation
-                if tx["blockNumber"] + 2 < web3.eth.getBlock("latest")['number']:
+                if tx["blockNumber"] + 2 < web3.eth.getBlock("latest")["number"]:
                     txhashes.remove(txhash)
             time.sleep(0.1)
         time.sleep(1)

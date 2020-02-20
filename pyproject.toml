@@ -19,7 +19,7 @@ description-file = "README.rst"
 requires-python = ">3.6"
 requires = [
     'click',
-    'eth-utils==1.8.1',
+    'eth-utils',
     'flask==1.0.3',
     'flask_marshmallow',
     'gevent',
@@ -27,7 +27,7 @@ requires = [
     'pluggy',
     'prometheus_client',
     'pyyaml',
-    'requests==2.22.0',
+    'requests',
     'redis',
     'raiden',
     'structlog==19.1.0',
@@ -58,7 +58,7 @@ keywords = "raiden, raiden-network"
 [tool.flit.metadata.requires-extra]
 # Extended dependencies required for development and testing. Flit installs
 # these automatically.
-test = ["pytest==4.5.0", "tox"]
+test = ["pytest==4.5.0"]
 dev = [
     "black==19.3b0",
     "flake8-bugbear==18.8.0",
@@ -69,7 +69,6 @@ dev = [
     "pytest-cov",
     "pytest-dependency==0.4.0",
     "responses==0.10.6",
-    "tox",
     "coverage",
     "codecov",
 ]
@@ -118,7 +117,6 @@ exclude = '''
 /(
     \.git
   | \.mypy_cache
-  | \.tox
   | \.venv
   | build
   | dist

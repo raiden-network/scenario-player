@@ -11,8 +11,8 @@ from raiden_contracts.constants import (
 )
 from raiden_contracts.contract_manager import ContractManager, get_contracts_deployment_info
 from web3 import Web3
-from web3.utils.abi import filter_by_type
-from web3.utils.events import get_event_data
+from web3._utils.abi import filter_by_type
+from web3._utils.events import get_event_data
 
 from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.typing import ABI, Address, BlockNumber
