@@ -37,7 +37,7 @@ unit-tests:
 integration-tests:
 	@echo Ran integration tests.
 
-test-harness: unit-tests integration-tests
+test: unit-tests integration-tests
 
 install-post-commit-hook:
 	cat .post-commit > .git/hooks/post-commit
