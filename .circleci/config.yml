@@ -10,13 +10,6 @@ version: 2.1
 python_deps_cache_key: &python_deps_cache_key
   key: python-deps-{{ checksum "pyproject.toml" }}
 
-# Short-cut to define a main-branches only filter.
-master_only: &master_only
-  filters:
-    branches:
-      only:
-        - master
-
 # Short-cut to define a tags-only filter.
 tags_only: &tags_only
   filters:
@@ -82,12 +75,6 @@ commands:
           name: Add Environment variables to bash env.
           command: |
             echo 'export PATH=/home/circleci/ci/venv/bin:$PATH' >> ${BASH_ENV}
-
-      - run:
-          name: Setup git config.
-          command: |
-            git config --global user.email "contact@brainbot.li"
-            git config --global user.name "DevOpsBot"
 
   install_tools_for_ci:
     description: Install packages needed to run our scripts. These may not be included in SP's dependencies.
@@ -220,26 +207,7 @@ jobs:
       - lint_codebase
       - run_test_harness
       - run_smoketests
-
-  # Bump the iteration of the current branch. This will always add the dev
-  # release type to the version.
-  bump-versions:
-    executor: default-executor
-    steps:
-      - setup-job
-      - run:
-          name: Add Github to known hosts.
-          command: |
-            mkdir /home/circleci/.ssh
-            ssh-keyscan -H github.com >> /home/circleci/.ssh/known_hosts
-      - run:
-          name: install project.
-          command: pip install ${PROJECT_ROOT}
-
-      - run:
-          name: Bump part on commits.
-          command: |
-            python3 ${CI_SCRIPTS_DIR}/bump-part.py
+      - store_env
 
   # Publish a wheel and tarball of the Scenario Player to pypi.
   deploy-to-pypi:
@@ -253,11 +221,6 @@ jobs:
             export FLIT_USERNAME=${PYPI_USER}
             export FLIT_PASSWORD=${PYPI_PASSWORD}
             flit publish
-
-  tear-down:
-    executor: default-executor
-    steps:
-      - store_env
 
   finalize:
     executor: default-executor
@@ -282,27 +245,6 @@ workflows:
           context: Raiden-SP-Context
           requires:
             - prep-system
-
-  Merge-Commit-Workflow:
-    jobs:
-      - prep-system:
-          <<: *master_only
-
-      - lint-and-test:
-          context: Raiden-SP-Context
-          requires:
-            - prep-system
-
-      # Bump the minor or patch for `master` on each merge commit.
-      - bump-versions:
-          context: Raiden-SP-Context
-          requires:
-            - lint-and-test
-
-      # Save our packages to the cache.
-      - tear-down:
-          requires:
-            - lint-and-test
 
   Deploy-Release-Workflow:
     jobs:
