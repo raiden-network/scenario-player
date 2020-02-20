@@ -58,14 +58,14 @@ class BytesField(String):
         TODO: Implement support for additional `kwargs`
         """
         if not value:
-            self.fail("empty")
+            raise self.make_error("empty")
 
         deserialized_string = super(BytesField, self)._deserialize(value, attr, data, **kwargs)
 
         try:
             return decode_hex(deserialized_string)
         except base64.binascii.Error:
-            self.fail("not_hex")
+            raise self.make_error("not_hex")
 
     def _serialize(self, value: bytes, attr, obj, **kwargs) -> str:
         """Prepare :class:`bytes` object for JSON-encoding.
