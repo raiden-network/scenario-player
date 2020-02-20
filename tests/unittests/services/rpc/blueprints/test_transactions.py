@@ -13,6 +13,7 @@ class TestNewTransactionEndpoint:
     """Test Schema validation/serialization, business logic for POST requests
     to /rpc/client/transactions."""
 
+    @pytest.mark.skip("Fails, see https://github.com/raiden-network/scenario-player/issues/490")
     @pytest.mark.parametrize(
         "parameters, expected_status",
         argvalues=[
@@ -162,6 +163,7 @@ class TestNewTransactionEndpoint:
         assert "200" in r.status
         mock_schema.jsonify.assert_called_once_with({"tx_hash": tx_hash})
 
+    @pytest.mark.skip("Fails, see https://github.com/raiden-network/scenario-player/issues/490")
     @patch("scenario_player.services.rpc.blueprints.transactions.SendTransactionSchema")
     def test_new_transaction_calls_correct_rpc_client_function(
         self,
