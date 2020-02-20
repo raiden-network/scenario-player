@@ -132,7 +132,7 @@ commands:
     steps:
       - run:
           name: Run test harness.
-          command: make test-harness
+          command: make test
       - run:
           name: Upload coverage report
           command: codecov
