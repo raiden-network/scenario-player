@@ -386,7 +386,9 @@ def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_a
         last_run = next(
             iter(
                 sorted(
-                    list(node_dir.glob("run-*.log")), key=lambda p: p.stat().st_mtime, reverse=True
+                    list(node_dir.glob("run-*.log*")),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True,
                 )
             ),
             None,
