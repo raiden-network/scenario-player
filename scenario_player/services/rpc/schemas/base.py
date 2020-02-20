@@ -32,19 +32,19 @@ class RPCClientID(String):
 
         """
         if not value:
-            self.fail("empty")
+            raise self.make_error("empty")
 
         deserialized_string = super(RPCClientID, self)._deserialize(value, attr, data, **kwargs)
 
         try:
             int(deserialized_string, 16)
         except ValueError:
-            self.fail("not_hex")
+            raise self.make_error("not_hex")
 
         try:
             client = current_app.config["rpc-client"][deserialized_string]
         except KeyError:
-            self.fail("unknown_client_id")
+            raise self.make_error("unknown_client_id")
 
         return client
 
@@ -56,7 +56,7 @@ class RPCClientID(String):
         for client_id, client in current_app.config["rpc-client"].items():
             if client == value:
                 return client_id
-        self.fail("missing_client_id")
+        raise self.make_error("missing_client_id")
 
 
 class RPCCreateResourceSchema(SPSchema):
