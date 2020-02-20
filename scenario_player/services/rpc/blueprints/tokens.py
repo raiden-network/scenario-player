@@ -18,10 +18,10 @@ The following endpoints are supplied by this blueprint:
 import structlog
 from eth_utils.address import to_checksum_address
 from flask import Blueprint, Response, jsonify, request
-from raiden.network.rpc.client import JSONRPCClient
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
 
+from raiden.network.rpc.client import JSONRPCClient
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.rpc.schemas.tokens import ContractTransactSchema, TokenCreateSchema
 
@@ -200,17 +200,16 @@ def transact_call(key, data):
 
     log.debug("Fetching ABI..", contract=contract)
     contract_abi = contract_manager.get_contract_abi(contract)
+
     log.debug(
         "Fetching contract proxy",
         contract=contract,
         abi=contract_abi,
         contract_address=data["contract_address"],
     )
-
     contract_proxy = rpc_client.new_contract_proxy(contract_abi, data["contract_address"])
 
-    log.debug("Transacting..", action=action, **data)
-
+    log.debug("Transacting...", action=action, **data)
     args = data["amount"], data["target_address"]
     if action != "mintFor":
         # The deposit function expects the address first, amount second.

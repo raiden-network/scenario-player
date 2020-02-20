@@ -12,7 +12,7 @@ rpc_blueprints_module_path = "scenario_player.services.rpc.blueprints"
 
 
 class MockTokenProxy:
-    contract_address = "deployed_contract_address"
+    address = "deployed_contract_address"
 
 
 @pytest.fixture
@@ -177,10 +177,11 @@ class TestTokenEndpoint:
         self.deserialized_params = deserialized_mint_token_params
         self.app = app
         self.client_id = hexed_client_id
-        self.mock_contract_proxy = MagicMock(**{"transact.return_value": b"tx_hash"})
-        self.app.config["rpc-client"].dict[
+        self.rpc_client = self.app.config["rpc-client"].dict[
             self.client_id
-        ].new_contract_proxy.return_value = self.mock_contract_proxy
+        ]
+        self.rpc_client.new_contract_proxy.return_value = "test-proxy"
+        self.rpc_client.transact.return_value = b"tx_hash"
 
     def test_the_endpoint_calls_validate_and_deserialize_of_its_schema(
         self, _, mock_schema, action
@@ -221,8 +222,8 @@ class TestTokenEndpoint:
         args = target, amount
         if action == "mint":
             args = amount, target
-        self.mock_contract_proxy.transact.assert_called_once_with(
-            expected_action, gas_limit, *args
+        self.rpc_client.transact.assert_called_once_with(
+            "test-proxy", expected_action, gas_limit, *args
         )
 
     def test_endpoint_returns_jsonified_data(self, _, mock_schema, action):

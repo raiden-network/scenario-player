@@ -13,13 +13,12 @@ from eth_utils import encode_hex, is_checksum_address, to_checksum_address
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
 from requests import HTTPError, RequestException, Session
 from web3 import HTTPProvider, Web3
+from web3.contract import Contract
 
 from raiden.accounts import Account
 from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import JSONRPCClient
 from raiden.utils.typing import TransactionHash
-from web3.contract import Contract
-
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
     API_URL_TOKENS,
