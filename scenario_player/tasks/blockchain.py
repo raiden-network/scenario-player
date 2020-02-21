@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 import structlog
+from eth_abi.codec import ABICodec
 from eth_utils import decode_hex, encode_hex, event_abi_to_log_topic, to_checksum_address
 from raiden_contracts.constants import (
     CONTRACT_MONITORING_SERVICE,
@@ -22,10 +23,11 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
 log = structlog.get_logger(__name__)
 
 
-def decode_event(abi: ABI, log_: Dict) -> Dict:
+def decode_event(abi_codec: ABICodec, abi: ABI, log_: Dict) -> Dict:
     """ Helper function to unpack event data using a provided ABI
 
     Args:
+        abi_codec: The ABI codec
         abi: The ABI of the contract, not the ABI of the event
         log_: The raw event data
 
@@ -40,7 +42,7 @@ def decode_event(abi: ABI, log_: Dict) -> Dict:
     events = filter_by_type("event", abi)
     topic_to_event_abi = {event_abi_to_log_topic(event_abi): event_abi for event_abi in events}
     event_abi = topic_to_event_abi[event_id]
-    return get_event_data(event_abi, log_)
+    return get_event_data(abi_codec=abi_codec, event_abi=event_abi, log_entry=log_)
 
 
 def query_blockchain_events(
@@ -76,7 +78,10 @@ def query_blockchain_events(
     events = web3.eth.getLogs(filter_params)
 
     contract_abi = contract_manager.get_contract_abi(contract_name)
-    return [decode_event(abi=contract_abi, log_=raw_event) for raw_event in events]
+    return [
+        decode_event(abi_codec=web3.codec, abi=contract_abi, log_=raw_event)
+        for raw_event in events
+    ]
 
 
 class AssertBlockchainEventsTask(Task):
