@@ -144,7 +144,6 @@ class TestNewTransactionEndpoint:
         transaction_service_client,
         deserialized_send_tx_request_parameters,
         default_send_tx_request_parameters,
-        serialized_tx_hash,
         tx_hash,
     ):
         """The :meth:`scenario_player.services.rpc.blueprints.SendTransactionSchema.dump`
