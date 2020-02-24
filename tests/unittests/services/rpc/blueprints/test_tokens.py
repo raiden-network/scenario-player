@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import flask
 import pytest
+from eth_utils import to_canonical_address
 
 from scenario_player.services.rpc.blueprints.tokens import TRANSACT_ACTIONS, tokens_blueprint
 from scenario_player.services.rpc.schemas.tokens import ContractTransactSchema, TokenCreateSchema
@@ -40,9 +41,8 @@ def deserialized_create_token_params(create_token_params, app):
 def mint_token_params(hexed_client_id):
     return {
         "client_id": hexed_client_id,
-        "contract_address": str(b"1234567890".hex()),
-        "target_address": str(b"0987654321".hex()),
-        "gas_limit": 123.5,
+        "contract_address": "0x1111111111111111111111111111111111111111",
+        "target_address": "0x2222222222222222222222222222222222222222",
         "amount": 5,
     }
 
@@ -203,7 +203,7 @@ class TestTokenEndpoint:
         self.app.config["rpc-client"].dict[
             self.client_id
         ].new_contract_proxy.assert_called_once_with(
-            "token_abi", self.deserialized_params["contract_address"]
+            abi="token_abi", contract_address=to_canonical_address(self.deserialized_params["contract_address"])
         )
 
     def test_endpoint_calls_proxy_contract_transact_with_passed_request_parameters(
@@ -216,14 +216,14 @@ class TestTokenEndpoint:
         with self.app.test_client() as c:
             c.post(f"/rpc/contract/{action}", json=self.request_params)
 
-        gas_limit = self.deserialized_params["gas_limit"]
         amount = self.deserialized_params["amount"]
         target = self.deserialized_params["target_address"]
         args = target, amount
         if action == "mint":
             args = amount, target
-        self.rpc_client.transact.assert_called_once_with(
-            "test-proxy", expected_action, gas_limit, *args
+
+        self.rpc_client.estimate_gas.assert_called_once_with(
+            "test-proxy", expected_action, {}, *args
         )
 
     def test_endpoint_returns_jsonified_data(self, _, mock_schema, action):

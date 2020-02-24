@@ -15,11 +15,6 @@ def tx_hash():
 
 
 @pytest.fixture
-def serialized_tx_hash(tx_hash):
-    return base64.encodebytes(tx_hash).decode("ascii")
-
-
-@pytest.fixture
 def deserialized_privkey():
     with open("/dev/urandom", "rb") as f:
         return f.read(8)
@@ -62,8 +57,7 @@ def deserialized_create_rpc_instance_request_parameters(
 @pytest.fixture
 def default_send_tx_request_parameters(rpc_client_id, serialized_address):
     """Default required request parameters for a POST request to /transactions."""
-    parameters = {"client_id": rpc_client_id, "to": "the_address", "value": 123, "startgas": 2}
-    return parameters
+    return {"client_id": rpc_client_id, "to": "0x0000000000000000000000000000000000000001", "value": 123, "startgas": 2}
 
 
 @pytest.fixture
@@ -97,7 +91,7 @@ def rpc_service_app(rpc_client_id, tx_hash):
     app.config["rpc-client"] = RPCRegistry()
     app.config["rpc-client"].dict = {
         rpc_client_id: mock.Mock(
-            client_id=rpc_client_id, **{"send_transaction.return_value": tx_hash}
+            client_id=rpc_client_id, **{"transact.return_value": tx_hash}
         )
     }
     return app

@@ -211,11 +211,13 @@ def transact_call(key, data):
         abi=contract_abi, contract_address=to_canonical_address(data["contract_address"])
     )
 
-    log.debug("Transacting...", action=action, **data)
+    log.debug("Preparing transaction...", action=action, **data)
     args = data["amount"], data["target_address"]
     if action != "mintFor":
         # The deposit function expects the address first, amount second.
         args = (data["target_address"], data["amount"])
 
     transaction = rpc_client.estimate_gas(contract, action, {}, *args)
+
+    log.debug("Transaction...", transaction=transaction)
     return rpc_client.transact(transaction)

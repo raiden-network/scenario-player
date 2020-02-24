@@ -20,23 +20,6 @@ def test_generate_hash_key_uses_shalib256_digested_hmac_hexdigests():
     assert generate_hash_key(url, privkey, strategy) == expected
 
 
-@mock.patch("raiden.network.rpc.client.JSONRPCClient.__init__")
-@mock.patch("raiden.network.rpc.client.TransactionSlot.send_transaction")
-class TestRPCClient:
-    def test_jsonrpcclient_did_not_change_its_bloody_interface_out_of_nowhere(self, mock_send, _,):
-        class PseudoLock():
-            def __enter__(self):
-                return self
-            def __exit__(self, *args):
-                return
-
-        client = RPCClient("http://goerli.somewhere.com", b"x" * 32, GAS_STRATEGIES["FAST"])
-        client._nonce_lock = PseudoLock()
-        client._available_nonce = 1
-        client.send_transaction("you", 1, 1, b"123")
-        mock_send.assert_called_with("you", 1, 1, b"123")
-
-
 class TestRPCRegistry:
     def test_class_behaves_like_immutable_dict(self, transaction_service_client):
         registry = RPCRegistry()

@@ -11,6 +11,7 @@ The following endpoints are supplied by this blueprint:
         form data.
 
 """
+from eth_utils import to_canonical_address
 from flask import Blueprint, request
 from structlog import get_logger
 
@@ -86,7 +87,9 @@ def new_transaction():
     log.debug("Performing transaction", params=data)
     result = rpc_client.transact(
         EthTransfer(
-            to_address=data["to"], value=data["value"], gas_price=rpc_client.web3.eth.gasPrice
+            to_address=to_canonical_address(data["to"]),
+            value=data["value"],
+            gas_price=rpc_client.web3.eth.gasPrice,
         )
     )
 
