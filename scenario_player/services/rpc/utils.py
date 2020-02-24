@@ -27,17 +27,13 @@ def generate_hash_key(chain_url: str, privkey: bytes, strategy: Callable):
 
 class RPCClient(JSONRPCClient):
     def __init__(self, chain_url, privkey, strategy):
-        super(RPCClient, self).__init__(
+        super().__init__(
             Web3(HTTPProvider(chain_url)),
             privkey=privkey,
             gas_price_strategy=strategy,
             block_num_confirmations=5,
         )
         self.client_id = generate_hash_key(chain_url, privkey, strategy)
-
-    def send_transaction(self, to, startgas: int, value: int = 0, data: bytes = b""):
-        transaction_slot = super(RPCClient, self).get_next_transaction()
-        return transaction_slot.send_transaction(to, startgas, value, data)
 
 
 class RPCRegistry(Mapping):

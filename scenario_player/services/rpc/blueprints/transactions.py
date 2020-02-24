@@ -14,8 +14,10 @@ The following endpoints are supplied by this blueprint:
 from flask import Blueprint, request
 from structlog import get_logger
 
+from raiden.network.rpc.client import EthTransfer
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.rpc.schemas.transactions import SendTransactionSchema
+from scenario_player.services.rpc.utils import RPCClient
 
 log = get_logger(__name__)
 
@@ -79,9 +81,13 @@ def transactions_route():
 
 def new_transaction():
     data = transaction_send_schema.validate_and_deserialize(request.get_json())
-    rpc_client, _ = data.pop("client"), data.pop("client_id")
+    rpc_client: RPCClient = data.pop("client")
 
     log.debug("Performing transaction", params=data)
-    result = rpc_client.send_transaction(**data)
+    result = rpc_client.transact(
+        EthTransfer(
+            to_address=data["to"], value=data["value"], gas_price=rpc_client.web3.eth.gasPrice
+        )
+    )
 
     return transaction_send_schema.jsonify({"tx_hash": result})

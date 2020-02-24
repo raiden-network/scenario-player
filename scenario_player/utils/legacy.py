@@ -27,7 +27,7 @@ from web3.contract import Contract
 from web3.exceptions import TransactionNotFound
 
 from raiden.accounts import Account
-from raiden.network.rpc.client import JSONRPCClient, check_address_has_code
+from raiden.network.rpc.client import EthTransfer, JSONRPCClient, check_address_has_code
 from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.typing import TransactionHash
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
@@ -432,8 +432,12 @@ def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_a
                 reclaim_amount[chain_name] += drain_amount
                 client = JSONRPCClient(web3, privkey)
                 txs[chain_name].add(
-                    client.get_next_transaction().send_transaction(
-                        to=account.address, value=drain_amount, startgas=VALUE_TX_GAS_COST
+                    client.transact(
+                        EthTransfer(
+                            to_address=account.address,
+                            value=drain_amount,
+                            gas_price=web3.eth.gasPrice,
+                        )
                     )
                 )
     for chain_name, chain_txs in txs.items():
