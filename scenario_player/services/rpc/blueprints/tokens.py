@@ -16,7 +16,7 @@ The following endpoints are supplied by this blueprint:
 """
 
 import structlog
-from eth_utils.address import to_checksum_address
+from eth_utils.address import to_canonical_address, to_checksum_address
 from flask import Blueprint, Response, jsonify, request
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
@@ -207,7 +207,9 @@ def transact_call(key, data):
         abi=contract_abi,
         contract_address=data["contract_address"],
     )
-    contract_proxy = rpc_client.new_contract_proxy(contract_abi, data["contract_address"])
+    contract = rpc_client.new_contract_proxy(
+        abi=contract_abi, contract_address=to_canonical_address(data["contract_address"])
+    )
 
     log.debug("Transacting...", action=action, **data)
     args = data["amount"], data["target_address"]
@@ -215,4 +217,5 @@ def transact_call(key, data):
         # The deposit function expects the address first, amount second.
         args = (data["target_address"], data["amount"])
 
-    return rpc_client.transact(contract_proxy, action, data["gas_limit"], *args)
+    transaction = rpc_client.estimate_gas(contract, action, {}, *args)
+    return rpc_client.transact(transaction)
