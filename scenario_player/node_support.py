@@ -564,4 +564,6 @@ class NodeController:
             while not monitor_group.join(0.5, raise_error=True):
                 pass
 
-        return gevent.spawn(_wait)
+        monitor_greenlet = gevent.spawn(_wait)
+        monitor_greenlet.name = "node_monitor_wait"
+        return monitor_greenlet

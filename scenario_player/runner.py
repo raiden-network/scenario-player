@@ -236,58 +236,69 @@ class ScenarioRunner:
 
         fund_tx, node_starter, node_addresses, node_count = self._initialize_nodes()
 
-        ud_token_tx, udc_ctr, should_deposit_ud_token = self._initialize_udc(
-            gas_limit=mint_gas, node_count=node_count
-        )
+        def _run_greenlet():
+            ud_token_tx, udc_ctr, should_deposit_ud_token = self._initialize_udc(
+                gas_limit=mint_gas, node_count=node_count
+            )
 
-        mint_tx = self._initialize_scenario_token(
-            node_addresses=node_addresses,
-            udc_ctr=udc_ctr,
-            should_deposit_ud_token=should_deposit_ud_token,
-            gas_limit=mint_gas,
-        )
+            mint_tx = self._initialize_scenario_token(
+                node_addresses=node_addresses,
+                udc_ctr=udc_ctr,
+                should_deposit_ud_token=should_deposit_ud_token,
+                gas_limit=mint_gas,
+            )
 
-        wait_for_txs(self.client, fund_tx | ud_token_tx | mint_tx)
+            wait_for_txs(self.client, fund_tx | ud_token_tx | mint_tx)
 
-        if node_starter is not None:
-            log.debug("Waiting for nodes to finish starting")
-            node_starter.get(block=True)
+            if node_starter is not None:
+                log.debug("Waiting for nodes to finish starting")
+                node_starter.get(block=True)
 
-        first_node = self.get_node_baseurl(0)
+            first_node = self.get_node_baseurl(0)
 
-        registered_tokens = set(
-            self.session.get(
-                API_URL_TOKENS.format(protocol=self.protocol, target_host=first_node)
-            ).json()
-        )
-        if self.token.checksum_address not in registered_tokens:
-            for _ in range(5):
-                code, msg = self.register_token(self.token.checksum_address, first_node)
-                if 199 < code < 300:
-                    break
-                # FIXME: Remove long sleep and instead intelligently handle Raiden 5 block wait
-                gevent.sleep(15)
-            else:
-                log.error("Couldn't register token with network", code=code, message=msg)
-                raise TokenRegistrationError(msg)
+            registered_tokens = set(
+                self.session.get(
+                    API_URL_TOKENS.format(protocol=self.protocol, target_host=first_node)
+                ).json()
+            )
+            if self.token.checksum_address not in registered_tokens:
+                for _ in range(5):
+                    code, msg = self.register_token(self.token.checksum_address, first_node)
+                    if 199 < code < 300:
+                        break
+                    # FIXME: Remove long sleep and instead intelligently handle Raiden 5 block wait
+                    gevent.sleep(15)
+                else:
+                    log.error("Couldn't register token with network", code=code, message=msg)
+                    raise TokenRegistrationError(msg)
 
-        self.token_network_address = self.ensure_token_network_discovery()
-        log.info(
-            "Token Network Discovery Completed", token_network_address=self.token_network_address
-        )
+            self.token_network_address = self.ensure_token_network_discovery()
+            log.info(
+                "Token Network Discovery Completed",
+                token_network_address=self.token_network_address,
+            )
 
-        # Start root task
-        root_task_greenlet = gevent.spawn(self.root_task)
-        greenlets = {root_task_greenlet}
-        greenlets.add(self.node_controller.start_node_monitor())
-        try:
-            gevent.joinall(greenlets, raise_error=True)
-        except BaseException as exc:
-            log.exception("Greenlet Error", exception=exc)
-            if not root_task_greenlet.dead:
-                # Make sure we kill the tasks if a node dies
-                root_task_greenlet.kill()
-            raise
+            # Start root task
+            root_task_greenlet = gevent.spawn(self.root_task)
+            root_task_greenlet.name = "root_task"
+            greenlets.add(root_task_greenlet)
+            try:
+                gevent.joinall(greenlets, raise_error=True)
+            except BaseException as exc:
+                log.exception("Greenlet Error", exception=exc)
+                if not root_task_greenlet.dead:
+                    # Make sure we kill the tasks if a node dies
+                    root_task_greenlet.kill()
+                raise
+
+        node_monitor = self.node_controller.start_node_monitor()
+        greenlets = {node_monitor}
+
+        log.warning("Node monitor started")
+
+        greenlets.add(gevent.spawn(_run_greenlet))
+
+        gevent.joinall(greenlets, raise_error=True, count=1)
 
     def _initialize_scenario_token(
         self,
@@ -352,7 +363,7 @@ class ScenarioRunner:
         return ud_token_tx, udc_ctr, should_deposit_ud_token
 
     def _initialize_nodes(
-        self
+        self,
     ) -> Tuple[Set[TransactionHash], gevent.Greenlet, Set[ChecksumAddress], int]:
         """This methods starts all the Raiden nodes and makes sure that each
         account has at least `NODE_ACCOUNT_BALANCE_MIN`.

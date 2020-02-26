@@ -240,13 +240,8 @@ def run(
             log_file_name,
             mailgun_api_key,
             ScenarioRunnerArgs(
-                account,
-                auth,
-                chain,
-                data_path,
-                scenario_file,
-                notify_tasks_callable,
-            )
+                account, auth, chain, data_path, scenario_file, notify_tasks_callable
+            ),
         )
     except ScenarioAssertionError as ex:
         log.error("Run finished", result="assertion errors")
@@ -295,12 +290,7 @@ ScenarioRunnerArgs = namedtuple(
 
 
 def orchestrate(
-    report_container,
-    success,
-    enable_ui,
-    log_file_name,
-    mailgun_api_key,
-    scenario_runner_args,
+    report_container, success, enable_ui, log_file_name, mailgun_api_key, scenario_runner_args
 ):
     try:
         service_manager = ServiceProcessManager()
