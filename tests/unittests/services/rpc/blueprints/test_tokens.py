@@ -56,7 +56,7 @@ def deserialized_mint_token_params(app, mint_token_params):
 
 @pytest.fixture
 def app(hexed_client_id):
-    rpc_client = MagicMock(spec=RPCClient, client_id=hexed_client_id)
+    rpc_client = MagicMock(client_id=hexed_client_id)
     rpc_client.deploy_single_contract.return_value = (MockTokenProxy(), {"blockNumber": 100})
 
     registry = RPCRegistry()
@@ -182,6 +182,7 @@ class TestTokenEndpoint:
         ]
         self.rpc_client.new_contract_proxy.return_value = "test-proxy"
         self.rpc_client.transact.return_value = b"tx_hash"
+        self.rpc_client.web3.eth.getBlock.return_value = {"hash": 1, "number": 123}
 
     def test_the_endpoint_calls_validate_and_deserialize_of_its_schema(
         self, _, mock_schema, action
@@ -211,7 +212,7 @@ class TestTokenEndpoint:
     ):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params
 
-        expected_action, contract = TRANSACT_ACTIONS[action]
+        expected_action, contract, _ = TRANSACT_ACTIONS[action]
 
         with self.app.test_client() as c:
             c.post(f"/rpc/contract/{action}", json=self.request_params)
@@ -222,9 +223,8 @@ class TestTokenEndpoint:
         if action == "mint":
             args = amount, target
 
-        self.rpc_client.estimate_gas.assert_called_once_with(
-            "test-proxy", expected_action, {}, *args
-        )
+        assert self.rpc_client.transact.called
+        assert self.rpc_client.transact.call_args[0][0].data.args == args
 
     def test_endpoint_returns_jsonified_data(self, _, mock_schema, action):
         mock_schema.validate_and_deserialize.return_value = self.deserialized_params

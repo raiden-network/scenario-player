@@ -19,13 +19,20 @@ import structlog
 from eth_utils.address import to_canonical_address, to_checksum_address
 from flask import Blueprint, Response, jsonify, request
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
-from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
+from raiden_contracts.contract_manager import (
+    ContractManager,
+    contracts_precompiled_path,
+    gas_measurements,
+)
 
-from raiden.network.rpc.client import JSONRPCClient
+from raiden.network.rpc.client import JSONRPCClient, SmartContractCall, TransactionEstimated
 from scenario_player.services.common.metrics import REDMetricsTracker
 from scenario_player.services.rpc.schemas.tokens import ContractTransactSchema, TokenCreateSchema
 
 tokens_blueprint = Blueprint("tokens_blueprint", __name__)
+
+CONTRACT_MANAGER = ContractManager(contracts_precompiled_path())
+GAS_PRICES = gas_measurements()
 
 
 token_create_schema = TokenCreateSchema()
@@ -33,9 +40,9 @@ token_transact_schema = ContractTransactSchema()
 
 #: Valid actions to pass when calling `POST /rpc/contract/<action>`.
 TRANSACT_ACTIONS = {
-    "allowance": ("approve", CONTRACT_CUSTOM_TOKEN),
-    "mint": ("mintFor", CONTRACT_CUSTOM_TOKEN),
-    "deposit": ("deposit", CONTRACT_USER_DEPOSIT),
+    "allowance": ("approve", CONTRACT_CUSTOM_TOKEN, GAS_PRICES["CustomToken.approve"]),
+    "mint": ("mintFor", CONTRACT_CUSTOM_TOKEN, GAS_PRICES["CustomToken.mint"]),
+    "deposit": ("deposit", CONTRACT_USER_DEPOSIT, GAS_PRICES["UserDeposit.deposit"]),
 }
 
 log = structlog.getLogger(__name__)
@@ -194,12 +201,11 @@ def call_contract(action):
 
 def transact_call(key, data):
     rpc_client: JSONRPCClient = data["client"]
-    contract_manager = ContractManager(contracts_precompiled_path())
 
-    action, contract = TRANSACT_ACTIONS[key]
+    action, contract, gas_price = TRANSACT_ACTIONS[key]
 
     log.debug("Fetching ABI..", contract=contract)
-    contract_abi = contract_manager.get_contract_abi(contract)
+    contract_abi = CONTRACT_MANAGER.get_contract_abi(contract)
 
     log.debug(
         "Fetching contract proxy",
@@ -217,7 +223,22 @@ def transact_call(key, data):
         # The deposit function expects the address first, amount second.
         args = (data["target_address"], data["amount"])
 
-    transaction = rpc_client.estimate_gas(contract, action, {}, *args)
+    # By default the RPCClient API requires a gas estimation before being able to transact
+    # This leads to problems here, where multiple dependent transaction (e.g. `approve`
+    # and `deposit`) are sent.
+    # This is circumvented by creating a `TransactionEstimated` object by hand, as we know the
+    # transactions will be valid.
+    block = rpc_client.web3.eth.getBlock("latest")
+    transaction = TransactionEstimated(
+        from_address=rpc_client.address,
+        data=SmartContractCall(contract=contract, function=action, args=args, kwargs={}, value=0),
+        eth_node=rpc_client.eth_node,
+        extra_log_details={},
+        estimated_gas=int(gas_price * 2),
+        gas_price=int(rpc_client.web3.eth.gasPrice * 1.5),
+        approximate_block=(block["hash"], block["number"]),
+    )
+    log.debug("Sending transaction...", transaction=transaction)
+    transaction_hash = rpc_client.transact(transaction)
 
-    log.debug("Transaction...", transaction=transaction)
-    return rpc_client.transact(transaction)
+    return transaction_hash
