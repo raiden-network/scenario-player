@@ -70,6 +70,9 @@ MANAGED_CONFIG_OPTIONS_OVERRIDABLE = {
 class NodeState(Enum):
     STOPPED = 1
     STARTED = 2
+    STARTING = 3
+    STOPPING = 4
+    KILLING = 5
 
 
 class RaidenReleaseKeeper:
@@ -211,9 +214,11 @@ class NodeRunner:
         self._output_files["stdout"].write(f"Command line: {self.executor.command}\n")
 
         begin = time.monotonic()
+        self.state = NodeState.STARTING
         try:
             ret = self.executor.start(**self._output_files)
         except ProcessExitedWithError as ex:
+            self.state = NodeState.STOPPED
             raise ScenarioError(f"Failed to start Raiden node {self._index}: {ex}") from ex
         self.state = NodeState.STARTED
         duration = str(timedelta(seconds=time.monotonic() - begin))
@@ -223,20 +228,21 @@ class NodeRunner:
     # FIXME: Make node stop configurable?
     def stop(self, timeout=600):  # 10 mins
         if self.state is not NodeState.STARTED:
-            log.warning("Can't stop already stopped node", node=self._index, state=self.state)
+            log.warning("Can't stop non-started node", node=self._index, state=self.state)
             return
 
         log.info("Stopping node", node=self._index)
         begin = time.monotonic()
 
+        self.state = NodeState.STOPPING
         try:
             # Check the node one last time to avoid clobbering an unclean exit status
             self.check()
             # If `check()` raises an exception `stop()` will not be called, but that's ok since
             # the node will be dead already.
-            self.state = NodeState.STOPPED
             ret = self.executor.stop(timeout=timeout)
         finally:
+            self.state = NodeState.STOPPED
             duration = str(timedelta(seconds=time.monotonic() - begin))
             for file in self._output_files.values():
                 file.write("--------- Stopped ---------\n")
@@ -247,19 +253,20 @@ class NodeRunner:
 
     def kill(self):
         if self.state is not NodeState.STARTED:
-            log.warning("Can't kill already stopped node", node=self._index, state=self.state)
+            log.warning("Can't kill non-started node", node=self._index, state=self.state)
             return
 
         log.info("Killing node", node=self._index)
 
+        self.state = NodeState.KILLING
         try:
             # Check the node one last time to avoid clobbering an unclean exit status
             self.check()
             # If `check()` raises an exception `kill()` will not be called, but that's ok since
             # the node will be dead already.
-            self.state = NodeState.STOPPED
             ret = self.executor.kill()
         finally:
+            self.state = NodeState.STOPPED
             for file in self._output_files.values():
                 file.write("--------- Killed ---------\n")
                 file.close()
