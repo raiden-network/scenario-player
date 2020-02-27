@@ -37,11 +37,12 @@ class TokenConfig:
     CONFIGURATION_ERROR = TokenConfigurationError
 
     def __init__(self, loaded_definition: dict, token_info_fpath: pathlib.Path):
-        self.dict = loaded_definition.get("token", {})
+        self._config = loaded_definition.get("token", {})
         self._token_id = uuid.uuid4()
         self._name = None
-        self._token_file = token_info_fpath
+        self.token_file = token_info_fpath
         self.validate()
+        log.info("Token config", dict=dict, token_file_exists=self.token_file.exists())
 
     def validate(self):
         """Validate the configuration section.
@@ -52,21 +53,21 @@ class TokenConfig:
         """
         mutual_exclusive_ops = ("address", "reuse")
 
-        if all(option in self.dict for option in mutual_exclusive_ops):
+        if all(option in self._config for option in mutual_exclusive_ops):
             assert (
-                bool(self.dict["address"]) != self.dict["reuse"]
+                bool(self._config["address"]) != self._config["reuse"]
             ), f"Token settings {mutual_exclusive_ops} are mutually exclusive."
 
         if self.token_info:
-            keys = ("token_name", "address", "block")
+            keys = ("name", "address", "block")
             assert all(
                 k in self.token_info for k in keys
             ), f"token.info file missing one or more of expected keys: {keys}"
 
     @property
     def token_info(self):
-        if self._token_file.exists():
-            return json.loads(self._token_file.read_text())
+        if self.token_file.exists():
+            return json.loads(self.token_file.read_text())
         return None
 
     @property
@@ -77,38 +78,44 @@ class TokenConfig:
         token data from the token.info file, if such a key is available. Falls
         back to None if the key isn't present.
         """
-        if self.reuse_token:
-            return self.token_info.get("token_name")
+        if self.can_reuse_token:
+            return self.token_info.get("name")
 
         if not self._name:
             now = datetime.datetime.now()
-            self._name = self.dict.get(
+            self._name = self._config.get(
                 "name", f"Scenario Test Token {self._token_id!s} {now:%Y-%m-%dT%H:%M}"
             )
         return self._name
 
     @property
     def address(self):
-        return self.dict.get("address")
+        return self._config.get("address")
 
     @property
-    def reuse_token(self):
-        return self.dict.get("reuse", False) and self._token_file.exists()
+    def can_reuse_token(self):
+        """ Return a boolean indicating if previous token reuse is enabled and available. """
+        return self._config.get("reuse", False) and self.token_file.exists()
+
+    @property
+    def should_reuse_token(self):
+        """ Return a boolean indicating if token reuse is enabled.  """
+        return self._config.get("reuse", False)
 
     @property
     def symbol(self):
-        return self.dict.get("symbol", f"T{self._token_id!s:.3}")
+        return self._config.get("symbol", f"T{self._token_id!s:.3}")
 
     @property
     def decimals(self):
-        return self.dict.get("decimals", 0)
+        return self._config.get("decimals", 0)
 
     @property
     def min_balance(self):
         """The required minimum balance required for the scenario run."""
-        return self.dict.get("balance_min", DEFAULT_TOKEN_BALANCE_MIN)
+        return self._config.get("balance_min", DEFAULT_TOKEN_BALANCE_MIN)
 
     @property
     def max_funding(self):
         """The maximum amount we fund an account with."""
-        return self.dict.get("balance_fund", DEFAULT_TOKEN_BALANCE_FUND)
+        return self._config.get("balance_fund", DEFAULT_TOKEN_BALANCE_FUND)

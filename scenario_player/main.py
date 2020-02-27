@@ -18,6 +18,7 @@ import click
 import gevent
 import structlog
 import yaml
+from click.utils import LazyFile
 from eth_typing import URI, HexStr
 from eth_utils import to_canonical_address, to_checksum_address
 from gevent.event import Event
@@ -212,38 +213,45 @@ def main():
     default=sys.stdout.isatty(),
     help="En-/disable console UI. [default: auto-detect]",
 )
+@click.option(
+    "--delete-snapshots",
+    is_flag=True,
+    help="Delete node snapshots for the given scenario if any are present.",
+)
 @environment_option
 @key_password_options
 @data_path_option
 def run(
-    data_path,
-    auth,
-    password,
-    keystore_file,
-    scenario_file,
-    notify_tasks,
-    enable_ui,
-    password_file,
+    data_path: str,
+    auth: str,
+    password: str,
+    keystore_file: str,
+    scenario_file: LazyFile,
+    notify_tasks: TaskNotifyType,
+    enable_ui: bool,
+    password_file: str,
     environment: EnvironmentConfig,
+    delete_snapshots: bool,
 ):
     """Execute a scenario as defined in scenario definition file.
     click entrypoint, this dispatches to `run_`.
     """
-    data_path = Path(data_path)
-    scenario_file = Path(scenario_file.name).absolute()
-    log_file_name = construct_log_file_name("run", data_path, scenario_file)
+    data_path_path = Path(data_path)
+    scenario_file_path = Path(scenario_file.name).absolute()
+    log_file_name = construct_log_file_name("run", data_path_path, scenario_file_path)
     configure_logging_for_subcommand(log_file_name)
     run_(
-        data_path=data_path,
+        data_path=data_path_path,
         auth=auth,
         password=password,
         keystore_file=keystore_file,
-        scenario_file=scenario_file,
+        scenario_file=scenario_file_path,
         notify_tasks=notify_tasks,
         enable_ui=enable_ui,
         password_file=password_file,
         log_file_name=log_file_name,
         environment=environment,
+        delete_snapshots=delete_snapshots,
     )
 
 
@@ -264,20 +272,23 @@ def _load_environment(environment_file: IO) -> EnvironmentConfig:
     if len(matrix_servers) < 4:
         matrix_servers = list(islice(cycle(matrix_servers), 4))
 
-    return EnvironmentConfig(matrix_servers=matrix_servers, **environment)
+    return EnvironmentConfig(
+        matrix_servers=matrix_servers, environment_file_name=environment_file.name, **environment
+    )
 
 
 def run_(
-    data_path,
-    auth,
-    password,
-    keystore_file,
-    scenario_file,
-    notify_tasks,
-    enable_ui,
-    password_file,
-    log_file_name,
+    data_path: Path,
+    auth: Optional[str],
+    password: Optional[str],
+    keystore_file: str,
+    scenario_file: Path,
+    notify_tasks: TaskNotifyType,
+    enable_ui: bool,
+    password_file: str,
+    log_file_name: str,
     environment: EnvironmentConfig,
+    delete_snapshots: bool,
     smoketest_deployment_data=None,
 ) -> None:
     """Execute a scenario as defined in scenario definition file.
@@ -339,6 +350,7 @@ def run_(
                 notify_tasks_callable=notify_tasks_callable,
                 smoketest_deployment_data=smoketest_deployment_data,
                 environment=environment,
+                delete_snapshots=delete_snapshots,
             ),
         )
     except ScenarioAssertionError as ex:
@@ -362,7 +374,7 @@ def run_(
     except Exception as ex:
         log.exception("Exception while running scenario")
         if hasattr(ex, "exit_code"):
-            exit_code = ex.exit_code  # type: ignore
+            exit_code = ex.exit_code  # type: ignore  # pylint: disable=no-member
         else:
             exit_code = 10
         report.update(
@@ -391,6 +403,7 @@ class ScenarioRunnerArgs:
     notify_tasks_callable: Any
     smoketest_deployment_data: Any
     environment: EnvironmentConfig
+    delete_snapshots: bool
 
 
 def orchestrate(
@@ -404,6 +417,7 @@ def orchestrate(
         scenario_file=scenario_runner_args.scenario_file,
         environment=scenario_runner_args.environment,
         smoketest_deployment_data=scenario_runner_args.smoketest_deployment_data,
+        delete_snapshots=scenario_runner_args.delete_snapshots,
     )
     if enable_ui:
         ui: AbstractContextManager = ScenarioUIManager(
@@ -425,8 +439,8 @@ class ScenarioUIManager:
         self.ui_greenlet = self.ui.run()
         return self.success
 
-    def __exit__(self, type, value, traceback):
-        if type is not None:
+    def __exit__(self, exc_type, value, traceback):
+        if exc_type is not None:
             # This will cause some exceptions to be in the log twice, but
             # that's better than not seeing the exception in the UI at all.
             log.exception()
@@ -593,6 +607,7 @@ def smoketest(eth_client: EthClient):
                 env = EnvironmentConfig(
                     pfs_fee=FeeAmount(100),
                     environment_type="development",
+                    environment_file_name="smoketest",
                     matrix_servers=["auto"],
                     transfer_token=TokenAddress(bytes([1] * 20)),
                     pfs_with_fee=URI("http://www.example.com"),
@@ -607,12 +622,13 @@ def smoketest(eth_client: EthClient):
                         password=None,
                         keystore_file=keystore_file,
                         scenario_file=config_file,
-                        notify_tasks=None,
+                        notify_tasks=TaskNotifyType.NONE,
                         enable_ui=False,
                         password_file=password_file,
                         log_file_name=report_file,
                         environment=env,
                         smoketest_deployment_data=deployment_data,
+                        delete_snapshots=False,
                     )
                 except SystemExit as ex:
                     append_report("Captured", captured_stdout.getvalue())

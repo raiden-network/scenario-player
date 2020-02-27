@@ -8,8 +8,9 @@ import socket
 import stat
 import sys
 from pathlib import Path
+from subprocess import Popen
 from tarfile import TarFile
-from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
+from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import urljoin
 from zipfile import ZipFile
 
@@ -21,12 +22,12 @@ from eth_keyfile import create_keyfile_json
 from eth_typing import URI
 from eth_utils import to_checksum_address
 from eth_utils.typing import ChecksumAddress
-from gevent import Greenlet
-from gevent.pool import Pool
+from gevent.pool import Group, Pool
 
 from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
 from raiden.utils.nursery import Nursery
 from scenario_player.exceptions import ScenarioError
+from scenario_player.utils.configuration.nodes import NodesConfig
 
 if TYPE_CHECKING:
     from scenario_player.runner import ScenarioRunner
@@ -172,9 +173,11 @@ class NodeRunner:
         self._raiden_version = raiden_version
         self._options = options
         self._nursery = nursery
-        self._datadir = runner.definition.scenario_dir.joinpath(
-            f"node_{self._runner.run_number}_{index:03d}"
-        )
+        if runner.definition.nodes.reuse_accounts:
+            datadir_name = f"node_{index:03d}"
+        else:
+            datadir_name = f"node_{self._runner.run_number:04d}_{index:03d}"
+        self._datadir = runner.definition.scenario_dir.joinpath(datadir_name)
 
         self._address: Optional[ChecksumAddress] = None
         self._api_address: Optional[str] = None
@@ -188,6 +191,7 @@ class NodeRunner:
         self._eth_rpc_endpoint: URI = next(
             self._runner.definition.settings.eth_rpc_endpoint_iterator
         )
+        self._process: Optional[Popen] = None
 
     def initialize(self):
         # Access properties to ensure they're initialized
@@ -212,6 +216,7 @@ class NodeRunner:
 
     # FIXME: Make node stop configurable?
     def stop(self, timeout=600):  # 10 mins
+        assert self._process is not None, "Can't call .stop() before .start()"
         self._process.send_signal(signal.SIGINT)
         if self._process.wait(timeout):
             raise Exception(f"Node {self._index} did not stop cleanly: ")
@@ -229,12 +234,17 @@ class NodeRunner:
         return self.api_address
 
     @property
+    def is_running(self):
+        # `Popen.poll()` returns `None` if the process is still running
+        return self._process is not None and self._process.poll() is None
+
+    @property
     def _command(self) -> List[str]:
         cmd = [
             self._raiden_bin,
             "--accept-disclaimer",
             "--datadir",
-            self._datadir,
+            self.datadir,
             "--keystore-path",
             self._keystore_file.parent,
             "--address",
@@ -271,10 +281,9 @@ class NodeRunner:
                 continue
             if option_name in self._options:
                 option_value = self._options[option_name]
-                if isinstance(option_value, list):
-                    cmd.extend([f"--{option_name}", *self._options[option_name]])
-                else:
-                    cmd.extend([f"--{option_name}", self._options[option_name]])
+                if not isinstance(option_value, list):
+                    option_value = [option_value]
+                cmd.extend([f"--{option_name}", *option_value])
 
         remaining_option_candidates = (
             KNOWN_OPTIONS - MANAGED_CONFIG_OPTIONS - MANAGED_CONFIG_OPTIONS_OVERRIDABLE
@@ -283,10 +292,9 @@ class NodeRunner:
             if option_name in self._options:
                 if option_name not in FLAG_OPTIONS:
                     option_value = self._options[option_name]
-                    if isinstance(option_value, list):
-                        cmd.extend([f"--{option_name}", *self._options[option_name]])
-                    else:
-                        cmd.extend([f"--{option_name}", self._options[option_name]])
+                    if not isinstance(option_value, list):
+                        option_value = [option_value]
+                    cmd.extend([f"--{option_name}", *option_value])
                 else:
                     cmd.append(f"--{option_name}")
 
@@ -305,7 +313,7 @@ class NodeRunner:
 
     @property
     def _keystore_file(self):
-        keystore_path = self._datadir.joinpath("keys")
+        keystore_path = self.datadir.joinpath("keys")
         keystore_path.mkdir(exist_ok=True, parents=True)
         keystore_file = keystore_path.joinpath("UTC--1")
         if not keystore_file.exists():
@@ -319,11 +327,13 @@ class NodeRunner:
             ).encode()
             privkey = hashlib.sha256(seed).digest()
             keystore_file.write_text(json.dumps(create_keyfile_json(privkey, b"")))
+        else:
+            log.debug("Reusing keystore", node=self._index)
         return keystore_file
 
     @property
     def _password_file(self):
-        pw_file = self._datadir.joinpath("password.txt")
+        pw_file = self.datadir.joinpath("password.txt")
         pw_file.write_text("")
         return pw_file
 
@@ -341,15 +351,15 @@ class NodeRunner:
 
     @property
     def _log_file(self):
-        return self._datadir.joinpath(f"run-{self._runner.run_number:03d}.log")
+        return self.datadir.joinpath(f"run-{self._runner.run_number:03d}.log")
 
     @property
     def _stdout_file(self):
-        return self._datadir.joinpath(f"run-{self._runner.run_number:03d}.stdout")
+        return self.datadir.joinpath(f"run-{self._runner.run_number:03d}.stdout")
 
     @property
     def _stderr_file(self):
-        return self._datadir.joinpath(f"run-{self._runner.run_number:03d}.stderr")
+        return self.datadir.joinpath(f"run-{self._runner.run_number:03d}.stderr")
 
     @property
     def _pfs_address(self):
@@ -390,8 +400,100 @@ class NodeRunner:
                 raise ScenarioError(f'Unknown option "{option_name}" supplied.')
 
 
+class SnapshotManager:
+    def __init__(self, scenario_runner: "ScenarioRunner", node_runners: List[NodeRunner]) -> None:
+        self._scenario_runner = scenario_runner
+        self._node_runners = node_runners
+
+    def check_scenario_config(self):
+        if not self._scenario_runner.definition.nodes.reuse_accounts:
+            raise ScenarioError("Snapshots aren't supported when 'nodes.reuse_accounts' is False.")
+
+        token_config = self._scenario_runner.definition.token
+        if (not token_config.should_reuse_token) and token_config.address is None:
+            raise ScenarioError(
+                "Snapshots are only supported when token reuse is enabled "
+                "or a fixed token address is configured."
+            )
+
+    def _check_conditions(self):
+        all_nodes_stopped = all(not node_runner.is_running for node_runner in self._node_runners)
+        assert all_nodes_stopped, "Can't perform snapshot operations while nodes are running."
+        self.check_scenario_config()
+
+    def _get_snapshot_dirs(self) -> List[Path]:
+        snapshot_dirs = []
+        snapshot_base_dir = self._scenario_runner.definition.snapshot_dir
+        for node_runner in self._node_runners:
+            node_dir_suffix = node_runner.datadir.name
+
+            snapshot_dir = snapshot_base_dir.joinpath(node_dir_suffix)
+            snapshot_dirs.append(snapshot_dir)
+
+        return snapshot_dirs
+
+    def take(self) -> bool:
+        self._check_conditions()
+        snapshot_exists, snapshot_dirs = self.get_snapshot_info()
+        if snapshot_exists:
+            log.warning("Not retaking existing snapshot")
+            return False
+        log.info("Taking snapshot")
+        source_target_pairs = zip(
+            (node_runner.datadir for node_runner in self._node_runners), snapshot_dirs
+        )
+        for source, target in source_target_pairs:
+            shutil.copytree(source, target)
+        log.info("Snapshot taken")
+        return True
+
+    def restore(self) -> bool:
+        self._check_conditions()
+        snapshot_exists, snapshot_dirs = self.get_snapshot_info()
+        if not snapshot_exists:
+            log.info("Snapshot not found, skipping restore.")
+            return False
+        log.debug("Restoring snapshot")
+        source_target_pairs = zip(
+            snapshot_dirs, (node_runner.datadir for node_runner in self._node_runners)
+        )
+        for source, target in source_target_pairs:
+            shutil.rmtree(target)
+            shutil.copytree(source, target)
+        log.info("Snapshot restored")
+        return True
+
+    def delete(self) -> None:
+        self._check_conditions()
+        snapshot_dir = self._scenario_runner.definition.snapshot_dir
+        log.info("Deleting snapshots", snapshot_dir=snapshot_dir)
+        shutil.rmtree(snapshot_dir)
+
+    def get_snapshot_info(self) -> Tuple[bool, List[Path]]:
+        snapshot_dirs = self._get_snapshot_dirs()
+        dirs_exist = [snapshot_dir.exists() for snapshot_dir in snapshot_dirs]
+        if any(dirs_exist) and not all(dirs_exist):
+            missing_nodes = ", ".join(
+                snapshot_dir.name for snapshot_dir in snapshot_dirs if not snapshot_dir.exists()
+            )
+            raise ScenarioError(
+                f"Inconsistent snapshot. "
+                f"Snapshot dirs for nodes {missing_nodes} are missing. "
+                f"Use --delete-snapshots to clean."
+            )
+        elif not all(dirs_exist):
+            return False, snapshot_dirs
+        return True, snapshot_dirs
+
+
 class NodeController:
-    def __init__(self, runner: "ScenarioRunner", config, nursery: Nursery):
+    def __init__(
+        self,
+        runner: "ScenarioRunner",
+        config: NodesConfig,
+        nursery: Nursery,
+        delete_snapshots: bool = False,
+    ):
         self._runner = runner
         self._global_options = config.default_options
         self._node_options = config.node_options
@@ -405,6 +507,13 @@ class NodeController:
             )
             for index in range(config.count)
         ]
+        self.snapshot_manager = SnapshotManager(runner, self._node_runners)
+        self.snapshot_restored: bool = False
+        if delete_snapshots:
+            self.snapshot_manager.delete()
+        if config.restore_snapshot:
+            if self.snapshot_manager.restore():
+                self.snapshot_restored = True
         log.info("Using Raiden version", version=config.raiden_version)
 
     def __getitem__(self, item):
@@ -421,7 +530,7 @@ class NodeController:
 
         def _start():
             for runner in self._node_runners:
-                pool.start(Greenlet(runner.start))
+                pool.spawn(runner.start)
             pool.join(raise_error=True)
             log.info("All nodes started")
 
@@ -432,8 +541,10 @@ class NodeController:
 
     def stop(self):
         log.info("Stopping nodes")
-        stop_tasks = set(gevent.spawn(runner.stop) for runner in self._node_runners)
-        gevent.joinall(stop_tasks, raise_error=True)
+        stop_group = Group()
+        for runner in self._node_runners:
+            stop_group.spawn(runner.stop)
+        stop_group.join(raise_error=True)
         log.info("Nodes stopped")
 
     def initialize_nodes(self):

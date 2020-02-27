@@ -27,6 +27,7 @@ log = structlog.get_logger(__name__)
 
 @dataclass
 class EnvironmentConfig:
+    environment_file_name: str
     environment_type: Union[Literal["production"], Literal["development"]]
     matrix_servers: Sequence[Union[URI, Literal["auto"]]]
     pfs_with_fee: URI

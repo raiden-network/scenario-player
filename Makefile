@@ -15,9 +15,12 @@ black-check:
 flake8:
 	flake8 scenario_player
 
+pylint:
+	pylint scenario_player
+
 style: isort black
 
-lint: mypy flake8 black-check isort-check
+lint: mypy flake8 pylint black-check isort-check
 
 format: isort black
 

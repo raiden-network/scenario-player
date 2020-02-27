@@ -44,7 +44,7 @@ class TestTokenConfig:
 
         config = TokenConfig(minimal_definition_dict, token_info_path)
 
-        assert config.reuse_token == (reuse and exists)
+        assert config.can_reuse_token == (reuse and exists)
 
     def test_symbol_property_uses_token_id_to_generate_symbol_if_not_given_in_config(
         self, minimal_definition_dict, token_info_path

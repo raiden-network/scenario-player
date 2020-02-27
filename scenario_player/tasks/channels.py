@@ -94,9 +94,7 @@ class TransferTask(ChannelActionTask):
     _method = "post"
     _transfer_count = 0
 
-    def __init__(
-        self, runner: scenario_runner.ScenarioRunner, config: Any, parent=None, abort_on_fail=True
-    ) -> None:
+    def __init__(self, runner: scenario_runner.ScenarioRunner, config: Any, parent=None) -> None:
         super().__init__(runner, config, parent)
         # Unique transfer identifier
         self.__class__._transfer_count += 1
