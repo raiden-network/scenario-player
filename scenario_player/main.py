@@ -13,10 +13,10 @@ import click
 import gevent
 import structlog
 from eth_utils import to_checksum_address
+from gevent.event import Event
 from mirakuru.exceptions import ProcessExitedWithError
 from urwid import ExitMainLoop
 from web3._utils.transactions import TRANSACTION_DEFAULTS
-from gevent.event import AsyncResult
 
 from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
@@ -224,19 +224,24 @@ def run(
             )
         notify_tasks_callable = post_task_state_to_rc
 
+    log_buffer = None
+    if enable_ui:
+        log_buffer = attach_urwid_logbuffer()
+
     # Dynamically import valid Task classes from sceanrio_player.tasks package.
     collect_tasks(tasks)
 
     # Start our Services
 
     report = dict()
-    success = AsyncResult()
-    success.set_result(False)
+    success = Event()
+    success.clear()
     try:
         orchestrate(
             report,
             success,
             enable_ui,
+            log_buffer,
             log_file_name,
             mailgun_api_key,
             ScenarioRunnerArgs(
@@ -275,7 +280,7 @@ def run(
         )
         exit(exit_code)
     else:
-        success.set_result(True)
+        success.set()
         exit_code = 0
         log.info("Run finished", result="success")
         report.update(dict(subject=f"Scenario successful {scenario_file.name}", message="Success"))
@@ -290,39 +295,42 @@ ScenarioRunnerArgs = namedtuple(
 
 
 def orchestrate(
-    report_container, success, enable_ui, log_file_name, mailgun_api_key, scenario_runner_args
+    report_container,
+    success,
+    enable_ui,
+    log_buffer,
+    log_file_name,
+    mailgun_api_key,
+    scenario_runner_args,
 ):
-    try:
-        service_manager = ServiceProcessManager()
+    # We need to fix the log stream early in case the UI is active
+    with ServiceProcessManager():
         scenario_runner = ScenarioRunner(*scenario_runner_args)
         runner_manager = ScenarioRunnerManager(scenario_runner)
         notify_setting = runner_manager.scenario_runner.definition.settings.notify
         reporter = report_result(report_container, notify_setting, mailgun_api_key)
-        with reporter, runner_manager as runner, service_manager:
-            log.info("Startup complete")
+        with reporter, runner_manager as runner:
             if enable_ui:
-                log_buffer = attach_urwid_logbuffer()
                 ui = ScenarioUIManager(runner, log_buffer, log_file_name, success)
             else:
                 ui = nullcontext()
+            log.info("Startup complete")
             with ui:
                 runner.run_scenario()
-    except Exception:
-        raise
 
 
 class ScenarioUIManager:
     def __init__(self, runner, log_buffer, log_file_name, success):
         self.ui = ScenarioUI(runner, log_buffer, log_file_name)
         self.success = success
-        self.ui_greenlet = self.ui.run()
 
     def __enter__(self):
+        self.ui_greenlet = self.ui.run()
         return self.success
 
     def __exit__(self, type, value, traceback):
         try:
-            self.ui.set_success(self.success.get())
+            self.ui.set_success(self.success.is_set())
             log.warning("Press q to exit")
             while not self.ui_greenlet.dead:
                 gevent.sleep(1)
@@ -333,11 +341,9 @@ class ScenarioUIManager:
 
 
 class ServiceProcessManager:
-    def __init__(self):
+    def __enter__(self):
         self.service_process = ServiceProcess()
         self.service_process.start()
-
-    def __enter__(self):
         return self.service_process
 
     def __exit__(self, type, value, traceback):
@@ -346,6 +352,7 @@ class ServiceProcessManager:
         except ServiceProcessException:
             log.exception("ServiceProcessManager died")
         except Exception:
+            log.exception("ServiceProcessManager died")
             self.service_process.kill()
 
 
@@ -360,8 +367,9 @@ class ScenarioRunnerManager:
         try:
             self.scenario_runner.node_controller.stop()
         except ProcessExitedWithError:
-            log.exception("ScenarioRunnerManager close died")
+            log.exception("ScenarioRunnerManager stop died")
         except Exception:
+            log.exception("ScenarioRunnerManager stop died")
             self.scenario_runner.node_controller.kill()
 
 
