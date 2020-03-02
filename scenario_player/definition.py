@@ -46,5 +46,6 @@ class ScenarioDefinition:
     def scenario_dir(self):
         if not self._scenario_dir:
             self._scenario_dir = self.settings.sp_scenario_root_dir.joinpath(self.name)
+            assert self._scenario_dir
             self._scenario_dir.mkdir(exist_ok=True, parents=True)
         return self._scenario_dir

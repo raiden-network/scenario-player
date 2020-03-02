@@ -173,7 +173,6 @@ class AssertTask(ChannelActionTask):
         return response_dict
 
     def _run(self, *args, **kwargs):
-        exception = None
         try:
             print(self._config)
             with Timeout(self._config.get("timeout", 30)):

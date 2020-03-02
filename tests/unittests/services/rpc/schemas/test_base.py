@@ -33,7 +33,7 @@ def test_rpcclientid_deserializes_to_rpc_client_instance(
     client_id = rpc_client_id
     expected = (object(), client_id)
 
-    with rpc_service_app.app_context() as app:
+    with rpc_service_app.app_context():
         current_app.config["rpc-client"].dict[client_id] = expected
         assert client_id_field._deserialize(client_id, "client_id", {}) == expected
 
@@ -44,9 +44,9 @@ def test_rpcclientid_serializes_to_string(test_schema, rpc_service_app, rpc_clie
     instance = object()
     expected_id = rpc_client_id
 
-    with rpc_service_app.app_context() as app:
+    with rpc_service_app.app_context():
         current_app.config["rpc-client"].dict[expected_id] = instance
-        assert client_id._serialize(instance, "client_id", {}) == expected_id
+        assert client_id._serialize(instance, "client_id", {}) == expected_id  # type: ignore
 
 
 @pytest.mark.parametrize(
@@ -70,7 +70,7 @@ def test_rpccreateresourceschema_validate_and_serialize_raises_bad_request_on_in
         # inject a valid, existing uuid4 as client id.
         input_dict["client_id"] = rpc_client_id
 
-    with rpc_service_app.app_context() as app:
+    with rpc_service_app.app_context():
         current_app.config["rpc-client"].dict[client_id] = object()
         if exception:
             with pytest.raises(exception):

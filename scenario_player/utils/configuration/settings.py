@@ -198,11 +198,12 @@ class SettingsConfig(ConfigMapping):
         self._cli_chain: Optional[str] = None
         self.chain_id: Optional[ChainID] = None
         self.sp_root_dir: Optional[Path] = None
-        self._sp_scenario_root_dir = None
+        self._sp_scenario_root_dir: Optional[Path] = None
 
     @property
     def sp_scenario_root_dir(self):
         if not self._sp_scenario_root_dir:
+            assert self.sp_root_dir
             self._sp_scenario_root_dir = self.sp_root_dir.joinpath("scenarios")
             self._sp_scenario_root_dir.mkdir(exist_ok=True, parents=True)
 

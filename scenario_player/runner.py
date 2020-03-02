@@ -112,7 +112,7 @@ class ScenarioRunner:
         self.token = Token(self, data_path)
         self.udc: Optional[UserDepositContract] = None
 
-        self.token_network_address = None
+        self.token_network_address: Optional[ChecksumAddress] = None
 
         task_config = self.definition.scenario.root_config
         task_class = self.definition.scenario.root_class

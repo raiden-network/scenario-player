@@ -1,5 +1,5 @@
-import pathlib
 from os import PathLike
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -9,15 +9,15 @@ from scenario_player.utils.files import ManagedFile
 
 
 @pytest.fixture
-def tmp_src_fpath(tmp_path) -> pathlib.Path:
-    fpath = pathlib.Path(tmp_path.joinpath("test_file"))
+def tmp_src_fpath(tmp_path) -> Path:
+    fpath = Path(tmp_path.joinpath("test_file"))
     fpath.touch()
     return fpath
 
 
 @pytest.fixture
-def tmp_target_dir(tmp_path) -> pathlib.Path:
-    fpath = pathlib.Path(tmp_path.joinpath("target"))
+def tmp_target_dir(tmp_path) -> Path:
+    fpath = Path(tmp_path.joinpath("target"))
     fpath.mkdir()
     return fpath
 
@@ -52,7 +52,7 @@ class TestManagedFile_properties:
         assert instance.has_copies is False
         mock_update_refs.assert_called_once()
 
-        instance.copies.add("/path/to/test")
+        instance.copies.add(Path("/path/to/test"))
         mock_update_refs.reset_mock()
 
         assert instance.has_copies is True
@@ -76,7 +76,7 @@ class TestManagedFile_properties:
         assert instance.has_symlinks is False
         mock_update_refs.assert_called_once()
 
-        instance.symlinks.add("/path/to/test")
+        instance.symlinks.add(Path("/path/to/test"))
         mock_update_refs.reset_mock()
 
         assert instance.has_symlinks is True
@@ -189,7 +189,7 @@ class TestManagedFileInterface:
         Raise a :exc:`FileNotFoundError` if path-like passed to the constructor does not exist.
         """
         with pytest.raises(FileNotFoundError):
-            ManagedFile(pathlib.Path("/does/not/exist"))
+            ManagedFile(Path("/does/not/exist"))
 
     def test_copy_to_dir_copies_file_to_target(self, tmp_src_fpath, tmp_target_dir):
         """:meth:`ManagedFile.copy_to_dir` creates a hard-copy of the managed

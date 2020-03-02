@@ -2,7 +2,13 @@ from typing import Any, Dict, List, cast
 
 import structlog
 from eth_abi.codec import ABICodec
-from eth_utils import decode_hex, encode_hex, event_abi_to_log_topic, to_checksum_address
+from eth_utils import (
+    decode_hex,
+    encode_hex,
+    event_abi_to_log_topic,
+    to_canonical_address,
+    to_checksum_address,
+)
 from raiden_contracts.constants import (
     CONTRACT_MONITORING_SERVICE,
     CONTRACT_TOKEN_NETWORK,
@@ -143,6 +149,7 @@ class AssertBlockchainEventsTask(Task):
         self.web3 = self._runner.client.web3
 
     def _run(self, *args, **kwargs):  # pylint: disable=unused-argument
+        assert self._runner.definition.settings.chain_id
         # get the correct contract address
         # this has to be done in `_run`, otherwise `_runner` is not initialized yet
         contract_data = get_contracts_deployment_info(
@@ -152,15 +159,17 @@ class AssertBlockchainEventsTask(Task):
             self.contract_address = self._runner.token_network_address
         else:
             try:
+                assert contract_data
                 contract_info = contract_data["contracts"][self.contract_name]
-                self.contract_address = contract_info["address"]
+                self.contract_address = to_checksum_address(contract_info["address"])
             except KeyError:
                 raise ScenarioError(f"Unknown contract name: {self.contract_name}")
 
+        assert self.contract_address
         events = query_blockchain_events(
             web3=self.web3,
             contract_manager=self._runner.contract_manager,
-            contract_address=self.contract_address,
+            contract_address=to_canonical_address(self.contract_address),
             contract_name=self.contract_name,
             topics=[],
             from_block=BlockNumber(self._runner.token.deployment_block),
@@ -243,7 +252,7 @@ class AssertMSClaimTask(Task):
         events = query_blockchain_events(
             web3=self.web3,
             contract_manager=self._runner.contract_manager,
-            contract_address=self.contract_address,
+            contract_address=to_canonical_address(self.contract_address),
             contract_name=self.contract_name,
             topics=[],
             from_block=BlockNumber(self._runner.token.deployment_block),

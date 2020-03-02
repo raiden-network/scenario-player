@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import hmac
 from unittest import mock
@@ -24,10 +23,10 @@ class TestRPCRegistry:
     def test_class_behaves_like_immutable_dict(self, transaction_service_client):
         registry = RPCRegistry()
         with pytest.raises(TypeError):
-            registry["hello"] = "goodbye"
+            registry["hello"] = "goodbye"  # type: ignore
 
         with pytest.raises(TypeError):
-            del registry["something"]
+            del registry["something"]  # type: ignore
 
     def test_class_implements_pop_method(self, transaction_service_client):
         assert RPCRegistry().pop("Something") is None

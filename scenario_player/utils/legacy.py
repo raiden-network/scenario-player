@@ -123,7 +123,7 @@ class HTTPExecutor(mirakuru.HTTPExecutor):
             raise AlreadyRunning(self)
 
         if self.process is None:
-            command = self.command
+            command: Union[str, List[str], Tuple[str, ...]] = self.command
             if not self._shell:
                 command = self.command_parts
 

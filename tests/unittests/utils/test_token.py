@@ -55,7 +55,7 @@ def runner(dummy_scenario_runner, minimal_definition_dict, token_info_path, tmp_
         tmp_file = tmp_path.joinpath("tmp.yaml")
         tmp_file.touch()
         dummy_scenario_runner.definition = ScenarioDefinition(tmp_file, tmp_path)
-    dummy_scenario_runner.definition.spaas.rpc.client_id = "the_client_id"
+    dummy_scenario_runner.definition.spaas.rpc.client_id = "the_client_id"  # type: ignore
     dummy_scenario_runner.definition.token = token_config
 
     dummy_scenario_runner.token = Token(dummy_scenario_runner, tmp_path)
@@ -407,7 +407,7 @@ class TestToken:
 
         checksummed_addr, block = token_instance.use_existing()
 
-        assert checksummed_addr == "checksummed_" + loaded_token_info["address"]
+        assert checksummed_addr == "checksummed_" + loaded_token_info["address"]  # type: ignore
         assert block == loaded_token_info["block"]
 
         assert token_instance.deployment_receipt == expected_deployment_receipt
@@ -463,6 +463,7 @@ class TestToken:
 
         address, deployment_block = token_instance.deploy_new()
 
+        assert isinstance(json_resp["contract"], dict)
         assert token_instance.address == json_resp["contract"]["address"]
         assert deployment_block == json_resp["deployment_block"]
 
@@ -533,7 +534,7 @@ class TestUserDepositContract:
         new_callable=PropertyMock(return_value="ud_contract_addr"),
     )
     @patch("scenario_player.utils.token.Contract.transact")
-    def test_update_allowance_updates_allowance_according_to_udc_token_balance_per_node_definition_setting(
+    def test_update_allowance_according_to_udc_token_balance_per_node_definition_setting(
         self, mock_transact, _
     ):
         self.instance.config.nodes.dict["count"] = 2
