@@ -1,4 +1,5 @@
 import enum
+from typing import Callable, Dict
 
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
@@ -18,7 +19,10 @@ SUPPORTED_SCENARIO_VERSIONS = {2}
 
 #: Available gas price strategies selectable by passing their key to the
 #: settings.gas_price config option in the scenario definition.
-GAS_STRATEGIES = {"FAST": fast_gas_price_strategy, "MEDIUM": medium_gas_price_strategy}
+GAS_STRATEGIES: Dict[str, Callable] = {
+    "FAST": fast_gas_price_strategy,
+    "MEDIUM": medium_gas_price_strategy,
+}
 
 GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL = 100_000
 

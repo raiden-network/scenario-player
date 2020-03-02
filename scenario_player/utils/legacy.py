@@ -16,7 +16,7 @@ import mirakuru
 import requests
 import structlog
 from eth_keyfile import decode_keyfile_json
-from eth_utils import to_checksum_address
+from eth_utils import to_canonical_address, to_checksum_address
 from mirakuru import AlreadyRunning, TimeoutExpired
 from mirakuru.base import ENV_UUID, IGNORED_ERROR_CODES
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
@@ -29,7 +29,7 @@ from web3.exceptions import TransactionNotFound
 from raiden.accounts import Account
 from raiden.network.rpc.client import EthTransfer, JSONRPCClient, check_address_has_code
 from raiden.settings import RAIDEN_CONTRACT_VERSION
-from raiden.utils.typing import TransactionHash
+from raiden.utils.typing import ChecksumAddress, PrivateKey, TransactionHash
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
 
 RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)
@@ -206,7 +206,7 @@ def wait_for_txs(
     else:
         web3 = client_or_web3.web3
     start = time.monotonic()
-    outstanding = False
+    outstanding = None
     txhashes = set(txhashes)
     while txhashes and time.monotonic() - start < timeout:
         remaining_timeout = timeout - (time.monotonic() - start)
@@ -227,14 +227,14 @@ def wait_for_txs(
             if tx and tx["blockNumber"] is not None:
                 status = tx.get("status")
                 if status is not None and status == 0:
-                    raise ScenarioTxError(f"Transaction {txhash} failed.")
+                    raise ScenarioTxError(f"Transaction {to_checksum_address(txhash)} failed.")
                 # we want to add 2 blocks as confirmation
                 if tx["blockNumber"] + 2 < web3.eth.getBlock("latest")["number"]:
                     txhashes.remove(txhash)
             time.sleep(0.1)
         time.sleep(1)
     if len(txhashes):
-        txhashes_str = ", ".join(txhash for txhash in txhashes)
+        txhashes_str = ", ".join(to_checksum_address(txhash) for txhash in txhashes)
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
 
 
@@ -311,12 +311,14 @@ def get_udc_and_token(runner) -> Tuple[Optional[Contract], Optional[Contract]]:
 
     udc_address = udc_config.address
     if udc_address is None:
+        assert runner.definition.settings.chain_id
         contracts = get_contracts_deployment_info(
             chain_id=runner.definition.settings.chain_id, version=RAIDEN_CONTRACT_VERSION
         )
+        assert contracts
         udc_address = contracts["contracts"][CONTRACT_USER_DEPOSIT]["address"]
     udc_abi = runner.contract_manager.get_contract_abi(CONTRACT_USER_DEPOSIT)
-    udc_proxy = runner.client.new_contract_proxy(udc_abi, udc_address)
+    udc_proxy = runner.client.new_contract_proxy(udc_abi, to_canonical_address(udc_address))
 
     ud_token_address = udc_proxy.functions.token().call()
     # FIXME: We assume the UD token is a CustomToken (supporting the `mint()` function)
@@ -340,7 +342,9 @@ def mint_token_if_balance_low(
     if balance < min_balance:
         mint_amount = fund_amount - balance
         log.debug(mint_msg, address=target_address, amount=mint_amount)
-        return token_contract.transact("mintFor", gas_limit, mint_amount, target_address)
+        return TransactionHash(
+            token_contract.transact("mintFor", gas_limit, mint_amount, target_address)
+        )
     else:
         if no_action_msg:
             log.debug(no_action_msg, balance=balance)
@@ -373,16 +377,17 @@ def send_notification_mail(target_mail, subject, message, api_key):
 
 
 def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_age_hours: int):
+    assert account.address
     chain_name, chain_url = chain_str.split(":", maxsplit=1)
     log.info("in cmd", chain=chain_str, chain_name=chain_name, chain_url=chain_url)
 
     web3s: Dict[str, Web3] = {chain_name: Web3(HTTPProvider(chain_url))}
     log.info("Starting eth reclaim", data_path=data_path)
 
-    address_to_keyfile = dict()
-    address_to_privkey = dict()
+    address_to_keyfile: Dict[ChecksumAddress, dict] = dict()
+    address_to_privkey: Dict[ChecksumAddress, PrivateKey] = dict()
     for node_dir in iter_chain(data_path.glob("**/node_???"), data_path.glob("**/node_*_???")):
-        scenario_name: Path = node_dir.parent.name
+        scenario_name: Path = Path(node_dir.parent.name)
         last_run = next(
             iter(
                 sorted(
@@ -412,8 +417,8 @@ def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_a
 
     log.info("Reclaiming candidates", addresses=list(address_to_keyfile.keys()))
 
-    txs = defaultdict(set)
-    reclaim_amount = defaultdict(int)
+    txs: Dict[str, Set[TransactionHash]] = defaultdict(set)
+    reclaim_amount: Dict[str, int] = defaultdict(int)
     for chain_name, web3 in web3s.items():
         log.info("Checking chain", chain=chain_name)
         for address, keyfile_content in address_to_keyfile.items():

@@ -41,7 +41,7 @@ class PFSSettingsConfig(ConfigMapping):
 
     def __init__(self, loaded_definition: dict):
         super(PFSSettingsConfig, self).__init__(
-            loaded_definition.get("settings").get("services", {}).get("pfs", {})
+            loaded_definition.get("settings").get("services", {}).get("pfs", {})  # type: ignore
         )
         self.validate()
 
@@ -240,7 +240,8 @@ class SettingsConfig(ConfigMapping):
 
         Defaults to :var:`DEFAULT_NETWORK` test net.
         """
-        return self._cli_chain or self.get("chain", DEFAULT_NETWORK)
+        chain = self.get("chain", DEFAULT_NETWORK)
+        return self._cli_chain or chain
 
     @property
     def eth_client(self) -> str:
@@ -264,20 +265,24 @@ class SettingsConfig(ConfigMapping):
              :attr:`.chain` and :attr:`.eth_client`.
 
         """
-        return self._cli_rpc_address or self.get(
+        rpc_address = self.get(
             "eth-client-rpc-address",
             BB_ETH_RPC_ADDRESS.format(network=self.chain, client=self.eth_client),
         )
+        return NetlocWithPort(self._cli_rpc_address or rpc_address)
 
     @property
-    def gas_price(self) -> str:
+    def gas_price(self) -> Union[str, int]:
         """Return the configured gas price for this scenario.
 
         This defaults to 'fast'.
         """
         gas_price = self.get("gas_price", "fast")
+
         if isinstance(gas_price, str):
             return gas_price.upper()
+
+        assert isinstance(gas_price, int)
         return gas_price
 
     @property
@@ -298,6 +303,6 @@ class SettingsConfig(ConfigMapping):
             return fixed_gas_price
 
         try:
-            return GAS_STRATEGIES[self.gas_price.upper()]
+            return GAS_STRATEGIES[self.gas_price]
         except KeyError:
             raise ValueError(f'Invalid gas_price value: "{self.gas_price}"')

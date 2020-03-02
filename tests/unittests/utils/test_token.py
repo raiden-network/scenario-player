@@ -1,5 +1,4 @@
 import json
-
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
@@ -17,13 +16,13 @@ from requests.exceptions import (
 )
 
 from raiden.network.rpc.client import AddressWithoutCode
+from scenario_player.definition import ScenarioDefinition
 from scenario_player.exceptions.config import (
     TokenFileError,
     TokenFileMissing,
     TokenNotDeployed,
     TokenSourceCodeDoesNotExist,
 )
-from scenario_player.definition import ScenarioDefinition
 from scenario_player.utils.configuration.token import TokenConfig
 from scenario_player.utils.token import Contract, Token, UserDepositContract
 
@@ -124,7 +123,9 @@ class TestContract:
         return instance
 
     @patch(f"{token_import_path}.ServiceInterface.request")
-    def test_mint_is_a_no_op_if_balance_is_sufficient(self, mock_request, contract_instance, hex_address):
+    def test_mint_is_a_no_op_if_balance_is_sufficient(
+        self, mock_request, contract_instance, hex_address
+    ):
         contract_instance = self.setup_instance_with_balance(contract_instance, 100000)
         assert contract_instance.mint(hex_address) is None
         assert mock_request.called is False
@@ -183,6 +184,9 @@ class TestToken:
         token_info_path,
         minimal_definition_dict,
     ):
+        m_name.return_value = "name"
+        m_symbol.return_value = "symbol"
+        m_decimals.return_value = 10
         mocked_properties = {"name": m_name, "symbol": m_symbol, "decimals": m_decimals}
         runner.definition.token = TokenConfig(minimal_definition_dict, token_info_path)
         token = Token(runner, tmp_path)
@@ -237,13 +241,7 @@ class TestToken:
         assert token_instance.deployment_block == 100
 
     @pytest.mark.parametrize(
-        "receipt, expected",
-        argvalues=[
-            (None, False),
-            ({}, False),
-            ({"blockNumber": 100}, True),
-            ({"blockNumber": None}, False),
-        ],
+        "receipt, expected", argvalues=[(None, False), ({}, False), ({"blockNumber": 100}, True)]
     )
     def test_deployed_property_depends_on_value_of_deployment_receipt(
         self, receipt, expected, token_instance
@@ -396,7 +394,10 @@ class TestToken:
             name = "my_deployed_token_name"
             symbol = "token_symbol"
 
-        token_instance._local_contract_manager.get_contract.return_value = {"abi": "contract_abi", "name": "my_deployed_token_name"}
+        token_instance._local_contract_manager.get_contract.return_value = {
+            "abi": "contract_abi",
+            "name": "my_deployed_token_name",
+        }
 
         expected_deployment_receipt = {"blockNumber": loaded_token_info["block"]}
         expected_contract_data = {

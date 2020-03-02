@@ -40,7 +40,7 @@ class ScenarioConfig(ConfigMapping):
         )
 
     @property
-    def root_task(self) -> Tuple[str, Any]:
+    def root_task(self) -> Tuple[str, Dict[Any, Any]]:
         """Return the scenario's root task configuration as a tuple.
 
         The tuple contains the name of the task, as well as the config for it.

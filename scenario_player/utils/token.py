@@ -1,6 +1,6 @@
 import json
 import pathlib
-from typing import Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import structlog
 from eth_utils import to_checksum_address
@@ -23,7 +23,7 @@ log = structlog.get_logger(__name__)
 
 
 class Contract:
-    def __init__(self, runner, address=None):
+    def __init__(self, runner, address: HexAddress = None):
         self._address = address
         self.config = runner.definition
         self._local_rpc_client = runner.client
@@ -44,6 +44,7 @@ class Contract:
 
     @property
     def address(self) -> HexAddress:
+        assert self._address
         return self._address
 
     @property
@@ -68,7 +69,7 @@ class Contract:
         resp = self.interface.post(f"spaas://rpc/contract/{action}", json=payload)
         resp.raise_for_status()
         resp_data = resp.json()
-        tx_hash = resp_data["tx_hash"]
+        tx_hash = TransactionHash(resp_data["tx_hash"])
         log.info(f"'{action}' call succeeded", tx_hash=tx_hash)
         return tx_hash
 
@@ -92,7 +93,7 @@ class Contract:
         )
         if not balance < required_balance:
             local_log.debug("Mint call not required - sufficient funds")
-            return
+            return None
 
         if max_fund_amount is None:
             max_fund_amount = self.config.token.max_funding
@@ -118,38 +119,44 @@ class Token(Contract):
     def __init__(self, scenario_runner, data_path: pathlib.Path):
         super().__init__(scenario_runner)
         self._token_file = data_path.joinpath("token.info")
-        self.contract_data = {}
-        self.deployment_receipt = None
+        self.contract_data: Dict[str, Any] = {}
+        self.deployment_receipt: Optional[Dict[str, Any]] = None
         self.contract_proxy = None
 
     @property
     def name(self) -> str:
         """Name of the token contract, as defined in the config."""
-        return self.contract_data.get("name") or self.config.token.name
+        name = self.contract_data.get("name") or self.config.token.name
+        assert isinstance(name, str), f"Name was {name!r}"
+        return name
 
     @property
     def symbol(self) -> str:
         """Symbol of the token, as defined in the scenario config."""
-        return self.config.token.symbol
+        symbol = self.config.token.symbol
+        assert isinstance(symbol, str)
+        return symbol
 
     @property
     def decimals(self) -> int:
         """Number of decimals to use for the tokens."""
-        return self.config.token.decimals
+        decimals = self.config.token.decimals
+        assert isinstance(decimals, int)
+        return decimals
 
     @property
     def address(self) -> HexAddress:
         """Return the address of the token contract.
 
-        While not deployed, this reads the addres from :attr:`TokenConfig.address`.
+        While not deployed, this reads the address from :attr:`TokenConfig.address`.
 
         As soon as it's deployed we use the returned contract data at
         :attr:`.contract_data` instead.
         """
         try:
-            return self.contract_data["address"]
+            return HexAddress(self.contract_data["address"])
         except KeyError:
-            return self.config.token.address
+            return HexAddress(self.config.token.address)
 
     @property
     def deployment_block(self) -> int:
@@ -157,11 +164,12 @@ class Token(Contract):
 
         It is an error to access this property before the token is deployed.
         """
-        try:
-            return self.deployment_receipt.get("blockNumber")
-        except AttributeError:
-            # deployment_receipt is empty, token not deployed.
+        if not self.deployment_receipt:
             raise TokenNotDeployed
+
+        block_number = self.deployment_receipt.get("blockNumber")
+        assert isinstance(block_number, int)
+        return block_number
 
     @property
     def deployed(self) -> bool:
@@ -172,13 +180,16 @@ class Token(Contract):
             return False
 
     @property
-    def balance(self) -> float:
+    def balance(self) -> int:
         """Return the token contract's balance.
 
         It is an error to access this property before the token is deployed.
         """
         if self.deployed:
-            return self.contract_proxy.functions.balanceOf(self.address).call()
+            assert self.contract_proxy
+            balance = self.contract_proxy.functions.balanceOf(self.address).call()
+            assert isinstance(balance, int)
+            return balance
         else:
             raise TokenNotDeployed
 
@@ -209,6 +220,7 @@ class Token(Contract):
         """
         try:
             token_data = json.loads(self._token_file.read_text())
+            assert isinstance(token_data, dict)
             if not all(k in token_data for k in ("address", "name", "block")):
                 raise KeyError
         except KeyError as e:
@@ -298,6 +310,7 @@ class Token(Contract):
         self.contract_proxy = self._local_rpc_client.new_contract_proxy(
             contract_info["abi"], address
         )
+        assert self.contract_proxy
         self.deployment_receipt = {"blockNumber": block}
         checksummed_address = to_checksum_address(address)
 
@@ -462,7 +475,7 @@ class UserDepositContract(Contract):
         )
         if not balance < min_deposit:
             log.debug("deposit call not required - sufficient funds")
-            return
+            return None
 
         log.debug("deposit call required - insufficient funds", target_address=target_address)
         deposit_amount = total_deposit + (max_funding - balance)

@@ -11,4 +11,4 @@ from typing import NewType
 #: may be optional as well.
 #: The reason for this is that the Raiden Executable requires netlocs to include
 #: a port number.
-NetlocWithPort = NewType("Netloc", str)
+NetlocWithPort = NewType("NetlocWithPort", str)
