@@ -12,6 +12,7 @@ from tests.unittests.constants import TEST_TOKEN_ADDRESS, TEST_TOKEN_NETWORK_ADD
 
 from raiden.network.rpc.client import JSONRPCClient
 from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
+from scenario_player.tasks.base import Task
 
 
 @pytest.fixture
@@ -80,6 +81,7 @@ def dummy_scenario_definition(dummy_settings_config):
             self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
             self.scenario_dir = dummy_settings_config.sp_scenario_root_dir.joinpath(self.name)
             self.scenario_dir.mkdir(parents=True, exist_ok=True)
+
     return DummyScenarioDefinition
 
 
@@ -107,7 +109,8 @@ class DummyNodeController:
 
     @property
     def address_to_index(self) -> Dict[ChecksumAddress, int]:
-        return {runner.address: i for i, runner in enumerate(iter(self))}
+        return {runner.address: i for i, runner in enumerate(iter(self))}  # type: ignore
+
 
 @pytest.fixture
 def mocked_scenario_runner(dummy_scenario_definition):
@@ -124,8 +127,8 @@ def mocked_scenario_runner(dummy_scenario_definition):
             self.scenario_name = scenario_name
             self.definition = dummy_scenario_definition(scenario_name)
             self.session = requests.Session()
-            self.task_cache = {}
-            self.task_storage = defaultdict(dict)
+            self.task_cache: Dict[str, Task] = {}
+            self.task_storage: Dict[str, dict] = defaultdict(dict)
             self.task_count = 0
             self.running_task_count = 0
             self.run_number = 0
@@ -142,7 +145,9 @@ def mocked_scenario_runner(dummy_scenario_definition):
 
         def get_node_address(self, index):
             return self.node_controller[index].address
+
     return DummyScenarioRunner
+
 
 @pytest.fixture
 def mocked_responses():
