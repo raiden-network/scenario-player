@@ -138,6 +138,10 @@ commands:
     description: Execute Smoketests to verify build.
     steps:
       - run:
+          name: Dump it
+          command: |
+            echo ${SMOKETEST_PW}
+      - run:
           name: Reclaim ether spent on previous smoketests
           command: |
            scenario_player reclaim-eth \
@@ -203,7 +207,7 @@ jobs:
       - setup-job
       - lint_codebase
       - run_test_harness
-      # - run_smoketests
+      - run_smoketests
       - store_env
 
   # Publish a wheel and tarball of the Scenario Player to pypi.
