@@ -1,9 +1,7 @@
 import pytest
-import yaml
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
-from scenario_player.definition import ScenarioDefinition
-from scenario_player.exceptions.config import InsufficientMintingAmount, UDCTokenConfigError
+from scenario_player.exceptions.config import UDCTokenConfigError
 from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.settings import (
     PFSSettingsConfig,
@@ -13,16 +11,6 @@ from scenario_player.utils.configuration.settings import (
     UDCSettingsConfig,
     UDCTokenSettings,
 )
-
-
-@pytest.fixture()
-def file_for_insufficient_minting_test(tmp_path, minimal_definition_dict):
-    minimal_definition_dict["settings"] = {"services": {"udc": {"token": {"max_funding": 6000}}}}
-    minimal_definition_dict["token"] = {"min_balance": 5999}
-    tmp_file = tmp_path.joinpath("tmp.yaml")
-    with open(tmp_file, "w") as outfile:
-        yamldump(minimal_definition_dict, outfile, default_flow_style=False)
-    yield tmp_file
 
 
 class TestSettingsConfig:
