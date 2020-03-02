@@ -2,7 +2,7 @@ import re
 from typing import Any, Union
 
 import structlog
-from requests import ConnectTimeout, ReadTimeout, RequestException
+from requests import ConnectTimeout, ReadTimeout, RequestException  # type: ignore
 
 from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import RESTAPIError, RESTAPIStatusMismatchError, RESTAPITimeout

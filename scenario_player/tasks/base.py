@@ -5,7 +5,7 @@ import time
 from copy import copy
 from datetime import timedelta
 from enum import Enum
-from typing import Any, TypeVar
+from typing import Any, Dict, Type
 
 import click
 import gevent
@@ -16,7 +16,7 @@ from scenario_player.exceptions import UnknownTaskTypeError
 
 log = structlog.get_logger(__name__)
 
-NAME_TO_TASK = {}
+NAME_TO_TASK: Dict[str, Type["Task"]] = {}
 
 
 class TaskState(Enum):
@@ -37,7 +37,7 @@ _TASK_ID = 0
 
 
 class Task:
-    _name = None
+    _name: str
 
     def __init__(
         self,
@@ -56,7 +56,7 @@ class Task:
         self._abort_on_fail = abort_on_fail
         self._state = TaskState.INITIALIZED
         self.exception = None
-        self.level = parent.level + 1 if parent else 0
+        self.level: int = parent.level + 1 if parent else 0
         self._start_time = None
         self._stop_time = None
 
@@ -154,10 +154,7 @@ class Task:
         self._runner.task_state_changed(self, self._state)
 
 
-T_Task = TypeVar("T_Task", bound=Task)
-
-
-def get_task_class_for_type(task_type) -> T_Task:
+def get_task_class_for_type(task_type: str) -> Type[Task]:
     task_class = NAME_TO_TASK.get(task_type)
     if not task_class:
         raise UnknownTaskTypeError(f'Task type "{task_type}" is unknown.')

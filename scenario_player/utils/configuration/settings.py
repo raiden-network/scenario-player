@@ -3,6 +3,7 @@ from typing import Callable, Optional, Union
 
 import structlog
 
+from raiden.utils.typing import ChainID
 from scenario_player.constants import (
     BB_ETH_RPC_ADDRESS,
     DEFAULT_CLIENT,
@@ -195,7 +196,7 @@ class SettingsConfig(ConfigMapping):
         # definition values. These attributes store these overrides.
         self._cli_rpc_address: Optional[str] = None
         self._cli_chain: Optional[str] = None
-        self.chain_id: Optional[int] = None
+        self.chain_id: Optional[ChainID] = None
         self.sp_root_dir: Optional[Path] = None
         self._sp_scenario_root_dir = None
 
