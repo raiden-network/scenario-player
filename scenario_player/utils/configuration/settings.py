@@ -193,9 +193,9 @@ class SettingsConfig(ConfigMapping):
         self.validate()
         # If chain or rpc address are given via CLI, they override the scenario
         # definition values. These attributes store these overrides.
-        self._cli_rpc_address = None
-        self._cli_chain = None
-        self.chain_id = None
+        self._cli_rpc_address: Optional[str] = None
+        self._cli_chain: Optional[str] = None
+        self.chain_id: Optional[int] = None
         self.sp_root_dir: Optional[Path] = None
         self._sp_scenario_root_dir = None
 

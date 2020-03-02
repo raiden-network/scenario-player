@@ -2,12 +2,12 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, cast
 
 import gevent
 import structlog
 from eth_typing import ChecksumAddress
-from eth_utils import encode_hex, is_checksum_address, to_checksum_address
+from eth_utils import encode_hex, is_checksum_address, to_canonical_address, to_checksum_address
 from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
 from requests import HTTPError, RequestException, Session
 from web3 import HTTPProvider, Web3
@@ -44,7 +44,7 @@ class ScenarioRunner:
         account: Account,
         auth: str,
         chain: str,
-        data_path: Union[Path, str],
+        data_path: Path,
         scenario_file: Path,
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
@@ -58,10 +58,10 @@ class ScenarioRunner:
 
         self.task_count = 0
         self.running_task_count = 0
-        self.task_cache = {}
+        self.task_cache: Dict[str, Task] = {}
         self.task_state_callback = task_state_callback
         # Storage for arbitrary data tasks might need to persist
-        self.task_storage = defaultdict(dict)
+        self.task_storage: Dict[str, dict] = defaultdict(dict)
 
         self.definition = ScenarioDefinition(scenario_file, data_path)
 
@@ -87,6 +87,7 @@ class ScenarioRunner:
         self.definition.settings.chain_id = self.client.chain_id
         self.contract_manager = ContractManager(contracts_precompiled_path())
 
+        assert account.address
         balance = self.client.balance(account.address)
         if balance < OWN_ACCOUNT_BALANCE_MIN:
             raise ScenarioError(
@@ -99,7 +100,7 @@ class ScenarioRunner:
 
         self.session = Session()
         if auth:
-            self.session.auth = tuple(auth.split(":"))
+            self.session.auth = cast(Tuple[str, str], tuple(auth.split(":")))
         self.session.mount("http", TimeOutHTTPAdapter(timeout=self.definition.settings.timeout))
         self.session.mount("https", TimeOutHTTPAdapter(timeout=self.definition.settings.timeout))
 
@@ -109,7 +110,7 @@ class ScenarioRunner:
             self, account.privkey, self.definition.settings.gas_price
         )
         self.token = Token(self, data_path)
-        self.udc = None
+        self.udc: Optional[UserDepositContract] = None
 
         self.token_network_address = None
 
@@ -143,9 +144,10 @@ class ScenarioRunner:
 
         The seed is stored in a file inside the ``.definition.settings.sp_root_dir``.
         """
+        assert self.definition.settings.sp_root_dir
         seed_file = self.definition.settings.sp_root_dir.joinpath("seed.txt")
         if not seed_file.exists():
-            seed = encode_hex(bytes(random.randint(0, 255) for _ in range(20)))
+            seed = str(encode_hex(bytes(random.randint(0, 255) for _ in range(20))))
             seed_file.write_text(seed)
         else:
             seed = seed_file.read_text().strip()
@@ -190,7 +192,7 @@ class ScenarioRunner:
         )
 
         started = time.monotonic()
-        elapsed = 0
+        elapsed = 0.0
         while elapsed < self.definition.settings.timeout:
             try:
                 resp = self.session.get(node_endpoint)
@@ -217,7 +219,7 @@ class ScenarioRunner:
                     # Something's amiss about this response. Notify a human.
                     raise TypeError(f"Unexpected response type from API: {data!r}")
 
-                return data
+                return ChecksumAddress(data)
 
         # We could not assert that our token network was registered within an
         # acceptable time frame.
@@ -226,9 +228,10 @@ class ScenarioRunner:
     def ensure_token_network_discovery(self) -> ChecksumAddress:
         """Ensure that all our nodes have discovered the token network."""
         discovered = None
-        for node in self.node_controller:
+        for node in self.node_controller:  # type: ignore
             discovered = self.wait_for_token_network_discovery(node.base_url)
             log.info("Token Network Discovery", node=node._index, network=discovered)
+        assert discovered
         return discovered
 
     def _setup(self, mint_gas, node_count, node_addresses, fund_tx, node_starter, greenlets):
@@ -321,6 +324,7 @@ class ScenarioRunner:
 
             if not should_deposit_ud_token:
                 continue
+            assert self.udc
             deposit_tx = self.udc.deposit(address)
             if deposit_tx:
                 mint_tx.add(deposit_tx)
@@ -334,12 +338,14 @@ class ScenarioRunner:
         udc_settings = self.definition.settings.services.udc
         udc_enabled = udc_settings.enable
 
-        ud_token_tx = set()
+        ud_token_tx: Set[TransactionHash] = set()
 
         if not udc_enabled:
             return ud_token_tx, None, False
 
         udc_ctr, ud_token_ctr = get_udc_and_token(self)
+        assert udc_ctr
+        assert ud_token_ctr
 
         ud_token_address = to_checksum_address(ud_token_ctr.address)
         udc_address = to_checksum_address(udc_ctr.address)
@@ -370,12 +376,15 @@ class ScenarioRunner:
         """This methods starts all the Raiden nodes and makes sure that each
         account has at least `NODE_ACCOUNT_BALANCE_MIN`.
         """
-        fund_tx = set()
+        fund_tx: Set[TransactionHash] = set()
 
         self.node_controller.initialize_nodes()
         node_addresses = self.node_controller.addresses
         node_count = len(self.node_controller)
-        balance_per_node = {address: self.client.balance(address) for address in node_addresses}
+        balance_per_node = {
+            address: self.client.balance(to_canonical_address(address))
+            for address in node_addresses
+        }
         low_balances = {
             address: balance
             for address, balance in balance_per_node.items()
@@ -384,7 +393,6 @@ class ScenarioRunner:
         log.debug("Node eth balances", balances=balance_per_node, low_balances=low_balances)
         if low_balances:
             log.info("Funding nodes", nodes=low_balances.keys())
-            fund_tx = set()
             for address, balance in low_balances.items():
                 params = {
                     "client_id": self.definition.spaas.rpc.client_id,
