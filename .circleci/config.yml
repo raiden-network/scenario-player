@@ -133,9 +133,6 @@ commands:
       - run:
           name: Run test harness.
           command: make test
-      - run:
-          name: Upload coverage report
-          command: codecov
 
   run_smoketests:
     description: Execute Smoketests to verify build.
