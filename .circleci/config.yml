@@ -203,7 +203,7 @@ jobs:
       - setup-job
       - lint_codebase
       - run_test_harness
-      # - run_smoketests
+      - run_smoketests
       - store_env
 
   # Publish a wheel and tarball of the Scenario Player to pypi.
