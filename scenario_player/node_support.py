@@ -11,7 +11,7 @@ from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 from tarfile import TarFile
-from typing import Any, Dict, Set
+from typing import IO, Any, Dict, Optional, Set, Union
 from urllib.parse import urljoin
 from zipfile import ZipFile
 
@@ -77,7 +77,6 @@ class NodeState(Enum):
 
 class RaidenReleaseKeeper:
     def __init__(self, release_cache_dir: Path):
-        self._releases = {}
         self._downloads_path = release_cache_dir.joinpath("downloads")
         self._bin_path = release_cache_dir.joinpath("bin")
 
@@ -107,31 +106,34 @@ class RaidenReleaseKeeper:
         if not release_file_path.exists():
             raise ValueError(f"Release file {release_file_path} not found")
 
+        archive: Union[TarFile, ZipFile]
         if release_file_path.suffix == ".gz":
-            opener = TarFile.open(release_file_path, "r:*")
+            tar_opener = TarFile.open(release_file_path, "r:*")
+            with tar_opener as tar_archive:
+                contents = tar_archive.getnames()
+            archive = tar_archive
         else:
-            opener = ZipFile(release_file_path, "r")
+            zip_opener = ZipFile(release_file_path, "r")
+            with zip_opener as zip_archive:
+                contents = zip_archive.namelist()
+            archive = zip_archive
 
-        with opener as archive:
-            if release_file_path.suffix == ".gz":
-                contents = archive.getnames()
-            else:
-                contents = archive.namelist()
-            if len(contents) != 1:
-                raise ValueError(
-                    f"Release archive has unexpected content. "
-                    f'Expected 1 file, found {len(contents)}: {", ".join(contents)}'
-                )
-            bin_file_path = self._bin_path.joinpath(contents[0])
-            if not bin_file_path.exists():
-                log.debug(
-                    "Extracting Raiden binary",
-                    release_file_name=release_file_path.name,
-                    bin_file_name=bin_file_path.name,
-                )
-                archive.extract(contents[0], self._bin_path)
-                bin_file_path.chmod(0o770)
-            return bin_file_path
+        if len(contents) != 1:
+            raise ValueError(
+                f"Release archive has unexpected content. "
+                f'Expected 1 file, found {len(contents)}: {", ".join(contents)}'
+            )
+
+        bin_file_path = self._bin_path.joinpath(contents[0])
+        if not bin_file_path.exists():
+            log.debug(
+                "Extracting Raiden binary",
+                release_file_name=release_file_path.name,
+                bin_file_name=bin_file_path.name,
+            )
+            archive.extract(contents[0], str(self._bin_path))
+            bin_file_path.chmod(0o770)
+        return bin_file_path
 
     def _get_release_file(self, release_file_name: str):
         release_file_path = self._downloads_path.joinpath(release_file_name)
@@ -150,7 +152,7 @@ class RaidenReleaseKeeper:
             shutil.copyfileobj(resp.raw, release_file)
         return release_file_path
 
-    @property
+    @property  # type: ignore
     @ttl_cache(maxsize=1, ttl=600)
     def _latest_release_name(self):
         latest_release_file_name = self._expand_release_template(
@@ -179,14 +181,14 @@ class NodeRunner:
             f"node_{self._runner.run_number}_{index:03d}"
         )
 
-        self._address = None
+        self._address: Optional[ChecksumAddress] = None
         self._eth_rpc_endpoint = None
         self._executor = None
         self._api_address = None
 
         self.state: NodeState = NodeState.STOPPED
 
-        self._output_files = {}
+        self._output_files: Dict[str, IO] = {}
 
         if options.pop("_clean", False):
             shutil.rmtree(self._datadir)
