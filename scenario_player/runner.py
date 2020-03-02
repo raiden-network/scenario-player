@@ -231,11 +231,7 @@ class ScenarioRunner:
             log.info("Token Network Discovery", node=node._index, network=discovered)
         return discovered
 
-    def run_scenario(self):
-        mint_gas = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
-
-        fund_tx, node_starter, node_addresses, node_count = self._initialize_nodes()
-
+    def _setup(self, mint_gas, node_count, node_addresses, fund_tx, node_starter, greenlets):
         ud_token_tx, udc_ctr, should_deposit_ud_token = self._initialize_udc(
             gas_limit=mint_gas, node_count=node_count
         )
@@ -275,11 +271,11 @@ class ScenarioRunner:
         log.info(
             "Token Network Discovery Completed", token_network_address=self.token_network_address
         )
-
+        log.info("Setup done")
         # Start root task
         root_task_greenlet = gevent.spawn(self.root_task)
-        greenlets = {root_task_greenlet}
-        greenlets.add(self.node_controller.start_node_monitor())
+        root_task_greenlet.name = "root_task"
+        greenlets.add(root_task_greenlet)
         try:
             gevent.joinall(greenlets, raise_error=True)
         except BaseException as exc:
@@ -288,6 +284,23 @@ class ScenarioRunner:
                 # Make sure we kill the tasks if a node dies
                 root_task_greenlet.kill()
             raise
+
+    def run_scenario(self):
+        mint_gas = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
+
+        fund_tx, node_starter, node_addresses, node_count = self._initialize_nodes()
+
+        node_monitor = self.node_controller.start_node_monitor()
+        greenlets = {node_monitor}
+
+        log.info("Node monitor started")
+
+        setup = gevent.spawn(
+            self._setup, mint_gas, node_count, node_addresses, fund_tx, node_starter, greenlets
+        )
+        greenlets.add(setup)
+
+        gevent.joinall(greenlets, raise_error=True, count=1)
 
     def _initialize_scenario_token(
         self,
@@ -352,7 +365,7 @@ class ScenarioRunner:
         return ud_token_tx, udc_ctr, should_deposit_ud_token
 
     def _initialize_nodes(
-        self
+        self,
     ) -> Tuple[Set[TransactionHash], gevent.Greenlet, Set[ChecksumAddress], int]:
         """This methods starts all the Raiden nodes and makes sure that each
         account has at least `NODE_ACCOUNT_BALANCE_MIN`.
