@@ -1,4 +1,5 @@
-from typing import Callable, Union
+from pathlib import Path
+from typing import Callable, Optional, Union
 
 import structlog
 
@@ -195,7 +196,7 @@ class SettingsConfig(ConfigMapping):
         self._cli_rpc_address = None
         self._cli_chain = None
         self.chain_id = None
-        self.sp_root_dir = None
+        self.sp_root_dir: Optional[Path] = None
         self._sp_scenario_root_dir = None
 
     @property

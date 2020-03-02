@@ -71,6 +71,7 @@ dev = [
     "responses==0.10.6",
     "coverage",
     "codecov",
+    "mypy==0.761",
 ]
 
 [tool.flit.metadata.urls]
