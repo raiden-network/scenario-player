@@ -198,17 +198,17 @@ class TestToken:
         self, mock_address, runner, tmp_path
     ):
         token = Token(runner, tmp_path)
-        token.contract_data = {"address": 100}
+        token.contract_data = {"address": to_hex(100)}
         mock_address.return_value = 200
-        assert token.address == 100
+        assert token.address == to_hex(100)
 
     @patch(f"{token_config_import_path}.TokenConfig.address", new_callable=PropertyMock)
     def test_address_is_fetched_from_token_config_if_no_contract_data_available(
         self, mock_address, runner, tmp_path
     ):
         token = Token(runner, tmp_path)
-        mock_address.return_value = 100
-        assert token.address == 100
+        mock_address.return_value = to_hex(100)
+        assert token.address == to_hex(100)
 
     @patch(f"{token_import_path}.to_checksum_address")
     def test_checksum_address_property_address_in_token_config_if_token_is_not_deployed(

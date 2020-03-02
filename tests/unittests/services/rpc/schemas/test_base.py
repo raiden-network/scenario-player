@@ -46,7 +46,7 @@ def test_rpcclientid_serializes_to_string(test_schema, rpc_service_app, rpc_clie
 
     with rpc_service_app.app_context():
         current_app.config["rpc-client"].dict[expected_id] = instance
-        assert client_id._serialize(instance, "client_id", {}) == expected_id  # type: ignore
+        assert client_id._serialize(instance, "client_id", {}) == expected_id
 
 
 @pytest.mark.parametrize(
