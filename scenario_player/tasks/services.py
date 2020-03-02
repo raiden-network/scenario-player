@@ -7,7 +7,6 @@ from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.tasks.api_base import RESTAPIActionTask
 from scenario_player.tasks.base import Task
-from scenario_player.utils.datastructures import FrozenList
 
 log = structlog.get_logger(__name__)
 
@@ -235,9 +234,8 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                         f"at index {i}"
                     )
 
-        # We use a ``FrozenList`` because ``set`` (see below) doesn't accepts unhashable types
-        actual_routes = FrozenList(
-            FrozenList(route["path"])
+        actual_routes: List[tuple] = list(
+            tuple(route["path"])
             for response in response_dict["responses"]
             for route in response["routes"]
             if response["routes"]
@@ -262,7 +260,9 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                     f"Expected {len(exp_routes)} routes but got {len(actual_routes)}."
                 )
             for exp_route in exp_routes:
-                exp_route_addr = [self._runner.get_node_address(node) for node in exp_route]
+                exp_route_addr: tuple = tuple(
+                    [self._runner.get_node_address(node) for node in exp_route]
+                )
                 try:
                     actual_routes.remove(exp_route_addr)
                 except ValueError as ex:

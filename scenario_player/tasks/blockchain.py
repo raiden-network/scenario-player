@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 import structlog
 from eth_abi.codec import ABICodec
@@ -42,7 +42,8 @@ def decode_event(abi_codec: ABICodec, abi: ABI, log_: Dict) -> Dict:
     events = filter_by_type("event", abi)
     topic_to_event_abi = {event_abi_to_log_topic(event_abi): event_abi for event_abi in events}
     event_abi = topic_to_event_abi[event_id]
-    return get_event_data(abi_codec=abi_codec, event_abi=event_abi, log_entry=log_)
+    event_data = get_event_data(abi_codec=abi_codec, event_abi=event_abi, log_entry=log_)
+    return cast(Dict[Any, Any], event_data)
 
 
 def query_blockchain_events(
@@ -205,9 +206,11 @@ class AssertMSClaimTask(Task):
         self.contract_name = CONTRACT_MONITORING_SERVICE
 
         # get the MS contract address
+        assert self._runner.definition.settings.chain_id
         contract_data = get_contracts_deployment_info(
             chain_id=self._runner.definition.settings.chain_id, version=RAIDEN_CONTRACT_VERSION
         )
+        assert contract_data
         try:
             contract_info = contract_data["contracts"][self.contract_name]
             self.contract_address = contract_info["address"]

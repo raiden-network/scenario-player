@@ -17,9 +17,12 @@ flake8:
 
 style: isort black
 
-lint: flake8 black-check isort-check
+lint: mypy flake8 black-check isort-check
 
 format: isort black
+
+mypy:
+	mypy scenario_player tests
 
 install:
 	pip install --force-reinstall -U .

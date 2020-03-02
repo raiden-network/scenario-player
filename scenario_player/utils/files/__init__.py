@@ -4,11 +4,6 @@ from scenario_player.utils.files.constants import (
     BINARY_FNAME_TEMPLATE,
     CLOUD_STORAGE_URL,
 )
-from scenario_player.utils.files.mixins import (
-    ArchitectureSpecificMixin,
-    PlatformSpecificMixin,
-    VersionedMixin,
-)
 from scenario_player.utils.files.parsing import (
     detect_target_config,
     parse_architecture,
@@ -21,9 +16,6 @@ __all__ = [
     "ARCHIVE_FNAME_TEMPLATE",
     "BINARY_FNAME_TEMPLATE",
     "CLOUD_STORAGE_URL",
-    "ArchitectureSpecificMixin",
-    "PlatformSpecificMixin",
-    "VersionedMixin",
     "parse_version",
     "parse_platform",
     "parse_architecture",
