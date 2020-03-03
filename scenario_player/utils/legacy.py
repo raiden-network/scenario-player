@@ -7,23 +7,26 @@ from collections import defaultdict, deque
 from datetime import datetime
 from itertools import chain as iter_chain, islice
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple
 
 import click
 import requests
 import structlog
 from eth_keyfile import decode_keyfile_json
-from eth_utils import encode_hex, to_canonical_address, to_checksum_address
-from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
-from raiden_contracts.contract_manager import get_contracts_deployment_info
+from eth_utils import encode_hex, to_checksum_address
+from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN
 from requests.adapters import HTTPAdapter
 from web3 import HTTPProvider, Web3
 from web3.contract import Contract
 from web3.exceptions import TransactionNotFound
 
 from raiden.accounts import Account
-from raiden.network.rpc.client import EthTransfer, JSONRPCClient, check_address_has_code
-from raiden.settings import RAIDEN_CONTRACT_VERSION
+from raiden.network.rpc.client import (
+    EthTransfer,
+    JSONRPCClient,
+    TransactionSent,
+    check_address_has_code,
+)
 from raiden.utils.typing import ChecksumAddress, PrivateKey, TransactionHash
 from scenario_player.exceptions import ScenarioError, ScenarioTxError
 
@@ -110,16 +113,12 @@ class MutuallyExclusiveOption(click.Option):
         return super(MutuallyExclusiveOption, self).handle_parse_result(ctx, opts, args)
 
 
-def wait_for_txs(
-    client_or_web3: Union[Web3, JSONRPCClient], txhashes: Set[TransactionHash], timeout: int = 360
-):
-    if isinstance(client_or_web3, Web3):
-        web3 = client_or_web3
-    else:
-        web3 = client_or_web3.web3
+def wait_for_txs(client: JSONRPCClient, transactions: Set[TransactionSent], timeout: int = 360):
+    web3 = client.web3
     start = time.monotonic()
     outstanding = None
-    txhashes = set(txhashes)
+    txhashes = set(transaction_sent.transaction_hash for transaction_sent in transactions)
+
     while txhashes and time.monotonic() - start < timeout:
         remaining_timeout = timeout - (time.monotonic() - start)
         if outstanding != len(txhashes) or int(remaining_timeout) % 10 == 0:
@@ -145,6 +144,7 @@ def wait_for_txs(
                     txhashes.remove(txhash)
             time.sleep(0.1)
         time.sleep(1)
+
     if len(txhashes):
         txhashes_str = ", ".join(encode_hex(txhash) for txhash in txhashes)
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
@@ -208,36 +208,6 @@ def get_or_deploy_token(runner) -> Tuple[Contract, int]:
 
     log.info("Deployed token", address=contract_checksum_address, name=name, symbol=symbol)
     return token_ctr, contract_deployment_block
-
-
-def get_udc_and_token(runner) -> Tuple[Optional[Contract], Optional[Contract]]:
-    """ Return contract proxies for the UserDepositContract and associated token """
-    from scenario_player.runner import ScenarioRunner
-
-    assert isinstance(runner, ScenarioRunner)
-
-    udc_config = runner.definition.settings.services.udc
-
-    if not udc_config.enable:
-        return None, None
-
-    udc_address = udc_config.address
-    if udc_address is None:
-        assert runner.definition.settings.chain_id
-        contracts = get_contracts_deployment_info(
-            chain_id=runner.definition.settings.chain_id, version=RAIDEN_CONTRACT_VERSION
-        )
-        assert contracts
-        udc_address = contracts["contracts"][CONTRACT_USER_DEPOSIT]["address"]
-    udc_abi = runner.contract_manager.get_contract_abi(CONTRACT_USER_DEPOSIT)
-    udc_proxy = runner.client.new_contract_proxy(udc_abi, to_canonical_address(udc_address))
-
-    ud_token_address = udc_proxy.functions.token().call()
-    # FIXME: We assume the UD token is a CustomToken (supporting the `mint()` function)
-    custom_token_abi = runner.contract_manager.get_contract_abi(CONTRACT_CUSTOM_TOKEN)
-    ud_token_proxy = runner.client.new_contract_proxy(custom_token_abi, ud_token_address)
-
-    return udc_proxy, ud_token_proxy
 
 
 def mint_token_if_balance_low(
@@ -305,7 +275,7 @@ def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_a
 
     log.info("Reclaiming candidates", addresses=list(address_to_keyfile.keys()))
 
-    txs: Dict[str, Set[TransactionHash]] = defaultdict(set)
+    txs: Dict[str, Set[TransactionSent]] = defaultdict(set)
     reclaim_amount: Dict[str, int] = defaultdict(int)
     for chain_name, web3 in web3s.items():
         log.info("Checking chain", chain=chain_name)

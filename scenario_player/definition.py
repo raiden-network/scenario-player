@@ -8,7 +8,6 @@ from scenario_player.utils.configuration import (
     NodesConfig,
     ScenarioConfig,
     SettingsConfig,
-    SPaaSConfig,
     TokenConfig,
 )
 
@@ -33,7 +32,6 @@ class ScenarioDefinition:
         self.settings = SettingsConfig(self._loaded)
         self.settings.sp_root_dir = data_path
         self.scenario = ScenarioConfig(self._loaded)
-        self.spaas = SPaaSConfig(self._loaded)
 
         self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 

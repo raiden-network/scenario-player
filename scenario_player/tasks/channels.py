@@ -5,6 +5,7 @@ import structlog
 from gevent import Timeout, sleep
 from toolz import first
 
+from raiden.utils.formatting import to_checksum_address
 from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.tasks.base import Task
@@ -26,9 +27,10 @@ class OpenChannelTask(RaidenAPIActionTask):
             partner_address = self._config["to"]
         else:
             partner_address = self._runner.get_node_address(self._config["to"])
-        params = dict(
-            token_address=self._runner.token.checksum_address, partner_address=partner_address
-        )
+        params = {
+            "token_address": to_checksum_address(self._runner.token.address),
+            "partner_address": partner_address,
+        }
         total_deposit = self._config.get("total_deposit")
         if total_deposit is not None:
             params["total_deposit"] = total_deposit
@@ -49,9 +51,10 @@ class ChannelActionTask(RaidenAPIActionTask):
         else:
             partner_address = self._runner.get_node_address(self._config["to"])
 
-        return dict(
-            token_address=self._runner.token.checksum_address, partner_address=partner_address
-        )
+        return {
+            "token_address": to_checksum_address(self._runner.token.address),
+            "partner_address": partner_address,
+        }
 
 
 class CloseChannelTask(ChannelActionTask):
@@ -194,7 +197,7 @@ class AssertAllTask(ChannelActionTask):
 
     @property
     def _url_params(self):
-        return dict(token_address=self._runner.token.checksum_address)
+        return {"token_address": to_checksum_address(self._runner.token.address)}
 
     def _process_response(self, response_dict: dict):
         response_dict = super()._process_response(response_dict)

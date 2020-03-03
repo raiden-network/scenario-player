@@ -11,6 +11,8 @@ from raiden_contracts.contract_manager import ContractManager
 from tests.unittests.constants import TEST_TOKEN_ADDRESS, TEST_TOKEN_NETWORK_ADDRESS
 
 from raiden.network.rpc.client import JSONRPCClient
+from raiden.utils.formatting import to_canonical_address
+from raiden.utils.typing import Address
 from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from scenario_player.tasks.base import Task
 
@@ -23,12 +25,11 @@ def minimal_definition_dict():
         "settings": {},
         "token": {},
         "nodes": {"count": 1},
-        "spaas": {},
     }
 
 
 class DummyTokenContract:
-    def __init__(self, token_address):
+    def __init__(self, token_address: Address):
         self.checksum_address = to_checksum_address(token_address)
         self.address = token_address
 
@@ -47,18 +48,12 @@ class DummyServicesConfig:
         self.pfs = DummyPFSConfig()
 
 
-class DummySPaaSConfig:
-    def __init__(self):
-        self.rpc = DummyRPCConfig()
-
-
 @pytest.fixture
 def dummy_settings_config(tmp_path):
     class DummySettingsConfig:
         def __init__(self):
             self.timeout = 2
             self.services = DummyServicesConfig()
-            self.spaas = DummySPaaSConfig()
             self.sp_root_dir = tmp_path
             self.sp_scenario_root_dir = tmp_path.joinpath("scenarios")
             self.sp_scenario_root_dir.mkdir(exist_ok=True, parents=True)
@@ -118,7 +113,7 @@ def mocked_scenario_runner(dummy_scenario_definition):
         def __init__(
             self,
             scenario_name: str,
-            token_address: ChecksumAddress,
+            token_address: Address,
             token_network_address: ChecksumAddress = TEST_TOKEN_NETWORK_ADDRESS,
             node_count: int = 4,
         ):
@@ -157,4 +152,4 @@ def mocked_responses():
 
 @pytest.fixture
 def dummy_scenario_runner(mocked_responses, mocked_scenario_runner):
-    return mocked_scenario_runner("dummy_scenario", TEST_TOKEN_ADDRESS)
+    return mocked_scenario_runner("dummy_scenario", to_canonical_address(TEST_TOKEN_ADDRESS))
