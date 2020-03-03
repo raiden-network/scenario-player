@@ -28,10 +28,10 @@ from raiden.utils.nursery import Nursery
 from scenario_player.exceptions import ScenarioError
 from scenario_player.utils.types import NetlocWithPort
 
-log = structlog.get_logger(__name__)
-
 if TYPE_CHECKING:
     from scenario_player.runner import ScenarioRunner
+
+log = structlog.get_logger(__name__)
 
 RAIDEN_RELEASES_URL = "https://raiden-nightlies.ams3.digitaloceanspaces.com/"
 RAIDEN_RELEASES_LATEST_FILE_TEMPLATE = "_LATEST-NIGHTLY-{platform}-{arch}.txt"
@@ -246,7 +246,7 @@ class NodeRunner:
             "--eth-rpc-endpoint",
             self._runner.definition.settings.eth_client_rpc_address,
             "--log-config",
-            (":info," "raiden:debug," "raiden_contracts:debug," "raiden.api.rest.pywsgi:warning"),
+            ":info,raiden:debug,raiden_contracts:debug,raiden.api.rest.pywsgi:warning",
             "--log-json",
             "--log-file",
             self._log_file,

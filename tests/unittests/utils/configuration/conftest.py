@@ -23,5 +23,4 @@ def expected_defaults():
             "node_options": {},
             "raiden_version": "LATEST",
         },
-        "spaas": {"rpc": {"scheme": "https", "host": "localhost", "port": 5000}},
     }

@@ -2,44 +2,257 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Callable, Dict, Optional, Set, Tuple, cast
 
 import gevent
 import requests
 import structlog
 from eth_typing import ChecksumAddress
-from eth_utils import encode_hex, is_checksum_address, to_canonical_address, to_checksum_address
-from raiden_contracts.contract_manager import ContractManager, contracts_precompiled_path
-from requests import HTTPError, RequestException, Session
+from eth_utils import encode_hex, is_checksum_address, to_checksum_address, to_hex
+from gevent import Greenlet
+from gevent.pool import Pool
+from raiden_contracts.constants import (
+    CONTRACT_HUMAN_STANDARD_TOKEN,
+    CONTRACT_TOKEN_NETWORK_REGISTRY,
+    CONTRACT_USER_DEPOSIT,
+    NETWORKNAME_TO_ID,
+)
+from raiden_contracts.contract_manager import (
+    ContractManager,
+    contracts_precompiled_path,
+    get_contracts_deployment_info,
+)
+from requests import HTTPError, Session
 from web3 import HTTPProvider, Web3
-from web3.contract import Contract
 
 from raiden.accounts import Account
-from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
+from raiden.constants import UINT256_MAX
+from raiden.network.proxies.custom_token import CustomToken
+from raiden.network.proxies.proxy_manager import ProxyManager, ProxyManagerMetadata
+from raiden.network.proxies.token_network_registry import TokenNetworkRegistry
+from raiden.network.proxies.user_deposit import UserDeposit
 from raiden.network.rpc.client import JSONRPCClient
-from raiden.utils.nursery import Janitor, Nursery
-from raiden.utils.typing import TransactionHash
+from raiden.settings import RAIDEN_CONTRACT_VERSION
+from raiden.utils.formatting import to_canonical_address
+from raiden.utils.nursery import Janitor
+from raiden.utils.typing import (
+    Address,
+    BlockNumber,
+    TokenAddress,
+    TokenAmount,
+    TokenNetworkAddress,
+    TokenNetworkRegistryAddress,
+    UserDepositAddress,
+)
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
-    API_URL_TOKENS,
     MAX_RAIDEN_STARTUP_TIME,
-    NODE_ACCOUNT_BALANCE_FUND,
     NODE_ACCOUNT_BALANCE_MIN,
     OWN_ACCOUNT_BALANCE_MIN,
     RUN_NUMBER_FILENAME,
 )
 from scenario_player.definition import ScenarioDefinition
-from scenario_player.exceptions import ScenarioError, TokenRegistrationError
+from scenario_player.exceptions import ScenarioError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
 from scenario_player.node_support import NodeController, RaidenReleaseKeeper
-from scenario_player.services.utils.interface import ServiceInterface
-from scenario_player.utils import TimeOutHTTPAdapter, get_udc_and_token, wait_for_txs
-from scenario_player.utils.token import Token, UserDepositContract
+from scenario_player.utils import TimeOutHTTPAdapter
+from scenario_player.utils.configuration.settings import SettingsConfig, UDCSettingsConfig
+from scenario_player.utils.token import (
+    TokenDetails,
+    eth_maybe_transfer,
+    load_token_configuration_from_file,
+    save_token_configuration_to_file,
+    token_maybe_mint,
+    userdeposit_maybe_deposit,
+    userdeposit_maybe_increase_allowance,
+)
 
 if TYPE_CHECKING:
     from scenario_player.tasks.base import Task, TaskState
 
 log = structlog.get_logger(__name__)
+
+
+# The `mint` function checks for overflow of the total supply. Here we
+# have a large enough number for both scenario runs and the scenario
+# orchestration account capacity.
+NUMBER_OF_RUNS_BEFORE_OVERFLOW = 2 ** 64
+ORCHESTRATION_MAXIMUM_BALANCE = UINT256_MAX // NUMBER_OF_RUNS_BEFORE_OVERFLOW
+
+
+def is_udc_enabled(udc_settings: UDCSettingsConfig):
+    should_deposit_ud_token = udc_settings.token.deposit
+    return udc_settings.enable and should_deposit_ud_token
+
+
+def wait_for_nodes_to_be_ready(node_runners, session):
+    with gevent.Timeout(MAX_RAIDEN_STARTUP_TIME):
+        for node_runner in node_runners:
+            url = f"http://{node_runner.base_url}/api/v1/address"
+            while True:
+                try:
+                    if session.get(url).ok:
+                        break
+                except requests.exceptions.RequestException:
+                    pass
+                gevent.sleep(0.5)
+
+
+def get_udc_and_corresponding_token_from_dependencies(
+    udc_settings: UDCSettingsConfig, settings: SettingsConfig, proxy_manager: ProxyManager
+) -> Tuple[UserDeposit, CustomToken]:
+    """ Return contract proxies for the UserDepositContract and associated token.
+
+    This will return a proxy to the `UserDeposit` contract as determined by the
+    **local** Raiden depedency.
+    """
+    assert udc_settings.enable
+    chain_id = settings.chain_id
+    assert chain_id, "Missing configuration, either set udc_address or the chain_id"
+
+    udc_address = udc_settings.address
+
+    if udc_address is None:
+
+        contracts = get_contracts_deployment_info(chain_id, version=RAIDEN_CONTRACT_VERSION)
+
+        msg = (
+            f"invalid chain_id, {chain_id} is not available for version {RAIDEN_CONTRACT_VERSION}"
+        )
+        assert contracts, msg
+
+        udc_address = contracts["contracts"][CONTRACT_USER_DEPOSIT]["address"]
+
+    userdeposit_proxy = proxy_manager.user_deposit(
+        UserDepositAddress(to_canonical_address(udc_address)), "latest"
+    )
+
+    token_address = userdeposit_proxy.token_address("latest")
+    user_token_proxy = proxy_manager.custom_token(token_address, "latest")
+
+    return userdeposit_proxy, user_token_proxy
+
+
+def get_token_network_registry_from_dependencies(
+    settings: SettingsConfig, proxy_manager: ProxyManager
+) -> TokenNetworkRegistry:
+    """ Return contract proxies for the UserDepositContract and associated token.
+
+    This will return a proxy to the `UserDeposit` contract as determined by the
+    **local** Raiden depedency.
+    """
+    chain_id = settings.chain_id
+    assert chain_id, "Missing configuration, either set udc_address or the chain_id"
+
+    contracts = get_contracts_deployment_info(chain_id, version=RAIDEN_CONTRACT_VERSION)
+
+    msg = f"invalid chain_id, {chain_id} is not available for version {RAIDEN_CONTRACT_VERSION}"
+    assert contracts, msg
+
+    token_network_address = contracts["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]["address"]
+
+    token_network_proxy = proxy_manager.token_network_registry(
+        TokenNetworkRegistryAddress(to_canonical_address(token_network_address)), "latest"
+    )
+    return token_network_proxy
+
+
+def determine_run_number(scenario_dir: Path) -> int:
+    """ Determine the current run number.
+
+    We check for a run number file, and use any number that is logged there
+    after incrementing it.
+    """
+    # TODO: Use advisory file locks to avoid concurrent read/writes on the
+    # run_number_file. Otherwise this can lead to very hard to debug races.
+    run_number_file = scenario_dir.joinpath(RUN_NUMBER_FILENAME)
+
+    if run_number_file.exists():
+        run_number = int(run_number_file.read_text()) + 1
+    else:
+        run_number = 0
+
+    run_number_file.write_text(str(run_number))
+
+    return run_number
+
+
+def make_session(auth: str, settings: SettingsConfig) -> Session:
+    session = Session()
+    if auth:
+        session.auth = cast(Tuple[str, str], tuple(auth.split(":")))
+    session.mount("http", TimeOutHTTPAdapter(timeout=settings.timeout))
+    session.mount("https", TimeOutHTTPAdapter(timeout=settings.timeout))
+
+    return session
+
+
+def wait_for_token_network_discovery(
+    node_endpoint: str, settings: SettingsConfig, session: Session
+) -> ChecksumAddress:
+    """Check for token network discovery with the given `node`.
+
+    By default exit the wait if the token has not been discovered after `n` seconds,
+    where `n` is the value of :attr:`.timeout`.
+
+    :raises TokenNetworkDiscoveryTimeout:
+        If we waited a set time for the token network to be discovered, but it wasn't.
+    """
+    started = time.monotonic()
+    elapsed = 0.0
+    while elapsed < settings.timeout:
+        try:
+            resp = session.get(node_endpoint)
+            resp.raise_for_status()
+
+        except HTTPError as e:
+            # We explicitly handle 404 Not Found responses only - anything else is none
+            # of our business.
+            if e.response.status_code != 404:
+                raise
+
+            # Wait before continuing, no sense in spamming the node.
+            gevent.sleep(1)
+
+            # Update our elapsed time tracker.
+            elapsed = time.monotonic() - started
+            continue
+
+        else:
+            # The node appears to have discovered our token network.
+            data = resp.json()
+
+            if not is_checksum_address(data):
+                # Something's amiss about this response. Notify a human.
+                raise TypeError(f"Unexpected response type from API: {data!r}")
+
+            return ChecksumAddress(data)
+
+    # We could not assert that our token network was registered within an
+    # acceptable time frame.
+    raise TokenNetworkDiscoveryTimeout
+
+
+def maybe_create_token_network(
+    token_network_proxy: TokenNetworkRegistry, token_proxy: CustomToken
+) -> TokenNetworkAddress:
+    """ Make sure the token is registered with the node's network registry. """
+    block_identifier = token_network_proxy.rpc_client.get_confirmed_blockhash()
+    token_address = token_proxy.address
+
+    token_network_address = token_network_proxy.get_token_network(
+        token_address=token_address, block_identifier=block_identifier
+    )
+
+    if token_network_address is None:
+        return token_network_proxy.add_token(
+            token_address=token_address,
+            channel_participant_deposit_limit=TokenAmount(UINT256_MAX),
+            token_network_deposit_limit=TokenAmount(UINT256_MAX),
+            given_block_identifier=block_identifier,
+        )
+    else:
+        return token_network_address
 
 
 class ScenarioRunner:
@@ -53,10 +266,11 @@ class ScenarioRunner:
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
-    ):
+    ) -> None:
         self.auth = auth
 
         self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
+        self.data_path = data_path
 
         self.task_count = 0
         self.running_task_count = 0
@@ -69,14 +283,17 @@ class ScenarioRunner:
 
         log.debug("Local seed", seed=self.local_seed)
 
-        self.run_number = self.determine_run_number()
+        self.run_number = determine_run_number(self.definition.scenario_dir)
+
+        log.info("Run number", run_number=self.run_number)
 
         self.protocol = "http"
-        if chain:
-            name, endpoint = chain.split(":", maxsplit=1)
-            # Set CLI overrides.
-            self.definition.settings._cli_chain = name
-            self.definition.settings._cli_rpc_address = endpoint
+        chain_name, endpoint = chain.split(":", maxsplit=1)
+        self.definition.settings._cli_chain = chain_name
+        self.definition.settings._cli_rpc_address = endpoint
+
+        self.chain_name = chain_name
+        self.chain_id = NETWORKNAME_TO_ID[chain_name]
 
         self.client = JSONRPCClient(
             Web3(HTTPProvider(self.definition.settings.eth_client_rpc_address)),
@@ -85,7 +302,6 @@ class ScenarioRunner:
         )
 
         self.definition.settings.chain_id = self.client.chain_id
-        self.contract_manager = ContractManager(contracts_precompiled_path())
 
         assert account.address
         balance = self.client.balance(account.address)
@@ -98,41 +314,7 @@ class ScenarioRunner:
                 f"that is {OWN_ACCOUNT_BALANCE_MIN - balance} Wei)."
             )
 
-        self.session = Session()
-        if auth:
-            self.session.auth = cast(Tuple[str, str], tuple(auth.split(":")))
-        self.session.mount("http", TimeOutHTTPAdapter(timeout=self.definition.settings.timeout))
-        self.session.mount("https", TimeOutHTTPAdapter(timeout=self.definition.settings.timeout))
-
-        self.service_session = ServiceInterface(self.definition.spaas)
-        # Assign an RPC Client instance ID on the RPC service, for this run.
-        self.definition.spaas.rpc.assign_rpc_instance(
-            self, account.privkey, self.definition.settings.gas_price
-        )
-        self.token = Token(self, data_path)
-        self.udc: Optional[UserDepositContract] = None
-
-        self.token_network_address: Optional[ChecksumAddress] = None
-
-        task_config = self.definition.scenario.root_config
-        task_class = self.definition.scenario.root_class
-        self.root_task = task_class(runner=self, config=task_config)
-
-    def determine_run_number(self) -> int:
-        """Determine the current run number.
-
-        We check for a run number file, and use any number that is logged
-        there after incrementing it.
-
-        REFAC: Replace this with a property.
-        """
-        run_number = 0
-        run_number_file = self.definition.scenario_dir.joinpath(RUN_NUMBER_FILENAME)
-        if run_number_file.exists():
-            run_number = int(run_number_file.read_text()) + 1
-        run_number_file.write_text(str(run_number))
-        log.info("Run number", run_number=run_number)
-        return run_number
+        self.session = make_session(auth, self.definition.settings)
 
     @property
     def local_seed(self) -> str:
@@ -153,288 +335,325 @@ class ScenarioRunner:
             seed = seed_file.read_text().strip()
         return seed
 
-    def select_chain(self, chain_urls: Dict[str, List[str]]) -> Tuple[str, List[str]]:
-        """Select a chain and return its name and RPC URL.
-
-        If the currently loaded scenario's designated chain is set to 'any',
-        we randomly select a chain from the given `chain_urls`.
-        Otherwise, we will return `ScenarioRunner.scenario.chain_name` and whatever value
-        may be associated with this key in `chain_urls`.
-
-        :raises ScenarioError:
-            if ScenarioRunner.scenario.chain_name is not one of `('any', 'Any', 'ANY')`
-            and it is not a key in `chain_urls`.
-        """
-        chain_name = self.definition.settings.chain
-        if chain_name in ("any", "Any", "ANY"):
-            chain_name = random.choice(list(chain_urls.keys()))
-
-        log.info("Using chain", chain=chain_name)
-        try:
-            return chain_name, chain_urls[chain_name]
-        except KeyError:
-            raise ScenarioError(
-                f'The scenario requested chain "{chain_name}" for which no RPC-URL is known.'
-            )
-
-    def wait_for_token_network_discovery(self, node) -> ChecksumAddress:
-        """Check for token network discovery with the given `node`.
-
-        By default exit the wait if the token has not been discovered after `n` seconds,
-        where `n` is the value of :attr:`.timeout`.
-
-        :raises TokenNetworkDiscoveryTimeout:
-            If we waited a set time for the token network to be discovered, but it wasn't.
-        """
-        log.info("Waiting till new network is found by nodes")
-        node_endpoint = API_URL_TOKEN_NETWORK_ADDRESS.format(
-            protocol=self.protocol, target_host=node, token_address=self.token.address
-        )
-
-        started = time.monotonic()
-        elapsed = 0.0
-        while elapsed < self.definition.settings.timeout:
-            try:
-                resp = self.session.get(node_endpoint)
-                resp.raise_for_status()
-
-            except HTTPError as e:
-                # We explicitly handle 404 Not Found responses only - anything else is none
-                # of our business.
-                if e.response.status_code != 404:
-                    raise
-
-                # Wait before continuing, no sense in spamming the node.
-                gevent.sleep(1)
-
-                # Update our elapsed time tracker.
-                elapsed = time.monotonic() - started
-                continue
-
-            else:
-                # The node appears to have discovered our token network.
-                data = resp.json()
-
-                if not is_checksum_address(data):
-                    # Something's amiss about this response. Notify a human.
-                    raise TypeError(f"Unexpected response type from API: {data!r}")
-
-                return ChecksumAddress(data)
-
-        # We could not assert that our token network was registered within an
-        # acceptable time frame.
-        raise TokenNetworkDiscoveryTimeout
-
-    def ensure_token_network_discovery(self) -> ChecksumAddress:
-        """Ensure that all our nodes have discovered the token network."""
-        discovered = None
+    def ensure_token_network_discovery(
+        self, token: CustomToken, token_network_addresses: TokenNetworkAddress
+    ) -> None:
+        """Ensure that all our nodes have discovered the same token network."""
         for node in self.node_controller:  # type: ignore
-            discovered = self.wait_for_token_network_discovery(node.base_url)
-            log.info("Token Network Discovery", node=node._index, network=discovered)
-        assert discovered
-        return discovered
+            node_endpoint = API_URL_TOKEN_NETWORK_ADDRESS.format(
+                protocol=self.protocol,
+                target_host=node.base_url,
+                token_address=to_checksum_address(token.address),
+            )
+            address = wait_for_token_network_discovery(
+                node_endpoint, self.definition.settings, self.session
+            )
+            if to_canonical_address(address) != Address(token_network_addresses):
+                raise RuntimeError(
+                    f"Nodes diverged on the token network address, there should be "
+                    f"exactly one token network available for all nodes. Current "
+                    f"values : {to_hex(token_network_addresses)}"
+                )
 
-    def _setup(self, mint_gas, node_count, node_addresses, fund_tx, node_starter):
-        ud_token_tx, udc_ctr, should_deposit_ud_token = self._initialize_udc(
-            gas_limit=mint_gas, node_count=node_count
-        )
-
-        mint_tx = self._initialize_scenario_token(
-            node_addresses=node_addresses,
-            udc_ctr=udc_ctr,
-            should_deposit_ud_token=should_deposit_ud_token,
-            gas_limit=mint_gas,
-        )
-
-        wait_for_txs(self.client, fund_tx | ud_token_tx | mint_tx)
-
-        if node_starter is not None:
-            log.debug("Waiting for nodes to finish starting")
-            node_starter.get(block=True)
-
-        first_node = self.get_node_baseurl(0)
-
-        registered_tokens = set(
-            self.session.get(
-                API_URL_TOKENS.format(protocol=self.protocol, target_host=first_node)
-            ).json()
-        )
-        if self.token.checksum_address not in registered_tokens:
-            for _ in range(5):
-                code, msg = self.register_token(self.token.checksum_address, first_node)
-                if 199 < code < 300:
-                    break
-                # FIXME: Remove long sleep and instead intelligently handle Raiden 5 block wait
-                gevent.sleep(15)
-            else:
-                log.error("Couldn't register token with network", code=code, message=msg)
-                raise TokenRegistrationError(msg)
-
-        self.token_network_address = self.ensure_token_network_discovery()
-        log.info(
-            "Token Network Discovery Completed", token_network_address=self.token_network_address
-        )
-        log.info("Setup done")
-        # Start root task
-        self.root_task()
-
-    def run_scenario(self):
-        log.info("run scenario")
-        mint_gas = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
-
+    def run_scenario(self) -> None:
         with Janitor() as nursery:
             self.node_controller = NodeController(self, self.definition.nodes, nursery)
-            fund_tx, node_starter, node_addresses, node_count = self._initialize_nodes(nursery)
+            self.node_controller.initialize_nodes()
 
-            setup = nursery.spawn_under_watch(
-                self._setup, mint_gas, node_count, node_addresses, fund_tx, node_starter
+            try:
+                for node_runner in self.node_controller._node_runners:
+                    node_runner.start()
+            except Exception:
+                log.error("failed to start", exc_info=True)
+                raise
+
+            node_addresses = self.node_controller.addresses
+
+            scenario = nursery.spawn_under_watch(
+                self.setup_environment_and_run_main_task, node_addresses
             )
-            setup.name = "setup (root task)"
-            greenlets = {setup}
+            scenario.name = "orchestration"
 
+            # Wait for either a crash in one of the Raiden nodes or for the
+            # scenario to exit (successfully or not).
+            greenlets = {scenario}
             gevent.joinall(greenlets, raise_error=True, count=1)
 
-    def _initialize_scenario_token(
-        self,
-        node_addresses: Set[ChecksumAddress],
-        udc_ctr: Optional[Contract],
-        should_deposit_ud_token: bool,
-        gas_limit: int,
-    ) -> Set[TransactionHash]:
-        """Create or reuse an existing token, and mint the token for every
-        `node_addresses`.
+    def setup_environment_and_run_main_task(self, node_addresses: Set[ChecksumAddress]) -> None:
+        """ This will first make sure the on-chain state is setup properly, and
+        then execute the scenario.
+
+        The on-chain state consists of:
+
+        - Deployment of the test CustomToken
+        - For each of the Raiden nodes, make sure they have enough:
+
+            - Ether to pay for the transactions.
+            - Utility token balances in the user deposit smart contract.
+            - Tokens to be used with the test token network.
         """
-        self.token.init()
-        mint_tx = set()
-        for address in node_addresses:
-            tx = self.token.mint(address)
-            if tx:
-                mint_tx.add(tx)
+        block_execution_started = self.client.block_number()
 
-            if not should_deposit_ud_token:
-                continue
-            assert self.udc
-            deposit_tx = self.udc.deposit(address)
-            if deposit_tx:
-                mint_tx.add(deposit_tx)
+        settings = self.definition.settings
+        udc_settings = settings.services.udc
 
-        return mint_tx
+        contract_manager = ContractManager(contracts_precompiled_path(RAIDEN_CONTRACT_VERSION))
+        deploy = get_contracts_deployment_info(self.chain_id, RAIDEN_CONTRACT_VERSION)
 
-    def _initialize_udc(
-        self, gas_limit: int, node_count: int
-    ) -> Tuple[Set[TransactionHash], Optional[Contract], bool]:
-        our_address = to_checksum_address(self.client.address)
-        udc_settings = self.definition.settings.services.udc
-        udc_enabled = udc_settings.enable
+        msg = "There is no deployement details for the given chain_id and contracts version pair"
+        assert deploy, msg
 
-        ud_token_tx: Set[TransactionHash] = set()
+        token_network_deployment_details = deploy["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]
+        deployed_at = token_network_deployment_details["block_number"]
+        token_network_registry_deployed_at = BlockNumber(deployed_at)
 
-        if not udc_enabled:
-            return ud_token_tx, None, False
+        proxy_manager = ProxyManager(
+            self.client,
+            contract_manager,
+            ProxyManagerMetadata(
+                token_network_registry_deployed_at=token_network_registry_deployed_at,
+                filters_start_at=token_network_registry_deployed_at,
+            ),
+        )
 
-        udc_ctr, ud_token_ctr = get_udc_and_token(self)
-        assert udc_ctr
-        assert ud_token_ctr
+        # Tracking pool to synchronize on all concurrent transactions
+        pool = Pool()
 
-        ud_token_address = to_checksum_address(ud_token_ctr.address)
-        udc_address = to_checksum_address(udc_ctr.address)
+        log.debug("Funding Raiden node's accounts with ether")
+        self.setup_raiden_nodes_ether_balances(pool, node_addresses)
 
-        log.info("UDC enabled", contract_address=udc_address, token_address=ud_token_address)
-
-        self.udc = UserDepositContract(self, udc_ctr, ud_token_ctr)
-
-        should_deposit_ud_token = udc_enabled and udc_settings.token.deposit
-        allowance_tx, required_allowance = self.udc.update_allowance()
-        if allowance_tx:
-            ud_token_tx.add(allowance_tx)
-        if should_deposit_ud_token:
-
-            tx = self.udc.mint(
-                our_address,
-                required_balance=required_allowance,
-                max_fund_amount=required_allowance * 2,
+        if is_udc_enabled(udc_settings):
+            (
+                userdeposit_proxy,
+                user_token_proxy,
+            ) = get_udc_and_corresponding_token_from_dependencies(
+                udc_settings=udc_settings, settings=settings, proxy_manager=proxy_manager
             )
-            if tx:
-                ud_token_tx.add(tx)
 
-        return ud_token_tx, udc_ctr, should_deposit_ud_token
+            log.debug("Minting utility tokens and /scheduling/ transfers to the nodes")
+            mint_greenlets = self.setup_mint_user_deposit_tokens_for_distribution(
+                pool, userdeposit_proxy, user_token_proxy, node_addresses
+            )
+            self.setup_raiden_nodes_with_sufficient_user_deposit_balances(
+                pool, userdeposit_proxy, node_addresses, mint_greenlets
+            )
 
-    def _initialize_nodes(
-        self, nursery: Nursery
-    ) -> Tuple[Set[TransactionHash], gevent.Greenlet, Set[ChecksumAddress], int]:
-        """This methods starts all the Raiden nodes and makes sure that each
-        account has at least `NODE_ACCOUNT_BALANCE_MIN`.
+        # This is a blocking call. If the token has to be deployed it will
+        # block until mined and confirmed, since that is a requirement for the
+        # following setup calls.
+        token_proxy = self.setup_token_contract_for_token_network(proxy_manager)
+        token_network_registry_proxy = get_token_network_registry_from_dependencies(
+            settings=settings, proxy_manager=proxy_manager
+        )
+
+        self.setup_raiden_token_balances(pool, token_proxy, node_addresses)
+
+        # Wait for all the transactions
+        # - Move ether from the orcheastration account (the scenario player),
+        # to the raiden nodes.
+        # - Mint enough utility tokens (user deposit tokens) for the
+        # orchestration account to transfer for the nodes.
+        # - Mint network tokens for the nodes to use in the scenarion.
+        # - Deposit utility tokens for the raiden nodes in the user deposit
+        # contract.
+        log.debug("Waiting for funding transactions to be mined")
+        pool.join(raise_error=True)
+
+        log.debug("Waiting for the REST APIs")
+        wait_for_nodes_to_be_ready(self.node_controller._node_runners, self.session)
+
+        log.debug("Registering token to create the network")
+        token_network_address = maybe_create_token_network(
+            token_network_registry_proxy, token_proxy
+        )
+
+        log.info("Making sure all nodes have the same token network")
+        self.ensure_token_network_discovery(token_proxy, token_network_address)
+
+        log.info("Setup done, running scenario", token_network_address=token_network_address)
+
+        task_config = self.definition.scenario.root_config
+        task_class = self.definition.scenario.root_class
+
+        root_task = task_class(runner=self, config=task_config)
+
+        # Expose attributes used by the tasks
+        self.token = token_proxy
+        self.root_task = root_task
+        self.contract_manager = proxy_manager.contract_manager
+        self.token_network_address = to_checksum_address(token_network_address)
+        self.block_execution_started = block_execution_started
+
+        root_task()
+
+    def setup_raiden_nodes_ether_balances(
+        self, pool: Pool, node_addresses: Set[ChecksumAddress]
+    ) -> Set[Greenlet]:
+        """ Makes sure every Raiden node has at least `NODE_ACCOUNT_BALANCE_MIN`. """
+
+        greenlets: Set[Greenlet] = set()
+        for address in node_addresses:
+            g = pool.spawn(
+                eth_maybe_transfer,
+                self.client,
+                to_canonical_address(address),
+                NODE_ACCOUNT_BALANCE_MIN,
+            )
+            greenlets.add(g)
+
+        return greenlets
+
+    def setup_mint_user_deposit_tokens_for_distribution(
+        self,
+        pool: Pool,
+        userdeposit_proxy: UserDeposit,
+        token_proxy: CustomToken,
+        node_addresses: Set[ChecksumAddress],
+    ) -> Set[Greenlet]:
+        """ Ensures the scenario player account has enough tokens and allowance
+        to fund the Raiden nodes.
         """
-        fund_tx: Set[TransactionHash] = set()
+        settings = self.definition.settings
+        udc_settings = settings.services.udc
+        balance_per_node = settings.services.udc.token.balance_per_node
 
-        self.node_controller.initialize_nodes()
-        node_addresses = self.node_controller.addresses
-        node_count = len(self.node_controller)
-        balance_per_node = {
-            address: self.client.balance(to_canonical_address(address))
-            for address in node_addresses
-        }
-        low_balances = {
-            address: balance
-            for address, balance in balance_per_node.items()
-            if balance < NODE_ACCOUNT_BALANCE_MIN
-        }
-        log.debug("Node eth balances", balances=balance_per_node, low_balances=low_balances)
-        if low_balances:
-            log.info("Funding nodes", nodes=low_balances.keys())
-            for address, balance in low_balances.items():
-                params = {
-                    "client_id": self.definition.spaas.rpc.client_id,
-                    "to": address,
-                    "value": NODE_ACCOUNT_BALANCE_FUND - balance,
-                    "startgas": 21_000,
-                }
-                resp = self.service_session.post("spaas://rpc/transactions", json=params)
-                tx_hash = resp.json()["tx_hash"]
-                fund_tx.add(tx_hash)
+        msg = "udc is not enabled, this function should not be called"
+        assert is_udc_enabled(udc_settings), msg
 
-        try:
-            for node_runner in self.node_controller._node_runners:
-                node_runner.start()
-        except Exception:
-            log.error("failed to start", exc_info=True)
-            raise
+        node_count = len(node_addresses)
+        required_allowance = balance_per_node * node_count
 
-        def wait():
-            with gevent.Timeout(MAX_RAIDEN_STARTUP_TIME):
-                for node_runner in self.node_controller._node_runners:
-                    url = f"http://{node_runner.base_url}/api/v1/address"
-                    while True:
-                        try:
-                            if self.session.get(url).ok:
-                                break
-                        except requests.exceptions.RequestException:
-                            pass
-                        gevent.sleep(0.5)
-            log.info("All nodes ready")
+        allowance_greenlet = pool.spawn(
+            userdeposit_maybe_increase_allowance,
+            token_proxy=token_proxy,
+            userdeposit_proxy=userdeposit_proxy,
+            orchestrator_address=self.client.address,
+            minimum_allowance=required_allowance,
+            maximum_allowance=UINT256_MAX,
+        )
 
-        node_starter = nursery.spawn_under_watch(wait)
-        node_starter.name = "node starter"
+        mint_greenlet = pool.spawn(
+            token_maybe_mint,
+            token_proxy,
+            to_checksum_address(self.client.address),
+            minimum_balance=required_allowance,
+            maximum_balance=ORCHESTRATION_MAXIMUM_BALANCE,
+        )
 
-        return fund_tx, node_starter, node_addresses, node_count
+        return {allowance_greenlet, mint_greenlet}
+
+    def setup_raiden_token_balances(
+        self, pool: Pool, token_proxy: CustomToken, node_addresses: Set[ChecksumAddress]
+    ) -> Set[Greenlet]:
+        """Mint the necessary amount of tokens from `token_proxy` for every `node_addresses`.
+
+        This will use the scenario player's account, therefore it doesn't have
+        to wait for the ether transfers to finish.
+        """
+        token_min_amount = self.definition.token.min_balance
+        token_max_amount = self.definition.token.max_funding
+
+        greenlets: Set[Greenlet] = set()
+        for address in node_addresses:
+            g = pool.spawn(
+                token_maybe_mint,
+                token_proxy=token_proxy,
+                target_address=address,
+                minimum_balance=token_min_amount,
+                maximum_balance=token_max_amount,
+            )
+            greenlets.add(g)
+
+        return greenlets
+
+    def setup_raiden_nodes_with_sufficient_user_deposit_balances(
+        self,
+        pool: Pool,
+        userdeposit_proxy: UserDeposit,
+        node_addresses: Set[ChecksumAddress],
+        mint_greenlets: Set[Greenlet],
+    ) -> Set[Greenlet]:
+        """ Makes sure every Raiden node's account has enough tokens in the
+        user deposit contract.
+
+        For these transfers to work, the approve and mint transacations have to
+        be mined and confirmed. This is necessary because otherwise the gas
+        estimation of the deposits fail.
+        """
+        msg = "udc is not enabled, this function should not be called"
+        assert is_udc_enabled(self.definition.settings.services.udc), msg
+
+        minimum_effective_deposit = self.definition.settings.services.udc.token.balance_per_node
+        maximum_funding = self.definition.settings.services.udc.token.max_funding
+
+        log.debug("Depositing utility tokens for the nodes")
+        greenlets: Set[Greenlet] = set()
+        for address in node_addresses:
+            g = pool.spawn(
+                userdeposit_maybe_deposit,
+                userdeposit_proxy=userdeposit_proxy,
+                mint_greenlets=mint_greenlets,
+                target_address=to_canonical_address(address),
+                minimum_effective_deposit=minimum_effective_deposit,
+                maximum_funding=maximum_funding,
+            )
+            greenlets.add(g)
+
+        return greenlets
+
+    def setup_token_contract_for_token_network(self, proxy_manager: ProxyManager) -> CustomToken:
+        """ Ensure there is a deployed token contract and return a `CustomToken`
+        proxy to it. This token will be used for the scenario's token network.
+
+        This will either:
+
+        - Use the token from the address provided in the scenario
+          configuration.
+        - Use a previously deployed token, with the details loaded from the
+          disk.
+        - Deploy a new token if neither of the above options is used.
+        """
+        token_definition = self.definition.token
+        reuse_token_from_file = token_definition.reuse_token
+        token_address = to_canonical_address(token_definition.address)
+        deploy_new = not (reuse_token_from_file or token_address)
+        token_data_path = str(self.data_path.joinpath("token.info"))
+
+        if deploy_new:
+            contract = proxy_manager.contract_manager.get_contract(CONTRACT_HUMAN_STANDARD_TOKEN)
+            contract_proxy, receipt = self.client.deploy_single_contract(
+                contract_name=CONTRACT_HUMAN_STANDARD_TOKEN,
+                contract=contract,
+                constructor_parameters=(
+                    ORCHESTRATION_MAXIMUM_BALANCE,
+                    token_definition.name,
+                    token_definition.decimals,
+                    token_definition.symbol,
+                ),
+            )
+            token_address = to_canonical_address(contract_proxy.address)
+
+            if reuse_token_from_file:
+                details = TokenDetails(
+                    {
+                        "name": token_definition.name,
+                        "address": to_checksum_address(token_address),
+                        "block": receipt["blockNumber"],
+                    }
+                )
+                save_token_configuration_to_file(token_data_path, details)
+
+            token_address = contract_proxy.address
+
+        elif reuse_token_from_file:
+            token_details = load_token_configuration_from_file(token_data_path)
+            token_address = to_canonical_address(token_details["address"])
+
+        return proxy_manager.custom_token(TokenAddress(token_address), "latest")
 
     def task_state_changed(self, task: "Task", state: "TaskState"):
         if self.task_state_callback:
             self.task_state_callback(self, task, state)
-
-    def register_token(self, token_address, node):
-        # TODO: Move this to :class:`scenario_player.utils.token.Token`.
-        try:
-            base_url = API_URL_TOKENS.format(protocol=self.protocol, target_host=node)
-            url = "{}/{}".format(base_url, token_address)
-            log.info("Registering token with network", url=url)
-            resp = self.session.put(url)
-            code = resp.status_code
-            msg = resp.text
-        except RequestException as ex:
-            code = -1
-            msg = str(ex)
-        return code, msg
 
     @staticmethod
     def _spawn_and_wait(objects, callback):

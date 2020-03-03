@@ -1,483 +1,182 @@
 import json
-import pathlib
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import cast
 
+import gevent
 import structlog
-from eth_utils import to_checksum_address
-from eth_utils.typing import ChecksumAddress, HexAddress
+from eth_utils import to_hex
+from eth_utils.typing import ChecksumAddress
+from gevent import Greenlet
+from typing_extensions import TypedDict
 
-from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
-from raiden.network.rpc.client import AddressWithoutCode, check_address_has_code
-from raiden.utils.typing import TransactionHash
-from scenario_player.exceptions.config import (
-    TokenFileError,
-    TokenFileMissing,
-    TokenNotDeployed,
-    TokenSourceCodeDoesNotExist,
-)
-from scenario_player.services.utils.interface import ServiceInterface
+from raiden.network.proxies.custom_token import CustomToken
+from raiden.network.proxies.user_deposit import UserDeposit
+from raiden.network.rpc.client import EthTransfer, JSONRPCClient
+from raiden.utils.typing import Address, Set, TokenAmount
+from scenario_player.exceptions.config import TokenFileError, TokenFileMissing
 
 CUSTOM_TOKEN_NAME = "CustomToken"
 
 log = structlog.get_logger(__name__)
 
 
-class Contract:
-    def __init__(self, runner, address: HexAddress = None):
-        self._address = address
-        self.config = runner.definition
-        self._local_rpc_client = runner.client
-        self._local_contract_manager = runner.contract_manager
-        self.interface = ServiceInterface(runner.definition.spaas)
-        self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
+TokenDetails = TypedDict("TokenDetails", {"name": str, "address": ChecksumAddress, "block": int})
 
-    def __repr__(self):
-        return f"<{self.name}>"
 
-    @property
-    def name(self):
-        return f"{self.__class__.__name__}@{to_checksum_address(self.address)}"
+def token_maybe_mint(
+    token_proxy: CustomToken, target_address, minimum_balance: int, maximum_balance: int
+) -> None:
+    current_balance = token_proxy.balance_of(target_address)
 
-    @property
-    def client_id(self):
-        return self.config.spaas.rpc.client_id
+    if minimum_balance > current_balance:
+        mint_amount = TokenAmount(maximum_balance - current_balance)
+        token_proxy.mint_for(amount=mint_amount, address=target_address)
 
-    @property
-    def address(self) -> HexAddress:
-        assert self._address
-        return self._address
 
-    @property
-    def balance(self):
-        return self._local_rpc_client.balance(self.address)
+def eth_maybe_transfer(
+    orchestration_client: JSONRPCClient, target: Address, minimum_balance: int
+) -> None:
+    balance = orchestration_client.balance(target)
 
-    @property
-    def checksum_address(self) -> ChecksumAddress:
-        """Checksum'd address of the deployed contract."""
-        return to_checksum_address(self.address)
-
-    def transact(self, action: str, parameters: dict) -> TransactionHash:
-        """Send a transact request to `/rpc/contract/<action>` and return the resulting tx hash."""
-        payload = {
-            "client_id": self.client_id,
-            "gas_limit": self.config.gas_limit,
-            "contract_address": self.checksum_address,
-        }
-        payload.update(parameters)
-
-        log.info(f"Requesting '{action}' call", **payload)
-        resp = self.interface.post(f"spaas://rpc/contract/{action}", json=payload)
-        resp.raise_for_status()
-        resp_data = resp.json()
-        tx_hash = TransactionHash(resp_data["tx_hash"])
-        log.info(f"'{action}' call succeeded", tx_hash=tx_hash)
-        return tx_hash
-
-    def mint(
-        self, target_address, required_balance=None, max_fund_amount=None, **kwargs
-    ) -> Union[TransactionHash, None]:
-        """Mint new tokens for the given `target_address`.
-
-        The amount of tokens depends on the scenario definition's settings, and defaults to
-        :attr:`.DEFAULT_TOKEN_BALANCE_MIN` and :attr:`.DEFAULT_TOKEN_BALANCE_FUND`
-        if those settings are absent.
-        """
-        local_log = log.bind(contract=self.name)
-        balance = self.balance
-        if required_balance is None:
-            required_balance = self.config.token.min_balance
-        local_log.debug(
-            "Checking necessity of mint request",
-            required_balance=required_balance,
-            actual_balance=balance,
+    if balance < minimum_balance:
+        eth_transfer = EthTransfer(
+            to_address=target,
+            value=minimum_balance - balance,
+            gas_price=orchestration_client.web3.eth.gasPrice,
         )
-        if not balance < required_balance:
-            local_log.debug("Mint call not required - sufficient funds")
-            return None
-
-        if max_fund_amount is None:
-            max_fund_amount = self.config.token.max_funding
-
-        mint_amount = max_fund_amount - balance
-        local_log.debug("Minting required - insufficient funds.", mint_amount=mint_amount)
-        params = {"amount": mint_amount, "target_address": target_address}
-        params.update(kwargs)
-        return self.transact("mint", params)
+        tx_hash = orchestration_client.transact(eth_transfer)
+        orchestration_client.poll_transaction(tx_hash)
 
 
-class Token(Contract):
-    """Token Contract data and configuration class.
+def userdeposit_maybe_mint_tokens(
+    token_proxy: CustomToken,
+    userdeposit_proxy: UserDeposit,
+    minimum_balance: int,
+    maximum_balance: int,
+) -> None:
+    """The mint function isn't present on the UDC, pass the UDTC address instead."""
+    given_token_address = token_proxy.address
+    user_deposit_token_address = userdeposit_proxy.token_address("latest")
 
-    Takes care of setting up a token for the scenario run:
+    if user_deposit_token_address != given_token_address:
+        raise ValueError(
+            f"The allowance for the user deposit contract must be increase on the "
+            f"corresponding token. Given token: {to_hex(given_token_address)} "
+            f"user deposit token: {to_hex(user_deposit_token_address)}."
+        )
 
-        - Loads configuration for token deployment
-        - Loads data from token.info file if reusing an existing token
-        - Deploys tokens to the blockchain, if required
-        - Saves token contract data to file for reuse in later scenario runs
+    token_maybe_mint(token_proxy, userdeposit_proxy.address, minimum_balance, maximum_balance)
+
+
+def userdeposit_maybe_increase_allowance(
+    token_proxy: CustomToken,
+    userdeposit_proxy: UserDeposit,
+    orchestrator_address: Address,
+    minimum_allowance: TokenAmount,
+    maximum_allowance: TokenAmount,
+) -> None:
+    """Set the allowance of the corresponding smart contract of
+    `userdeposit_proxy` to `required_allowance`.
     """
+    given_token_address = token_proxy.address
+    user_deposit_token_address = userdeposit_proxy.token_address("latest")
 
-    def __init__(self, scenario_runner, data_path: pathlib.Path):
-        super().__init__(scenario_runner)
-        self._token_file = data_path.joinpath("token.info")
-        self.contract_data: Dict[str, Any] = {}
-        self.deployment_receipt: Optional[Dict[str, Any]] = None
-        self.contract_proxy = None
-
-    @property
-    def name(self) -> str:
-        """Name of the token contract, as defined in the config."""
-        name = self.contract_data.get("name") or self.config.token.name
-        assert isinstance(name, str), f"Name was {name!r}"
-        return name
-
-    @property
-    def symbol(self) -> str:
-        """Symbol of the token, as defined in the scenario config."""
-        symbol = self.config.token.symbol
-        assert isinstance(symbol, str)
-        return symbol
-
-    @property
-    def decimals(self) -> int:
-        """Number of decimals to use for the tokens."""
-        decimals = self.config.token.decimals
-        assert isinstance(decimals, int)
-        return decimals
-
-    @property
-    def address(self) -> HexAddress:
-        """Return the address of the token contract.
-
-        While not deployed, this reads the address from :attr:`TokenConfig.address`.
-
-        As soon as it's deployed we use the returned contract data at
-        :attr:`.contract_data` instead.
-        """
-        try:
-            return HexAddress(self.contract_data["address"])
-        except KeyError:
-            return HexAddress(self.config.token.address)
-
-    @property
-    def deployment_block(self) -> int:
-        """Return the token contract's deployment block number.
-
-        It is an error to access this property before the token is deployed.
-        """
-        if not self.deployment_receipt:
-            raise TokenNotDeployed
-
-        block_number = self.deployment_receipt.get("blockNumber")
-        assert isinstance(block_number, int)
-        return block_number
-
-    @property
-    def deployed(self) -> bool:
-        """Check if this token has been deployed yet."""
-        try:
-            return self.deployment_block is not None
-        except TokenNotDeployed:
-            return False
-
-    @property
-    def balance(self) -> int:
-        """Return the token contract's balance.
-
-        It is an error to access this property before the token is deployed.
-        """
-        if self.deployed:
-            assert self.contract_proxy
-            balance = self.contract_proxy.functions.balanceOf(self.address).call()
-            assert isinstance(balance, int)
-            return balance
-        else:
-            raise TokenNotDeployed
-
-    def load_from_file(self) -> dict:
-        """Load token configuration from disk.
-
-        Stored information consists of:
-
-            * token name
-            * deployment block
-            * contract address
-
-        The data is a JSONEncoded dict, which is deserialized before being returned.
-        This then looks like this::
-
-            {
-                "name": "<token name>",
-                "address":, "<contract address>",
-                "block": <deployment block},
-            }
-
-        :raises TokenFileError:
-            if the file's contents cannot be loaded using the :mod:`json`
-            module, or an expected key is absent.
-        :raises TokenInfoFileMissing:
-            if the user tries to re-use this token, but no token.info file
-            exists for it in the data-path.
-        """
-        try:
-            token_data = json.loads(self._token_file.read_text())
-            assert isinstance(token_data, dict)
-            if not all(k in token_data for k in ("address", "name", "block")):
-                raise KeyError
-        except KeyError as e:
-            raise TokenFileError("Token data file is missing one or more required keys!") from e
-        except json.JSONDecodeError as e:
-            raise TokenFileError("Token data file corrupted!") from e
-        except FileNotFoundError as e:
-            raise TokenFileMissing("Token file does not exist!") from e
-        return token_data
-
-    def save_token(self) -> None:
-        """Save token information to disk, for use in later scenario runs.
-
-        Creates a `token.info` file in the `data_path`, if it does not exist already.
-
-        Stored information consists of:
-
-            * token name
-            * deployment block
-            * contract address
-
-        And is stored as a JSONEncoded string::
-
-            '{"name": "<token name>", "address": "<contract address>", "block": <deployment block}'
-
-
-        """
-        token_data = {
-            "address": self.checksum_address,
-            "block": self.deployment_block,
-            "name": self.name,
-        }
-
-        # Make sure to create the path, if it does not exist.
-        if not self._token_file.exists():
-            self._token_file.parent.mkdir(exist_ok=True, parents=True)
-            self._token_file.touch(exist_ok=True)
-
-        # Store the address and block number of this token contract on disk.
-        self._token_file.write_text(json.dumps(token_data))
-
-    def init(self):
-        """Load an existing or deploy a new token contract."""
-        if self.config.token.reuse_token or self.config.token.address:
-            return self.use_existing()
-        return self.deploy_new()
-
-    def use_existing(self) -> Tuple[str, int]:
-        """Reuse an existing token, loading its data from the scenario's `token.info` file.
-
-        :raises TokenSourceCodeDoesNotExist:
-            If no source code is present at the loaded address.
-        """
-        if self.config.token.reuse_token:
-            token_data = self.load_from_file()
-            contract_name, address, block = (
-                token_data["name"],
-                token_data["address"],
-                token_data["block"],
-            )
-        elif self.config.token.address:
-            contract_name = CUSTOM_TOKEN_NAME
-            address = self.config.token.address
-            block = 1
-        else:
-            raise RuntimeError("`use_existing()` called without `reuse` or `address` set.")
-
-        try:
-            check_address_has_code(
-                client=self._local_rpc_client,
-                address=address,
-                contract_name=contract_name,
-                given_block_identifier="latest",
-            )
-        except AddressWithoutCode as e:
-            raise TokenSourceCodeDoesNotExist(
-                f"Cannot reuse token - address {address} has no code stored!"
-            ) from e
-
-        # Fetch the token's contract_info data.
-        contract_info = self._local_contract_manager.get_contract(contract_name)
-
-        self.contract_data = {
-            "token_contract": address,
-            "name": contract_info.get("name") or contract_name,
-        }
-        self.contract_proxy = self._local_rpc_client.new_contract_proxy(
-            contract_info["abi"], address
+    if user_deposit_token_address != given_token_address:
+        raise ValueError(
+            f"The allowance for the user deposit contract must be increase on the "
+            f"corresponding token. Given token: {to_hex(given_token_address)} "
+            f"user deposit token: {to_hex(user_deposit_token_address)}."
         )
-        assert self.contract_proxy
-        self.deployment_receipt = {"blockNumber": block}
-        checksummed_address = to_checksum_address(address)
 
-        log.debug(
-            "Reusing token",
-            address=checksummed_address,
-            name=contract_name,
-            symbol=self.contract_proxy.functions.symbol().call(),
-        )
-        return checksummed_address, block
+    current_allowance = token_proxy.allowance(
+        orchestrator_address, Address(userdeposit_proxy.address), "latest"
+    )
 
-    def deploy_new(self) -> Tuple[ChecksumAddress, int]:
-        """Returns the proxy contract address of the token contract, and the creation receipt.
-
-        Since this involves sending a transaction via the network, we send a request
-        to the `rpc` SP Service.
-
-        The returned values are assigned to :attr:`.contract_data` and :attr:`.deployment_receipt`.
-
-        Should the `reuse` option be set to `True`, the token information is saved to
-        disk, in a `token.info` file of the current scenario's `data_dir` folder
-        (typically `~/.raiden/scenario-player/<scenario>/token.info`).
-        """
-        log.debug("Deploying token", name=self.name, symbol=self.symbol, decimals=self.decimals)
-
-        resp = self.interface.post(
-            "spaas://rpc/contract",
-            json={
-                "client_id": self.client_id,
-                "constructor_args": {
-                    "decimals": self.decimals,
-                    "name": self.name,
-                    "symbol": self.symbol,
-                },
-                "token_name": self.name,
-            },
-        )
-        resp_data = resp.json()
-        if "error" in resp_data:
-            raise TokenNotDeployed(f"Error {resp_data['error']: {resp_data['message']}}")
-
-        token_contract_data, deployment_block = (
-            resp_data["contract"],
-            resp_data["deployment_block"],
-        )
-        contract_info = self._local_contract_manager.get_contract(CUSTOM_TOKEN_NAME)
-
-        # Make deployment address and block available to address/deployment_block properties.
-        self.contract_data = token_contract_data
-        self.contract_proxy = self._local_rpc_client.new_contract_proxy(
-            contract_info["abi"], token_contract_data["address"]
-        )
-        self.deployment_receipt = {"blockNumber": deployment_block}
-
-        if self.config.token.reuse_token:
-            self.save_token()
-
-        log.info(
-            "Deployed token", address=self.checksum_address, name=self.name, symbol=self.symbol
-        )
-        return self.checksum_address, self.deployment_block
+    if minimum_allowance > current_allowance:
+        token_proxy.approve(Address(userdeposit_proxy.address), maximum_allowance)
 
 
-class UserDepositContract(Contract):
-    """User Deposit Contract wrapper for scenario runs.
+def userdeposit_maybe_deposit(
+    userdeposit_proxy: UserDeposit,
+    mint_greenlets: Set[Greenlet],
+    target_address: Address,
+    minimum_effective_deposit: TokenAmount,
+    maximum_funding: TokenAmount,
+) -> None:
+    """Make a deposit at the given `target_address`.
 
-    Takes care of:
+    The amount of tokens depends on the scenario definition's settings.
 
-        - Minting tokens for nodes on the UDC
-        - Updating the allowance of nodes
+    If the target address has a sufficient deposit, this is a no-op.
+
+    TODO: Allow setting max funding parameter, similar to the token `funding_min` setting.
     """
+    effective_balance = userdeposit_proxy.effective_balance(target_address, "latest")
+    current_total_deposit = userdeposit_proxy.get_total_deposit(target_address, "latest")
 
-    def __init__(self, scenario_runner, contract_proxy, token_proxy):
-        super().__init__(scenario_runner, address=contract_proxy.address)
-        self.contract_proxy = contract_proxy
-        self.token_proxy = token_proxy
-        self.tx_hashes = set()
-
-    @property
-    def ud_token_address(self) -> ChecksumAddress:
-        return to_checksum_address(self.token_proxy.address)
-
-    @property
-    def allowance(self):
-        """Return the currently configured allowance of the UDToken Contract."""
-        return self.token_proxy.functions.allowance(
-            self._local_rpc_client.address, self.address
-        ).call()
-
-    @property
-    def balance(self):
-        """Proxy the balance call to the UDTC."""
-        return self.token_proxy.functions.balanceOf(self.ud_token_address).call()
-
-    def effective_balance(self, at_target):
-        """Get the effective balance of the target address."""
-        return self.contract_proxy.functions.effectiveBalance(at_target).call()
-
-    def total_deposit(self, at_target):
-        """"Get the so far deposted amount"""
-        return self.contract_proxy.functions.total_deposit(at_target).call()
-
-    def mint(
-        self, target_address, required_balance=None, max_fund_amount=None, **kwargs
-    ) -> Union[TransactionHash, None]:
-        """The mint function isn't present on the UDC, pass the UDTC address instead."""
-        return super().mint(
-            target_address,
-            required_balance=required_balance,
-            max_fund_amount=max_fund_amount,
-            contract_address=self.ud_token_address,
-            **kwargs,
+    if maximum_funding < minimum_effective_deposit:
+        raise ValueError(
+            f"max_funding must be larger than minimum_effective_deposit, "
+            f"otherwise the constraint can never be satisfied. Given "
+            f"max_funding={maximum_funding} "
+            f"minimum_effective_deposit={minimum_effective_deposit}"
         )
 
-    def update_allowance(self) -> Tuple[Optional[TransactionHash], int]:
-        """Update the UD Token Contract allowance depending on the number of configured nodes.
+    # Only do a deposit if the current effective balance is bellow the minimum.
+    # When doing the deposit, top-up to max_funding to save transactions on the
+    # next iterations.
+    if effective_balance < minimum_effective_deposit:
+        topup_amount = maximum_funding - effective_balance
+        new_total_deposit = TokenAmount(current_total_deposit + topup_amount)
 
-        If the UD Token Contract's allowance is sufficient, this is a no-op.
-        """
-        node_count = self.config.nodes.count
-        udt_allowance = self.allowance
-        required_allowance = self.config.settings.services.udc.token.balance_per_node * node_count
+        # Wait for mint transactions, if necessary
+        gevent.wait(mint_greenlets)
 
-        log.debug(
-            "Checking UDTC allowance",
-            required_allowance=required_allowance,
-            required_per_node=self.config.settings.services.udc.token.balance_per_node,
-            node_count=node_count,
-            actual_allowance=udt_allowance,
+        userdeposit_proxy.deposit(
+            target_address, new_total_deposit, userdeposit_proxy.client.get_confirmed_blockhash()
         )
 
-        if not udt_allowance < required_allowance:
-            log.debug("UDTC allowance sufficient")
-            return None, required_allowance
 
-        log.debug("UDTC allowance insufficient, updating")
-        params = {
-            "amount": required_allowance,
-            "target_address": self.checksum_address,
-            "contract_address": self.ud_token_address,
+def load_token_configuration_from_file(token_file: str) -> TokenDetails:
+    """Load token configuration from disk.
+
+    The file contents should be at least::
+
+        {
+            "name": "<token name>",
+            "address":, "<contract address>",
+            "block": <deployment block},
         }
-        return self.transact("allowance", params), required_allowance
 
-    def deposit(self, target_address) -> Union[TransactionHash, None]:
-        """Make a deposit at the given `target_address`.
+    :raises TokenFileError:
+        if the file's contents cannot be loaded using the :mod:`json`
+        module, or an expected key is absent.
 
-        The amount of tokens depends on the scenario definition's settings.
+    :raises TokenInfoFileMissing:
+        if the user tries to re-use this token, but no token.info file
+        exists for it in the data-path.
+    """
+    try:
+        with open(token_file) as handler:
+            token_data = json.load(handler)
+    except json.JSONDecodeError as e:
+        raise TokenFileError("Token data file corrupted!") from e
+    except FileNotFoundError as e:
+        raise TokenFileMissing("Token file does not exist!") from e
 
-        If the target address has a sufficient deposit, this is a no-op.
+    if not all(k in token_data for k in ("address", "name", "block")):
+        raise TokenFileError("Token data file is missing one or more required keys!")
 
-        TODO: Allow setting max funding parameter, similar to the token `funding_min` setting.
-        """
-        balance = self.effective_balance(target_address)
-        total_deposit = self.total_deposit(target_address)
-        min_deposit = self.config.settings.services.udc.token.balance_per_node
-        max_funding = self.config.settings.services.udc.token.max_funding
-        log.debug(
-            "Checking necessity of deposit request",
-            target_address=target_address,
-            required_balance=min_deposit,
-            actual_balance=balance,
-        )
-        if not balance < min_deposit:
-            log.debug("deposit call not required - sufficient funds")
-            return None
+    return cast(TokenDetails, token_data)
 
-        log.debug("deposit call required - insufficient funds", target_address=target_address)
-        deposit_amount = total_deposit + (max_funding - balance)
-        params = {"amount": deposit_amount, "target_address": target_address}
-        return self.transact("deposit", params)
+
+def save_token_configuration_to_file(token_file: str, token_data: TokenDetails) -> None:
+    """Save information of the token deployment to a file.
+
+    The file will be JSON encoded and have the following format::
+
+        '{"name": "<token name>", "address": "<contract address>", "block": <deployment block>}'
+
+
+    """
+    with open(token_file) as handler:
+        json.dump(token_data, handler)

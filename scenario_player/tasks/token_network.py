@@ -1,3 +1,4 @@
+from raiden.utils.formatting import to_checksum_address
 from scenario_player.tasks.raiden_api import RaidenAPIActionTask
 
 
@@ -8,8 +9,7 @@ class JoinTokenNetwork(RaidenAPIActionTask):
 
     @property
     def _url_params(self):
-        params = dict(token_address=self._runner.token.checksum_address)
-        return params
+        return {"token_address": to_checksum_address(self._runner.token.address)}
 
     @property
     def _request_params(self):
@@ -32,4 +32,4 @@ class LeaveTokenNetwork(RaidenAPIActionTask):
 
     @property
     def _url_params(self):
-        return dict(token_address=self._runner.token.checksum_address)
+        return {"token_address": to_checksum_address(self._runner.token.address)}

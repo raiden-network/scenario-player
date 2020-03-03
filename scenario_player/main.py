@@ -26,9 +26,7 @@ from scenario_player import __version__, tasks
 from scenario_player.constants import DEFAULT_ETH_RPC_ADDRESS, DEFAULT_NETWORK
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
-from scenario_player.exceptions.services import ServiceProcessException
 from scenario_player.runner import ScenarioRunner
-from scenario_player.services.common.app import ServiceProcess
 from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import DummyStream, post_task_state_to_rc
@@ -306,17 +304,16 @@ def orchestrate(
     scenario_runner_args,
 ):
     # We need to fix the log stream early in case the UI is active
-    with ServiceProcessManager():
-        scenario_runner = ScenarioRunner(*scenario_runner_args)
-        if enable_ui:
-            ui: AbstractContextManager = ScenarioUIManager(
-                scenario_runner, log_buffer, log_file_name, success
-            )
-        else:
-            ui = nullcontext()
-        log.info("Startup complete")
-        with ui:
-            scenario_runner.run_scenario()
+    scenario_runner = ScenarioRunner(*scenario_runner_args)
+    if enable_ui:
+        ui: AbstractContextManager = ScenarioUIManager(
+            scenario_runner, log_buffer, log_file_name, success
+        )
+    else:
+        ui = nullcontext()
+    log.info("Startup complete")
+    with ui:
+        scenario_runner.run_scenario()
 
 
 class ScenarioUIManager:
@@ -342,22 +339,6 @@ class ScenarioUIManager:
             if self.ui_greenlet is not None and not self.ui_greenlet.dead:
                 self.ui_greenlet.kill(ExitMainLoop)
                 self.ui_greenlet.join()
-
-
-class ServiceProcessManager:
-    def __enter__(self):
-        self.service_process = ServiceProcess()
-        self.service_process.start()
-        return self.service_process
-
-    def __exit__(self, type, value, traceback):
-        try:
-            self.service_process.stop()
-        except ServiceProcessException:
-            log.exception("ServiceProcessManager died")
-        except Exception:
-            log.exception("ServiceProcessManager died")
-            self.service_process.kill()
 
 
 @main.command(name="reclaim-eth")
