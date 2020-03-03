@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 import click
 import gevent
@@ -25,7 +25,7 @@ class SerialTask(Task):
         super().__init__(runner, config, parent, abort_on_fail)
         self._name = config.get("name")
 
-        self._tasks = []
+        self._tasks: List = []
         for _ in range(config.get("repeat", 1)):
             for task in self._config.get("tasks", []):
                 for task_type, task_config in task.items():
