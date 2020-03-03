@@ -4,7 +4,7 @@ import os
 import sys
 import traceback
 from collections import namedtuple
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -30,7 +30,7 @@ from scenario_player.runner import ScenarioRunner
 from scenario_player.services.common.app import ServiceProcess
 from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
-from scenario_player.utils import DummyStream, post_task_state_to_rc, send_notification_mail
+from scenario_player.utils import DummyStream, post_task_state_to_rc
 from scenario_player.utils.legacy import MutuallyExclusiveOption
 from scenario_player.utils.version import get_complete_spec
 
@@ -369,6 +369,7 @@ class ScenarioRunnerManager:
         except Exception:
             log.exception("ScenarioRunnerManager stop died")
             self.scenario_runner.node_controller.kill()
+
 
 @main.command(name="reclaim-eth")
 @click.option(
