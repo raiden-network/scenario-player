@@ -307,9 +307,7 @@ def orchestrate(
     with ServiceProcessManager():
         scenario_runner = ScenarioRunner(*scenario_runner_args)
         runner_manager = ScenarioRunnerManager(scenario_runner)
-        notify_setting = runner_manager.scenario_runner.definition.settings.notify
-        reporter = report_result(report_container, notify_setting, mailgun_api_key)
-        with reporter, runner_manager as runner:
+        with runner_manager as runner:
             if enable_ui:
                 ui = ScenarioUIManager(runner, log_buffer, log_file_name, success)
             else:
@@ -371,20 +369,6 @@ class ScenarioRunnerManager:
         except Exception:
             log.exception("ScenarioRunnerManager stop died")
             self.scenario_runner.node_controller.kill()
-
-
-@contextmanager
-def report_result(container, runner, mailgun_api_key):
-    container.update
-    ({"subject": "Logic error in main.py", "msg": "Message should not be empty."})
-    yield container
-    send_notification_mail(
-        runner.definition.settings.notify,
-        container["subject"],
-        container["message"],
-        mailgun_api_key,
-    )
-
 
 @main.command(name="reclaim-eth")
 @click.option(
