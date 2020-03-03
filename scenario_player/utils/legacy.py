@@ -348,30 +348,6 @@ def mint_token_if_balance_low(
     return None
 
 
-def send_notification_mail(target_mail, subject, message, api_key):
-    if not target_mail:
-        return
-    if not api_key:
-        log.error("Can't send notification mail. No API key provided")
-        return
-
-    log.debug("Sending notification mail", subject=subject, message=message)
-    try:
-        res = requests.post(
-            "https://api.mailgun.net/v3/notification.brainbot.com/messages",
-            auth=("api", api_key),
-            data={
-                "from": "Raiden Scenario Player <scenario-player@notification.brainbot.com>",
-                "to": [target_mail],
-                "subject": subject,
-                "text": message,
-            },
-        )
-        log.debug("Notification mail result", code=res.status_code, text=res.text)
-    except requests.exceptions.RequestException as e:
-        log.error("There was an error when sending the notification mail.", exception=str(e))
-
-
 def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_age_hours: int):
     chain_name, chain_url = chain_str.split(":", maxsplit=1)
     log.info("in cmd", chain=chain_str, chain_name=chain_name, chain_url=chain_url)

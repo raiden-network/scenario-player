@@ -10,7 +10,6 @@ from scenario_player.utils.legacy import (
     mint_token_if_balance_low,
     post_task_state_to_rc,
     reclaim_eth,
-    send_notification_mail,
     send_rc_message,
     wait_for_txs,
 )
@@ -26,7 +25,6 @@ __all__ = [
     "get_or_deploy_token",
     "get_udc_and_token",
     "mint_token_if_balance_low",
-    "send_notification_mail",
     "reclaim_eth",
     "post_task_state_to_rc",
     "send_rc_message",
