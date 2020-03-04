@@ -228,14 +228,6 @@ class SettingsConfig(ConfigMapping):
         return self.get("timeout", TIMEOUT)
 
     @property
-    def notify(self) -> Union[str, None]:
-        """Return the email address to which notifications are to be sent.
-
-        If this isn't set, we return None.
-        """
-        return self.get("notify")
-
-    @property
     def chain(self) -> str:
         """Return the name of the chain to be used for this scenario.
 
