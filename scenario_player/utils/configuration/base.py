@@ -12,7 +12,7 @@ class ConfigMapping(Mapping):
 
     CONFIGURATION_ERROR = ConfigurationError
 
-    def __init__(self, loaded_definition: Mapping):
+    def __init__(self, loaded_definition: Optional[dict]):
         self.dict = loaded_definition or {}
 
     def __getitem__(self, item):

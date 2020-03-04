@@ -30,6 +30,7 @@ from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
 from scenario_player.exceptions import ScenarioError
 from scenario_player.runner import ScenarioRunner
 from scenario_player.utils import HTTPExecutor
+from scenario_player.utils.types import NetlocWithPort
 
 log = structlog.get_logger(__name__)
 
@@ -182,9 +183,9 @@ class NodeRunner:
         )
 
         self._address: Optional[ChecksumAddress] = None
-        self._eth_rpc_endpoint = None
-        self._executor = None
-        self._api_address = None
+        self._eth_rpc_endpoint: Optional[NetlocWithPort] = None
+        self._executor: Optional[HTTPExecutor] = None
+        self._api_address: Optional[str] = None
 
         self.state: NodeState = NodeState.STOPPED
 

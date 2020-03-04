@@ -16,8 +16,8 @@ class TestScenarioConfig:
         :attr:`ScenarionConfig.root_class` attirbute."""
         task_name = "serial", "parallel"
         minimal_definition_dict["scenario"] = {task_name: {}}
-        config = ScenarioConfig(minimal_definition_dict)
-        self.fail("Not testable due to cyclic import issue!")
+        config = ScenarioConfig(minimal_definition_dict)  # noqa
+        self.fail("Not testable due to cyclic import issue!")  # type: ignore
         # assert config.root_class == get_task_class_for_type()
 
     @pytest.mark.parametrize("root_task_key", ["serial", "parallel", "whatever"])
@@ -42,7 +42,9 @@ class TestScenarioConfig:
         with pytest.raises(ScenarioConfigurationError):
             ScenarioConfig({})
 
-    def test_defining_multiple_root_tasks_raises_configuration_error(self, minimal_definition_dict):
+    def test_defining_multiple_root_tasks_raises_configuration_error(
+        self, minimal_definition_dict
+    ):
         """Defining multiple root tasks raises a :exc:`ScenarioConfigurationError`."""
         minimal_definition_dict["scenario"]["second_root"] = {}
         with pytest.raises(ScenarioConfigurationError):

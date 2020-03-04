@@ -125,7 +125,7 @@ class UrwidLogRenderer:
         if stack is not None:
             log_lines.extend(stack.splitlines())
             if exc is not None:
-                log_lines.extend(["", "", "=" * 70, ""])
+                log_lines.extend(["", "", "=" * 70, ""])  # type: ignore
         if exc is not None:
             log_lines.extend(exc.splitlines())
 
@@ -175,7 +175,7 @@ class TabFocusSwitchingPile(uwd.Pile):
             return key
 
         if key == "tab":
-            self.focus_position = (self.focus_position + 1) % len(self.contents)
+            self.focus_position: int = (self.focus_position + 1) % len(self.contents)
             return None
 
         key = self.focus.keypress(size, key)
@@ -288,9 +288,9 @@ def attach_urwid_logbuffer():
     log_buffer = UrwidLogWalker([])
     for handler in logging.getLogger("").handlers:
         if isinstance(handler, logging.StreamHandler):
-            handler.terminator = ConcatenableNone()
-            handler.formatter = NonStringifyingProcessorFormatter(
-                UrwidLogRenderer(), foreign_pre_chain=LOGGING_PROCESSORS
+            handler.terminator = ConcatenableNone()  # type: ignore
+            handler.formatter = NonStringifyingProcessorFormatter(  # type: ignore
+                UrwidLogRenderer(), foreign_pre_chain=LOGGING_PROCESSORS  # type: ignore
             )
             handler.stream = log_buffer
             break

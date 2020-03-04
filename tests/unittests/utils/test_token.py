@@ -1,5 +1,4 @@
 import json
-
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
@@ -17,13 +16,13 @@ from requests.exceptions import (
 )
 
 from raiden.network.rpc.client import AddressWithoutCode
+from scenario_player.definition import ScenarioDefinition
 from scenario_player.exceptions.config import (
     TokenFileError,
     TokenFileMissing,
     TokenNotDeployed,
     TokenSourceCodeDoesNotExist,
 )
-from scenario_player.definition import ScenarioDefinition
 from scenario_player.utils.configuration.token import TokenConfig
 from scenario_player.utils.token import Contract, Token, UserDepositContract
 
@@ -56,7 +55,7 @@ def runner(dummy_scenario_runner, minimal_definition_dict, token_info_path, tmp_
         tmp_file = tmp_path.joinpath("tmp.yaml")
         tmp_file.touch()
         dummy_scenario_runner.definition = ScenarioDefinition(tmp_file, tmp_path)
-    dummy_scenario_runner.definition.spaas.rpc.client_id = "the_client_id"
+    dummy_scenario_runner.definition.spaas.rpc.client_id = "the_client_id"  # type: ignore
     dummy_scenario_runner.definition.token = token_config
 
     dummy_scenario_runner.token = Token(dummy_scenario_runner, tmp_path)
@@ -124,7 +123,9 @@ class TestContract:
         return instance
 
     @patch(f"{token_import_path}.ServiceInterface.request")
-    def test_mint_is_a_no_op_if_balance_is_sufficient(self, mock_request, contract_instance, hex_address):
+    def test_mint_is_a_no_op_if_balance_is_sufficient(
+        self, mock_request, contract_instance, hex_address
+    ):
         contract_instance = self.setup_instance_with_balance(contract_instance, 100000)
         assert contract_instance.mint(hex_address) is None
         assert mock_request.called is False
@@ -183,6 +184,9 @@ class TestToken:
         token_info_path,
         minimal_definition_dict,
     ):
+        m_name.return_value = "name"
+        m_symbol.return_value = "symbol"
+        m_decimals.return_value = 10
         mocked_properties = {"name": m_name, "symbol": m_symbol, "decimals": m_decimals}
         runner.definition.token = TokenConfig(minimal_definition_dict, token_info_path)
         token = Token(runner, tmp_path)
@@ -194,17 +198,17 @@ class TestToken:
         self, mock_address, runner, tmp_path
     ):
         token = Token(runner, tmp_path)
-        token.contract_data = {"address": 100}
+        token.contract_data = {"address": to_hex(100)}
         mock_address.return_value = 200
-        assert token.address == 100
+        assert token.address == to_hex(100)
 
     @patch(f"{token_config_import_path}.TokenConfig.address", new_callable=PropertyMock)
     def test_address_is_fetched_from_token_config_if_no_contract_data_available(
         self, mock_address, runner, tmp_path
     ):
         token = Token(runner, tmp_path)
-        mock_address.return_value = 100
-        assert token.address == 100
+        mock_address.return_value = to_hex(100)
+        assert token.address == to_hex(100)
 
     @patch(f"{token_import_path}.to_checksum_address")
     def test_checksum_address_property_address_in_token_config_if_token_is_not_deployed(
@@ -237,13 +241,7 @@ class TestToken:
         assert token_instance.deployment_block == 100
 
     @pytest.mark.parametrize(
-        "receipt, expected",
-        argvalues=[
-            (None, False),
-            ({}, False),
-            ({"blockNumber": 100}, True),
-            ({"blockNumber": None}, False),
-        ],
+        "receipt, expected", argvalues=[(None, False), ({}, False), ({"blockNumber": 100}, True)]
     )
     def test_deployed_property_depends_on_value_of_deployment_receipt(
         self, receipt, expected, token_instance
@@ -396,7 +394,10 @@ class TestToken:
             name = "my_deployed_token_name"
             symbol = "token_symbol"
 
-        token_instance._local_contract_manager.get_contract.return_value = {"abi": "contract_abi", "name": "my_deployed_token_name"}
+        token_instance._local_contract_manager.get_contract.return_value = {
+            "abi": "contract_abi",
+            "name": "my_deployed_token_name",
+        }
 
         expected_deployment_receipt = {"blockNumber": loaded_token_info["block"]}
         expected_contract_data = {
@@ -406,7 +407,7 @@ class TestToken:
 
         checksummed_addr, block = token_instance.use_existing()
 
-        assert checksummed_addr == "checksummed_" + loaded_token_info["address"]
+        assert checksummed_addr == "checksummed_" + loaded_token_info["address"]  # type: ignore
         assert block == loaded_token_info["block"]
 
         assert token_instance.deployment_receipt == expected_deployment_receipt
@@ -462,6 +463,7 @@ class TestToken:
 
         address, deployment_block = token_instance.deploy_new()
 
+        assert isinstance(json_resp["contract"], dict)
         assert token_instance.address == json_resp["contract"]["address"]
         assert deployment_block == json_resp["deployment_block"]
 
@@ -532,7 +534,7 @@ class TestUserDepositContract:
         new_callable=PropertyMock(return_value="ud_contract_addr"),
     )
     @patch("scenario_player.utils.token.Contract.transact")
-    def test_update_allowance_updates_allowance_according_to_udc_token_balance_per_node_definition_setting(
+    def test_update_allowance_according_to_udc_token_balance_per_node_definition_setting(
         self, mock_transact, _
     ):
         self.instance.config.nodes.dict["count"] = 2

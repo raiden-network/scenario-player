@@ -5,7 +5,7 @@ import time
 from copy import copy
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, Type
+from typing import Any, Dict, Optional, Type
 
 import click
 import gevent
@@ -55,10 +55,10 @@ class Task:
         self._parent = parent
         self._abort_on_fail = abort_on_fail
         self._state = TaskState.INITIALIZED
-        self.exception = None
+        self.exception: Optional[BaseException] = None
         self.level: int = parent.level + 1 if parent else 0
-        self._start_time = None
-        self._stop_time = None
+        self._start_time: Optional[float] = None
+        self._stop_time: Optional[float] = None
 
         runner.task_cache[self.id] = self
         runner.task_count += 1
@@ -94,7 +94,7 @@ class Task:
 
     def __str__(self):
         color = TASK_STATE_COLOR[self.state]
-        reset = click.termui._ansi_reset_all
+        reset = click.termui._ansi_reset_all  # type: ignore
         return (
             f'{" " * self.level * 2}- [{color}{self.state.value}{reset}] '
             f'{color}{self.__class__.__name__.replace("Task", "")}{reset}'
@@ -129,15 +129,14 @@ class Task:
 
     @property
     def _duration(self):
-        duration = 0
+        duration = 0.0
         if self._start_time:
             if self._stop_time:
                 duration = self._stop_time - self._start_time
             else:
                 duration = time.monotonic() - self._start_time
         if duration:
-            duration = str(timedelta(seconds=duration))
-            return f" ({duration})"
+            return " " + str(timedelta(seconds=duration))
         return ""
 
     @property

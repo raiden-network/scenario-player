@@ -16,7 +16,7 @@ from scenario_player import services as services_subpackage
 
 
 def load_hook_modules_to_namespace():
-    for sub_module in pkgutil.iter_modules(path=services_subpackage.__path__):
+    for sub_module in pkgutil.iter_modules(path=services_subpackage.__path__):  # type: ignore
         _, sub_module_name, _ = sub_module
 
         if sub_module_name.startswith(("_", "utils")):

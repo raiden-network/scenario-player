@@ -1,9 +1,7 @@
 import pytest
-import yaml
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
-from scenario_player.exceptions.config import InsufficientMintingAmount, UDCTokenConfigError
-from scenario_player.definition import ScenarioDefinition
+from scenario_player.exceptions.config import UDCTokenConfigError
 from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.settings import (
     PFSSettingsConfig,
@@ -13,16 +11,6 @@ from scenario_player.utils.configuration.settings import (
     UDCSettingsConfig,
     UDCTokenSettings,
 )
-
-
-@pytest.fixture()
-def file_for_insufficient_minting_test(tmp_path, minimal_definition_dict):
-    minimal_definition_dict["settings"] = {"services": {"udc": {"token": {"max_funding": 6000}}}}
-    minimal_definition_dict["token"] = {"min_balance": 5999}
-    tmp_file = tmp_path.joinpath("tmp.yaml")
-    with open(tmp_file, "w") as outfile:
-        yamldump(minimal_definition_dict, outfile, default_flow_style=False)
-    yield tmp_file
 
 
 class TestSettingsConfig:
@@ -51,13 +39,8 @@ class TestSettingsConfig:
 
     @pytest.mark.parametrize(
         "value, raises",
-        argvalues=[("super-fast", True), (1.22, True), (11, False), ("fast", False)],
-        ids=[
-            "Unknown strategy key",
-            "Non-int number",
-            "valid integer value",
-            "Valid strategy ket",
-        ],
+        argvalues=[("super-fast", True), (11, False), ("fast", False)],
+        ids=["Unknown strategy key", "valid integer value", "Valid strategy ket"],
     )
     def test_validate_raises_exception_for_invalid_gas_price_values(
         self, value, raises, minimal_definition_dict
@@ -86,13 +69,17 @@ class TestSettingsConfig:
         config = SettingsConfig(minimal_definition_dict)
         assert config.gas_price_strategy == expected_func
 
-    def test_chain_property_prioritizes_cli_attr_over_scenario_definition(self, minimal_definition_dict):
+    def test_chain_property_prioritizes_cli_attr_over_scenario_definition(
+        self, minimal_definition_dict
+    ):
         minimal_definition_dict["chain"] = "kovan"
         instance = SettingsConfig(minimal_definition_dict)
         instance._cli_chain = "my_chain"
         assert instance.chain == "my_chain"
 
-    def test_eth_rpc_address_property_prioritizes_cli_attr_over_scenario_definition(self, minimal_definition_dict):
+    def test_eth_rpc_address_property_prioritizes_cli_attr_over_scenario_definition(
+        self, minimal_definition_dict
+    ):
         instance = SettingsConfig(minimal_definition_dict)
         instance._cli_rpc_address = "my_address"
         minimal_definition_dict["settings"]["eth-client-rpc-address"] = "http://ethnodes.io"

@@ -1,7 +1,8 @@
 import pytest
 from tests.unittests.constants import NODE_ADDRESS_0, NODE_ADDRESS_1, TEST_TOKEN_ADDRESS
+
 # TODO: Add tests for request timeouts
-from tests.unittests.tasks.utils import generic_task_test, assert_task_test
+from tests.unittests.tasks.utils import assert_task_test, generic_task_test
 
 from scenario_player.exceptions import (
     RESTAPIStatusMismatchError,
@@ -411,6 +412,8 @@ def test_channel_task(
         resp_json=resp_json,
     )
 
+
+# TODO: This has the same body as test_channel_task above. Can they be merged?
 @pytest.mark.parametrize(
     (
         "task_name",
@@ -522,7 +525,7 @@ def test_channel_task(
         ),
     ],
 )
-def test_channel_task(
+def test_channel_task2(
     mocked_responses,
     api_task_by_name,
     task_name,

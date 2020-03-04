@@ -4,10 +4,11 @@ import os
 import sys
 import traceback
 from collections import namedtuple
-from contextlib import nullcontext
+from contextlib import AbstractContextManager, nullcontext
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from typing import Dict
 
 import click
 import gevent
@@ -18,6 +19,7 @@ from mirakuru.exceptions import ProcessExitedWithError
 from urwid import ExitMainLoop
 from web3._utils.transactions import TRANSACTION_DEFAULTS
 
+import scenario_player.utils
 from raiden.accounts import Account
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.utils.cli import EnumChoiceType
@@ -71,6 +73,7 @@ def configure_logging_for_subcommand(log_file_name):
 def load_account_obj(keystore_file, password):
     with open(keystore_file, "r") as keystore:
         account = Account(json.load(keystore), password, keystore_file)
+        assert account.address
         log.info("Using account", account=to_checksum_address(account.address))
         return account
 
@@ -233,7 +236,7 @@ def run(
 
     # Start our Services
 
-    report = dict()
+    report: Dict[str, str] = dict()
     success = Event()
     success.clear()
     try:
@@ -269,7 +272,7 @@ def run(
     except Exception as ex:
         log.exception("Exception while running scenario")
         if hasattr(ex, "exit_code"):
-            exit_code = ex.exit_code
+            exit_code = ex.exit_code  # type: ignore
         else:
             exit_code = 10
         report.update(
@@ -309,7 +312,9 @@ def orchestrate(
         runner_manager = ScenarioRunnerManager(scenario_runner)
         with runner_manager as runner:
             if enable_ui:
-                ui = ScenarioUIManager(runner, log_buffer, log_file_name, success)
+                ui: AbstractContextManager = ScenarioUIManager(
+                    runner, log_buffer, log_file_name, success
+                )
             else:
                 ui = nullcontext()
             log.info("Startup complete")
@@ -383,8 +388,6 @@ class ScenarioRunnerManager:
 @data_path_option
 @click.pass_context
 def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chain, data_path):
-    from scenario_player.utils import reclaim_eth
-
     log.info("start cmd", chain=chain)
 
     data_path = Path(data_path)
@@ -397,7 +400,9 @@ def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chain, dat
 
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
     log.info("start reclaim", chain=chain)
-    reclaim_eth(min_age_hours=min_age, chain_str=chain, data_path=data_path, account=account)
+    scenario_player.utils.reclaim_eth(
+        min_age_hours=min_age, chain_str=chain, data_path=data_path, account=account
+    )
 
 
 @main.command(name="version", help="Show versions of scenario_player and raiden environment.")

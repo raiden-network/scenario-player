@@ -31,4 +31,4 @@ class TestConfigMapping:
     def test_assert_option_raises_custom_exception_if_exception_is_passed(self):
         """:meth:`ConfigMapping.assert_option` allows raising custom exception."""
         with pytest.raises(SyntaxError):
-            ConfigMapping.assert_option(False, SyntaxError)
+            ConfigMapping.assert_option(False, SyntaxError())
