@@ -554,7 +554,6 @@ def test_channel_task2(
     )
 
 
-@pytest.mark.skip
 def test_store_channel_info(mocked_responses, dummy_scenario_runner, api_task_by_name):
     """ Test store_channel_info task.
 
@@ -564,7 +563,7 @@ def test_store_channel_info(mocked_responses, dummy_scenario_runner, api_task_by
 
     mocked_responses.add(
         "GET",
-        f"http://0/api/v1/channels/0x1{1:039d}/0x2{1:039d}",
+        f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",
         json={"something": 1},
         status=200,
     )
