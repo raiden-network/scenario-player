@@ -331,11 +331,15 @@ class ScenarioUIManager:
         return self.success
 
     def __exit__(self, type, value, traceback):
+        if type is not None:
+            # This will cause some exceptions to be in the log twice, but
+            # that's better than not seeing the exception in the UI at all.
+            log.exception()
         try:
             self.ui.set_success(self.success.is_set())
             log.warning("Press q to exit")
-            while not self.ui_greenlet.dead:
-                gevent.sleep(1)
+            while not self.ui_greenlet.ready():
+                gevent.sleep(0.1)
         finally:
             if self.ui_greenlet is not None and not self.ui_greenlet.dead:
                 self.ui_greenlet.kill(ExitMainLoop)
