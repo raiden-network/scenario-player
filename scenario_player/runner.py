@@ -2,7 +2,7 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple, cast
 
 import gevent
 import structlog
@@ -16,6 +16,7 @@ from web3.contract import Contract
 from raiden.accounts import Account
 from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import JSONRPCClient
+from raiden.utils.nursery import Janitor
 from raiden.utils.typing import TransactionHash
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
@@ -28,6 +29,7 @@ from scenario_player.constants import (
 from scenario_player.definition import ScenarioDefinition
 from scenario_player.exceptions import ScenarioError, TokenRegistrationError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
+from scenario_player.node_support import NodeController, RaidenReleaseKeeper
 from scenario_player.services.utils.interface import ServiceInterface
 from scenario_player.utils import TimeOutHTTPAdapter, get_udc_and_token, wait_for_txs
 from scenario_player.utils.token import Token, UserDepositContract
@@ -50,8 +52,6 @@ class ScenarioRunner:
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
     ):
-        from scenario_player.node_support import RaidenReleaseKeeper, NodeController
-
         self.auth = auth
 
         self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
@@ -68,8 +68,6 @@ class ScenarioRunner:
         log.debug("Local seed", seed=self.local_seed)
 
         self.run_number = self.determine_run_number()
-
-        self.node_controller = NodeController(self, self.definition.nodes)
 
         self.protocol = "http"
         if chain:
@@ -234,7 +232,7 @@ class ScenarioRunner:
         assert discovered
         return discovered
 
-    def _setup(self, mint_gas, node_count, node_addresses, fund_tx, node_starter, greenlets):
+    def _setup(self, mint_gas, node_count, node_addresses, fund_tx, node_starter):
         ud_token_tx, udc_ctr, should_deposit_ud_token = self._initialize_udc(
             gas_limit=mint_gas, node_count=node_count
         )
@@ -276,34 +274,23 @@ class ScenarioRunner:
         )
         log.info("Setup done")
         # Start root task
-        root_task_greenlet = gevent.spawn(self.root_task)
-        root_task_greenlet.name = "root_task"
-        greenlets.add(root_task_greenlet)
-        try:
-            gevent.joinall(greenlets, raise_error=True)
-        except BaseException as exc:
-            log.exception("Greenlet Error", exception=exc)
-            if not root_task_greenlet.dead:
-                # Make sure we kill the tasks if a node dies
-                root_task_greenlet.kill()
-            raise
+        self.root_task()
 
     def run_scenario(self):
+        log.info("run scenario")
         mint_gas = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
-        fund_tx, node_starter, node_addresses, node_count = self._initialize_nodes()
+        with Janitor() as nursery:
+            self.node_controller = NodeController(self, self.definition.nodes, nursery)
+            fund_tx, node_starter, node_addresses, node_count = self._initialize_nodes(nursery)
 
-        node_monitor = self.node_controller.start_node_monitor()
-        greenlets = {node_monitor}
+            setup = nursery.spawn_under_watch(
+                self._setup, mint_gas, node_count, node_addresses, fund_tx, node_starter
+            )
+            setup.name = "setup (root task)"
+            greenlets = {setup}
 
-        log.info("Node monitor started")
-
-        setup = gevent.spawn(
-            self._setup, mint_gas, node_count, node_addresses, fund_tx, node_starter, greenlets
-        )
-        greenlets.add(setup)
-
-        gevent.joinall(greenlets, raise_error=True, count=1)
+            gevent.joinall(greenlets, raise_error=True, count=1)
 
     def _initialize_scenario_token(
         self,
@@ -371,7 +358,7 @@ class ScenarioRunner:
         return ud_token_tx, udc_ctr, should_deposit_ud_token
 
     def _initialize_nodes(
-        self,
+        self, nursery: Any
     ) -> Tuple[Set[TransactionHash], gevent.Greenlet, Set[ChecksumAddress], int]:
         """This methods starts all the Raiden nodes and makes sure that each
         account has at least `NODE_ACCOUNT_BALANCE_MIN`.
@@ -404,7 +391,21 @@ class ScenarioRunner:
                 tx_hash = resp.json()["tx_hash"]
                 fund_tx.add(tx_hash)
 
-        node_starter = self.node_controller.start(wait=False)
+        try:
+            for node_runner in self.node_controller._node_runners:
+                node_runner.start()
+        except Exception:
+            log.error("failed to start", exc_info=True)
+            raise
+
+        def wait():
+            for node_runner in self.node_controller._node_runners:
+                while not node_runner.executor.after_start_check():
+                    gevent.sleep(0.2)
+            log.info("All nodes ready")
+
+        node_starter = nursery.spawn_under_watch(wait)
+        node_starter.name = "node starter"
 
         return fund_tx, node_starter, node_addresses, node_count
 
