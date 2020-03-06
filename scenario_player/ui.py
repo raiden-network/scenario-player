@@ -198,7 +198,7 @@ class ScenarioUI:
         uwd.connect_signal(self._log_walker, "modified", self._update_log_box_title)
         self._header_text = uwd.Text("")
         self._status_text = uwd.Text("")
-        self._update_header_text()
+        # self._update_header_text()
         self._update_status_text()
         self._root_widget = uwd.Frame(
             TabFocusSwitchingPile(

@@ -3,15 +3,14 @@ import json
 import os
 import platform
 import shutil
+import signal
 import socket
 import stat
 import sys
-import time
-from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 from tarfile import TarFile
-from typing import IO, Any, Dict, Optional, Set, Union
+from typing import IO, TYPE_CHECKING, Any, Dict, Optional, Set, Union
 from urllib.parse import urljoin
 from zipfile import ZipFile
 
@@ -23,17 +22,17 @@ from eth_keyfile import create_keyfile_json
 from eth_utils import to_checksum_address
 from eth_utils.typing import ChecksumAddress
 from gevent import Greenlet
-from gevent.pool import Group, Pool
-from mirakuru import ProcessExitedWithError
+from gevent.pool import Pool
 
 from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
 from scenario_player.exceptions import ScenarioError
-from scenario_player.runner import ScenarioRunner
 from scenario_player.utils import HTTPExecutor
 from scenario_player.utils.types import NetlocWithPort
 
 log = structlog.get_logger(__name__)
 
+if TYPE_CHECKING:
+    from scenario_player.runner import ScenarioRunner
 
 RAIDEN_RELEASES_URL = "https://raiden-nightlies.ams3.digitaloceanspaces.com/"
 RAIDEN_RELEASES_LATEST_FILE_TEMPLATE = "_LATEST-NIGHTLY-{platform}-{arch}.txt"
@@ -173,11 +172,14 @@ class RaidenReleaseKeeper:
 
 
 class NodeRunner:
-    def __init__(self, runner: ScenarioRunner, index: int, raiden_version, options: dict):
+    def __init__(
+        self, runner: "ScenarioRunner", index: int, raiden_version, options: dict, nursery
+    ):
         self._runner = runner
         self._index = index
         self._raiden_version = raiden_version
         self._options = options
+        self._nursery = nursery
         self._datadir = runner.definition.scenario_dir.joinpath(
             f"node_{self._runner.run_number}_{index:03d}"
         )
@@ -209,96 +211,20 @@ class NodeRunner:
             address=self.address,
             port=self.api_address.rpartition(":")[2],
         )
-        log.debug("Node start command", command=self.executor.command)
+        log.debug("Node start command", command=self._command)
         self._output_files["stdout"] = self._stdout_file.open("at", 1)
         self._output_files["stderr"] = self._stderr_file.open("at", 1)
         for file in self._output_files.values():
             file.write("--------- Starting ---------\n")
         self._output_files["stdout"].write(f"Command line: {self.executor.command}\n")
 
-        begin = time.monotonic()
-        self.state = NodeState.STARTING
-        try:
-            ret = self.executor.start(**self._output_files)
-        except ProcessExitedWithError as ex:
-            self.state = NodeState.STOPPED
-            raise ScenarioError(f"Failed to start Raiden node {self._index}: {ex}") from ex
-        self.state = NodeState.STARTED
-        duration = str(timedelta(seconds=time.monotonic() - begin))
-        log.info("Node started", node=self._index, duration=duration)
-        return ret
+        self._process = self._nursery.exec_under_watch(self._command, **self._output_files)
 
     # FIXME: Make node stop configurable?
     def stop(self, timeout=600):  # 10 mins
-        if self.state is not NodeState.STARTED:
-            log.warning("Can't stop non-started node", node=self._index, state=self.state)
-            return
-
-        log.info("Stopping node", node=self._index)
-        begin = time.monotonic()
-
-        self.state = NodeState.STOPPING
-        try:
-            # Check the node one last time to avoid clobbering an unclean exit status
-            self.check()
-            # If `check()` raises an exception `stop()` will not be called, but that's ok since
-            # the node will be dead already.
-            ret = self.executor.stop(timeout=timeout)
-        finally:
-            self.state = NodeState.STOPPED
-            duration = str(timedelta(seconds=time.monotonic() - begin))
-            for file in self._output_files.values():
-                file.write("--------- Stopped ---------\n")
-                file.close()
-            self._output_files = {}
-            log.info("Node stopped", node=self._index, duration=duration)
-        return ret
-
-    def kill(self):
-        if self.state is not NodeState.STARTED:
-            log.warning("Can't kill non-started node", node=self._index, state=self.state)
-            return
-
-        log.info("Killing node", node=self._index)
-
-        self.state = NodeState.KILLING
-        try:
-            # Check the node one last time to avoid clobbering an unclean exit status
-            self.check()
-            # If `check()` raises an exception `kill()` will not be called, but that's ok since
-            # the node will be dead already.
-            ret = self.executor.kill()
-        finally:
-            self.state = NodeState.STOPPED
-            for file in self._output_files.values():
-                file.write("--------- Killed ---------\n")
-                file.close()
-            self._output_files = {}
-            log.info("Node killed", node=self._index)
-        return ret
-
-    def check(self):
-        if self.state is not NodeState.STARTED:
-            return
-        try:
-            try:
-                self.executor.check_subprocess()
-            except ProcessExitedWithError as ex:
-                raise ScenarioError(
-                    f"Raiden node {self._index} died with non-zero exit status: {ex.exit_code}"
-                ) from ex
-        except BaseException:
-            # We do this nested handling to log the proper re-raised ScenarioError
-            # exception and message.
-            log.exception(f"Node ({self._index}) error")
-            raise
-
-    def update_options(self, new_options: Dict[str, Any]):
-        if self.state is not NodeState.STOPPED:
-            raise ScenarioError("Can't update node options while node is running.")
-        self._validate_options(new_options)
-        self._options.update(new_options)
-        self._executor = None
+        self._process.send_signal(signal.SIGINT)
+        if self._process.wait(timeout):
+            raise Exception(f"Node {self._index} did not stop cleanly: ")
 
     @property
     def address(self) -> ChecksumAddress:
@@ -490,7 +416,7 @@ class NodeRunner:
 
 
 class NodeController:
-    def __init__(self, runner: ScenarioRunner, config):
+    def __init__(self, runner: "ScenarioRunner", config, nursery):
         self._runner = runner
         self._global_options = config.default_options
         self._node_options = config.node_options
@@ -499,7 +425,8 @@ class NodeController:
                 runner,
                 index,
                 config.raiden_version,
-                {**self._global_options, **self._node_options.get(index, {})},
+                options={**self._global_options, **self._node_options.get(index, {})},
+                nursery=nursery,
             )
             for index in range(config.count)
         ]
@@ -553,20 +480,4 @@ class NodeController:
         return {runner.address: i for i, runner in enumerate(self._node_runners)}
 
     def start_node_monitor(self):
-        def _monitor(runner: NodeRunner):
-            while not self._runner.root_task.done:
-                if runner.state is NodeState.STARTED:
-                    runner.check()
-                gevent.sleep(0.5)
-
-        monitor_group = Group()
-        for runner in self._node_runners:
-            monitor_group.start(Greenlet(_monitor, runner))
-
-        def _wait():
-            while not monitor_group.join(0.5, raise_error=True):
-                pass
-
-        monitor_greenlet = gevent.spawn(_wait)
-        monitor_greenlet.name = "node_monitor_wait"
-        return monitor_greenlet
+        raise NotImplementedError
