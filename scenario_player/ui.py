@@ -259,6 +259,9 @@ class ScenarioUI:
 
     def _handle_input(self, key):
         if key == "q":
+            log.info("Stopping nodes before quitting UI")
+            self._loop.draw_screen()
+            self._runner.node_controller.stop()
             raise uwd.ExitMainLoop()
         elif key == "f":
             self._log_walker.set_focus(len(self._log_walker) - 1)
