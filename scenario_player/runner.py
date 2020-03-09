@@ -2,7 +2,7 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, cast
 
 import gevent
 import requests
@@ -17,11 +17,12 @@ from web3.contract import Contract
 from raiden.accounts import Account
 from raiden.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from raiden.network.rpc.client import JSONRPCClient
-from raiden.utils.nursery import Janitor
+from raiden.utils.nursery import Janitor, Nursery
 from raiden.utils.typing import TransactionHash
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
     API_URL_TOKENS,
+    MAX_RAIDEN_STARTUP_TIME,
     NODE_ACCOUNT_BALANCE_FUND,
     NODE_ACCOUNT_BALANCE_MIN,
     OWN_ACCOUNT_BALANCE_MIN,
@@ -359,7 +360,7 @@ class ScenarioRunner:
         return ud_token_tx, udc_ctr, should_deposit_ud_token
 
     def _initialize_nodes(
-        self, nursery: Any
+        self, nursery: Nursery
     ) -> Tuple[Set[TransactionHash], gevent.Greenlet, Set[ChecksumAddress], int]:
         """This methods starts all the Raiden nodes and makes sure that each
         account has at least `NODE_ACCOUNT_BALANCE_MIN`.
@@ -400,7 +401,7 @@ class ScenarioRunner:
             raise
 
         def wait():
-            with gevent.Timeout(100):
+            with gevent.Timeout(MAX_RAIDEN_STARTUP_TIME):
                 for node_runner in self.node_controller._node_runners:
                     url = f"http://{node_runner.base_url}/api/v1/address"
                     while True:

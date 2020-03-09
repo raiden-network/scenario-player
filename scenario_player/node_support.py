@@ -24,6 +24,7 @@ from gevent import Greenlet
 from gevent.pool import Pool
 
 from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
+from raiden.utils.nursery import Nursery
 from scenario_player.exceptions import ScenarioError
 from scenario_player.utils.types import NetlocWithPort
 
@@ -387,7 +388,7 @@ class NodeRunner:
 
 
 class NodeController:
-    def __init__(self, runner: "ScenarioRunner", config, nursery):
+    def __init__(self, runner: "ScenarioRunner", config, nursery: Nursery):
         self._runner = runner
         self._global_options = config.default_options
         self._node_options = config.node_options

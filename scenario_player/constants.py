@@ -16,6 +16,7 @@ API_URL_ADDRESS = "{protocol}://{target_host}/api/v1/address"
 API_URL_TOKENS = "{protocol}://{target_host}/api/v1/tokens"
 API_URL_TOKEN_NETWORK_ADDRESS = "{protocol}://{target_host}/api/v1/tokens/{token_address}"
 SUPPORTED_SCENARIO_VERSIONS = {2}
+MAX_RAIDEN_STARTUP_TIME = 100  # seconds
 
 #: Available gas price strategies selectable by passing their key to the
 #: settings.gas_price config option in the scenario definition.
