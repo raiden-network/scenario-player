@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple, cast
 
 import gevent
+import requests
 import structlog
 from eth_typing import ChecksumAddress
 from eth_utils import encode_hex, is_checksum_address, to_canonical_address, to_checksum_address
@@ -399,9 +400,16 @@ class ScenarioRunner:
             raise
 
         def wait():
-            for node_runner in self.node_controller._node_runners:
-                while not node_runner.executor.after_start_check():
-                    gevent.sleep(0.2)
+            with gevent.Timeout(100):
+                for node_runner in self.node_controller._node_runners:
+                    url = f"http://{node_runner.base_url}/api/v1/address"
+                    while True:
+                        try:
+                            if self.session.get(url).ok:
+                                break
+                        except requests.exceptions.RequestException:
+                            pass
+                        gevent.sleep(0.5)
             log.info("All nodes ready")
 
         node_starter = nursery.spawn_under_watch(wait)
