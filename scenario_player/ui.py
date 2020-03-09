@@ -198,7 +198,7 @@ class ScenarioUI:
         uwd.connect_signal(self._log_walker, "modified", self._update_log_box_title)
         self._header_text = uwd.Text("")
         self._status_text = uwd.Text("")
-        # self._update_header_text()
+        self._update_header_text()
         self._update_status_text()
         self._root_widget = uwd.Frame(
             TabFocusSwitchingPile(
@@ -239,7 +239,7 @@ class ScenarioUI:
         return uwd.ListBox(self._log_walker)
 
     def _update_header_text(self):
-        node_count = len(self._runner.node_controller)
+        node_count = self._runner.definition.nodes.count
 
         self._header_text.set_text(
             f"Scenario Player - "
