@@ -7,7 +7,6 @@ import signal
 import socket
 import stat
 import sys
-from enum import Enum
 from pathlib import Path
 from tarfile import TarFile
 from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
@@ -64,14 +63,6 @@ MANAGED_CONFIG_OPTIONS_OVERRIDABLE = {
     "service-registry-contract-address",
     "pathfinding-service-address",
 }
-
-
-class NodeState(Enum):
-    STOPPED = 1
-    STARTED = 2
-    STARTING = 3
-    STOPPING = 4
-    KILLING = 5
 
 
 class RaidenReleaseKeeper:
@@ -186,8 +177,6 @@ class NodeRunner:
         self._address: Optional[ChecksumAddress] = None
         self._eth_rpc_endpoint: Optional[NetlocWithPort] = None
         self._api_address: Optional[str] = None
-
-        self.state: NodeState = NodeState.STOPPED
 
         self._output_files: Dict[str, IO] = {}
 
