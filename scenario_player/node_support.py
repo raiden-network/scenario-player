@@ -189,7 +189,6 @@ class NodeRunner:
         # Access properties to ensure they're initialized
         _ = self._keystore_file  # noqa: F841
         _ = self._raiden_bin  # noqa: F841
-        _ = self.eth_rpc_endpoint  # noqa: F841
 
     def start(self):
         log.info(
@@ -226,15 +225,6 @@ class NodeRunner:
         return self.api_address
 
     @property
-    def eth_rpc_endpoint(self):
-        if not self._eth_rpc_endpoint:
-            self._eth_rpc_endpoint = self._runner.definition.settings.eth_client_rpc_address
-            log.debug(
-                "Using endpoint for node", node=self._index, rpc_endpoint=self._eth_rpc_endpoint
-            )
-        return self._eth_rpc_endpoint
-
-    @property
     def _command(self) -> List[str]:
         cmd = [
             self._raiden_bin,
@@ -253,7 +243,7 @@ class NodeRunner:
             "--gas-price",
             self._options.get("gas-price", "normal"),
             "--eth-rpc-endpoint",
-            self.eth_rpc_endpoint,
+            self._runner.definition.settings.eth_client_rpc_address,
             "--log-config",
             (":info," "raiden:debug," "raiden_contracts:debug," "raiden.api.rest.pywsgi:warning"),
             "--log-json",
