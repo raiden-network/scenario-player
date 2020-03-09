@@ -2,6 +2,10 @@ from unittest.mock import patch
 
 import pytest
 
+pytestmark = pytest.mark.skip(
+    reason="about to be removed, see https://github.com/raiden-network/scenario-player/issues/502"
+)
+
 
 @pytest.mark.dependency(name="transaction_blueprint_loaded")
 def test_transaction_blueprint_is_loaded(transaction_service_client):

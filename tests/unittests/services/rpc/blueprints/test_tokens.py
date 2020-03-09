@@ -9,6 +9,10 @@ from scenario_player.services.rpc.blueprints.tokens import TRANSACT_ACTIONS, tok
 from scenario_player.services.rpc.schemas.tokens import ContractTransactSchema, TokenCreateSchema
 from scenario_player.services.rpc.utils import RPCClient, RPCRegistry
 
+pytestmark = pytest.mark.skip(
+    reason="about to be removed, see https://github.com/raiden-network/scenario-player/issues/502"
+)
+
 rpc_blueprints_module_path = "scenario_player.services.rpc.blueprints"
 
 
@@ -177,9 +181,7 @@ class TestTokenEndpoint:
         self.deserialized_params = deserialized_mint_token_params
         self.app = app
         self.client_id = hexed_client_id
-        self.rpc_client = self.app.config["rpc-client"].dict[
-            self.client_id
-        ]
+        self.rpc_client = self.app.config["rpc-client"].dict[self.client_id]
         self.rpc_client.new_contract_proxy.return_value = "test-proxy"
         self.rpc_client.transact.return_value = b"tx_hash"
         self.rpc_client.web3.eth.getBlock.return_value = {"hash": 1, "number": 123}
@@ -204,7 +206,8 @@ class TestTokenEndpoint:
         self.app.config["rpc-client"].dict[
             self.client_id
         ].new_contract_proxy.assert_called_once_with(
-            abi="token_abi", contract_address=to_canonical_address(self.deserialized_params["contract_address"])
+            abi="token_abi",
+            contract_address=to_canonical_address(self.deserialized_params["contract_address"]),
         )
 
     def test_endpoint_calls_proxy_contract_transact_with_passed_request_parameters(
