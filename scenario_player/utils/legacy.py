@@ -1,8 +1,6 @@
 import json
 import os
 import pathlib
-import platform
-import subprocess
 import time
 import uuid
 from collections import defaultdict, deque
@@ -12,13 +10,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 import click
-import mirakuru
 import requests
 import structlog
 from eth_keyfile import decode_keyfile_json
 from eth_utils import to_canonical_address, to_checksum_address
-from mirakuru import AlreadyRunning, TimeoutExpired
-from mirakuru.base import ENV_UUID, IGNORED_ERROR_CODES
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import get_contracts_deployment_info
 from requests.adapters import HTTPAdapter
@@ -113,89 +108,6 @@ class MutuallyExclusiveOption(click.Option):
             )
 
         return super(MutuallyExclusiveOption, self).handle_parse_result(ctx, opts, args)
-
-
-class HTTPExecutor(mirakuru.HTTPExecutor):
-    def start(self, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
-        """ Merged copy paste from the inheritance chain with modified stdout/err behaviour """
-        if self.pre_start_check():
-            # Some other executor (or process) is running with same config:
-            raise AlreadyRunning(self)
-
-        if self.process is None:
-            command: Union[str, List[str], Tuple[str, ...]] = self.command
-            if not self._shell:
-                command = self.command_parts
-
-            env = os.environ.copy()
-            env[ENV_UUID] = self._uuid
-            popen_kwargs = {
-                "shell": self._shell,
-                "stdin": subprocess.PIPE,
-                "stdout": stdout,
-                "stderr": stderr,
-                "universal_newlines": True,
-                "env": env,
-            }
-            if platform.system() != "Windows":
-                popen_kwargs["preexec_fn"] = os.setsid
-            self.process = subprocess.Popen(command, **popen_kwargs)
-
-        self._set_timeout()
-
-        self.wait_for(self.check_subprocess)
-        return self
-
-    def stop(self, sig=None, timeout=10):
-        """ Copy paste job from `SimpleExecutor.stop()` to add the `timeout` parameter. """
-        if self.process is None:
-            return self
-
-        if sig is None:
-            sig = self._sig_stop
-
-        try:
-            os.killpg(self.process.pid, sig)
-        except OSError as err:
-            if err.errno in IGNORED_ERROR_CODES:
-                pass
-            else:
-                raise
-
-        def process_stopped():
-            """Return True only only when self.process is not running."""
-            return self.running() is False
-
-        self._set_timeout(timeout)
-        try:
-            self.wait_for(process_stopped)
-        except TimeoutExpired:
-            log.warning("Timeout expired, killing process", process=self)
-            pass
-
-        self._kill_all_kids(sig)
-        self._clear_process()
-        return self
-
-    def wait_for(self, wait_for):
-        while self.check_timeout():
-            if wait_for():
-                return self
-            time.sleep(self._sleep)
-
-        log.fatal("Killing node", cmd=self._shell)
-        self.kill()
-        raise TimeoutExpired(self, timeout=self._timeout)
-
-    def _set_timeout(self, timeout=None):
-        """
-        Forward ported from mirakuru==1.0.0:mirakuru.base::SimpleExecutor._set_timeout() since
-        the ``timeout`` parameter has been removed in versions >= 1.1.0.
-        """
-        timeout = timeout or self._timeout
-
-        if timeout:
-            self._endtime = time.time() + timeout
 
 
 def wait_for_txs(

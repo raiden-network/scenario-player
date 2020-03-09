@@ -2,7 +2,6 @@ from scenario_player.utils.legacy import (
     ChainConfigType,
     ConcatenableNone,
     DummyStream,
-    HTTPExecutor,
     LogBuffer,
     TimeOutHTTPAdapter,
     get_or_deploy_token,

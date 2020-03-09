@@ -15,7 +15,6 @@ import gevent
 import structlog
 from eth_utils import to_checksum_address
 from gevent.event import Event
-from mirakuru.exceptions import ProcessExitedWithError
 from urwid import ExitMainLoop
 from web3._utils.transactions import TRANSACTION_DEFAULTS
 
@@ -369,8 +368,6 @@ class ScenarioRunnerManager:
     def __exit__(self, type, value, traceback):
         try:
             self.scenario_runner.node_controller.stop()
-        except ProcessExitedWithError:
-            log.exception("ScenarioRunnerManager stop died")
         except Exception:
             log.exception("ScenarioRunnerManager stop died")
             self.scenario_runner.node_controller.kill()

@@ -10,7 +10,7 @@ import sys
 from enum import Enum
 from pathlib import Path
 from tarfile import TarFile
-from typing import IO, TYPE_CHECKING, Any, Dict, Optional, Set, Union
+from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
 from urllib.parse import urljoin
 from zipfile import ZipFile
 
@@ -26,7 +26,6 @@ from gevent.pool import Pool
 
 from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
 from scenario_player.exceptions import ScenarioError
-from scenario_player.utils import HTTPExecutor
 from scenario_player.utils.types import NetlocWithPort
 
 log = structlog.get_logger(__name__)
@@ -186,7 +185,6 @@ class NodeRunner:
 
         self._address: Optional[ChecksumAddress] = None
         self._eth_rpc_endpoint: Optional[NetlocWithPort] = None
-        self._executor: Optional[HTTPExecutor] = None
         self._api_address: Optional[str] = None
 
         self.state: NodeState = NodeState.STOPPED
@@ -216,7 +214,7 @@ class NodeRunner:
         self._output_files["stderr"] = self._stderr_file.open("at", 1)
         for file in self._output_files.values():
             file.write("--------- Starting ---------\n")
-        self._output_files["stdout"].write(f"Command line: {self.executor.command}\n")
+        self._output_files["stdout"].write(f"Command line: {' '.join(self._command)}\n")
 
         self._process = self._nursery.exec_under_watch(self._command, **self._output_files)
 
@@ -248,13 +246,7 @@ class NodeRunner:
         return self._eth_rpc_endpoint
 
     @property
-    def executor(self):
-        if not self._executor:
-            self._executor = HTTPExecutor(self._command, f"http://{self.base_url}/api/v1/address")
-        return self._executor
-
-    @property
-    def _command(self):
+    def _command(self) -> List[str]:
         cmd = [
             self._raiden_bin,
             "--accept-disclaimer",
@@ -460,12 +452,6 @@ class NodeController:
         stop_tasks = set(gevent.spawn(runner.stop) for runner in self._node_runners)
         gevent.joinall(stop_tasks, raise_error=True)
         log.info("Nodes stopped")
-
-    def kill(self):
-        log.info("Killing nodes")
-        kill_tasks = set(gevent.spawn(runner.kill) for runner in self._node_runners)
-        gevent.joinall(kill_tasks, raise_error=True)
-        log.info("Nodes killed")
 
     def initialize_nodes(self):
         for runner in self._node_runners:
