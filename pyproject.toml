@@ -28,7 +28,6 @@ requires = [
     'prometheus_client',
     'pyyaml',
     'requests',
-    'redis',
     'raiden',
     'structlog==19.1.0',
     'simplejson',
