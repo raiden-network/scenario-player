@@ -308,17 +308,15 @@ def orchestrate(
     # We need to fix the log stream early in case the UI is active
     with ServiceProcessManager():
         scenario_runner = ScenarioRunner(*scenario_runner_args)
-        runner_manager = ScenarioRunnerManager(scenario_runner)
-        with runner_manager as runner:
-            if enable_ui:
-                ui: AbstractContextManager = ScenarioUIManager(
-                    runner, log_buffer, log_file_name, success
-                )
-            else:
-                ui = nullcontext()
-            log.info("Startup complete")
-            with ui:
-                runner.run_scenario()
+        if enable_ui:
+            ui: AbstractContextManager = ScenarioUIManager(
+                scenario_runner, log_buffer, log_file_name, success
+            )
+        else:
+            ui = nullcontext()
+        log.info("Startup complete")
+        with ui:
+            scenario_runner.run_scenario()
 
 
 class ScenarioUIManager:
@@ -360,21 +358,6 @@ class ServiceProcessManager:
         except Exception:
             log.exception("ServiceProcessManager died")
             self.service_process.kill()
-
-
-class ScenarioRunnerManager:
-    def __init__(self, scenario_runner: ScenarioRunner):
-        self.scenario_runner = scenario_runner
-
-    def __enter__(self):
-        return self.scenario_runner
-
-    def __exit__(self, type, value, traceback):
-        try:
-            self.scenario_runner.node_controller.stop()
-        except Exception:
-            log.exception("ScenarioRunnerManager stop died")
-            self.scenario_runner.node_controller.kill()
 
 
 @main.command(name="reclaim-eth")
