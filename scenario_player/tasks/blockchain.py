@@ -140,11 +140,6 @@ class AssertBlockchainEventsTask(Task):
         self.event_name = config["event_name"]
         self.num_events = config["num_events"]
         self.event_args: Dict[str, Any] = config.get("event_args", {}).copy()
-        for key, value in self.event_args.items():
-            if "participant" in key:
-                if isinstance(value, int) or (isinstance(value, str) and value.isnumeric()):
-                    # Replace node index with eth address
-                    self.event_args[key] = self._runner.get_node_address(int(value))
 
         self.web3 = self._runner.client.web3
 
@@ -180,6 +175,12 @@ class AssertBlockchainEventsTask(Task):
         events = [e for e in events if e["event"] == self.event_name]
 
         if self.event_args:
+            for key, value in self.event_args.items():
+                if "participant" in key:
+                    if isinstance(value, int) or (isinstance(value, str) and value.isnumeric()):
+                        # Replace node index with eth address
+                        self.event_args[key] = self._runner.get_node_address(int(value))
+
             event_args_items = self.event_args.items()
             # Filter the events by the given event args.
             # `.items()` produces a set like object which supports intersection (`&`)
