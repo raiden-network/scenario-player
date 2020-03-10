@@ -121,13 +121,9 @@ class AssertBlockchainEventsTask(Task):
     _name = "assert_events"
 
     def __init__(
-        self,
-        runner: scenario_runner.ScenarioRunner,
-        config: Any,
-        parent: "Task" = None,
-        abort_on_fail: bool = True,
+        self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
     ) -> None:
-        super().__init__(runner, config, parent, abort_on_fail)
+        super().__init__(runner, config, parent)
 
         required_keys = ["contract_name", "event_name", "num_events"]
         all_required_options_provided = all(key in config.keys() for key in required_keys)
@@ -198,13 +194,9 @@ class AssertMSClaimTask(Task):
     _name = "assert_ms_claim"
 
     def __init__(
-        self,
-        runner: scenario_runner.ScenarioRunner,
-        config: Any,
-        parent: Task = None,
-        abort_on_fail: bool = True,
+        self, runner: scenario_runner.ScenarioRunner, config: Any, parent: Task = None
     ) -> None:
-        super().__init__(runner, config, parent, abort_on_fail)
+        super().__init__(runner, config, parent)
 
         required_keys = {"channel_info_key"}
         if not required_keys.issubset(config.keys()):
