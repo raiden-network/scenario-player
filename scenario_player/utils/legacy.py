@@ -13,7 +13,7 @@ import click
 import requests
 import structlog
 from eth_keyfile import decode_keyfile_json
-from eth_utils import to_canonical_address, to_checksum_address
+from eth_utils import encode_hex, to_canonical_address, to_checksum_address
 from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import get_contracts_deployment_info
 from requests.adapters import HTTPAdapter
@@ -146,7 +146,7 @@ def wait_for_txs(
             time.sleep(0.1)
         time.sleep(1)
     if len(txhashes):
-        txhashes_str = ", ".join(to_checksum_address(txhash) for txhash in txhashes)
+        txhashes_str = ", ".join(encode_hex(txhash) for txhash in txhashes)
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
 
 
