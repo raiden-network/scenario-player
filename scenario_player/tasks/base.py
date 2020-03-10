@@ -64,7 +64,7 @@ class Task:
         self._runner.running_task_count += 1
         self._start_time = time.monotonic()
         try:
-            return self._run(*args, **kwargs)
+            return_val = self._run(*args, **kwargs)
         except BaseException as ex:
             self.state = TaskState.ERRORED
             log.exception("Task errored", task=self)
@@ -77,6 +77,7 @@ class Task:
         runtime = self._stop_time - self._start_time
         log.info("Task successful", task=self, runtime=runtime)
         self.state = TaskState.FINISHED
+        return return_val
 
     def _run(self, *args, **kwargs):  # pylint: disable=unused-argument,no-self-use
         gevent.sleep(1)
