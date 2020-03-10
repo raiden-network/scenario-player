@@ -16,13 +16,9 @@ class SerialTask(Task):
     _name = "serial"
 
     def __init__(
-        self,
-        runner: scenario_runner.ScenarioRunner,
-        config: Any,
-        parent: "Task" = None,
-        abort_on_fail=True,
+        self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
     ) -> None:
-        super().__init__(runner, config, parent, abort_on_fail)
+        super().__init__(runner, config, parent)
         self._name = config.get("name")
 
         self._tasks: List = []

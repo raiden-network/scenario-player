@@ -18,13 +18,9 @@ class RESTAPIActionTask(Task):
     _expected_http_status: Union[int, str] = "2.."
 
     def __init__(
-        self,
-        runner: scenario_runner.ScenarioRunner,
-        config: Any,
-        parent: "Task" = None,
-        abort_on_fail=True,
+        self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
     ) -> None:
-        super().__init__(runner, config, parent, abort_on_fail)
+        super().__init__(runner, config, parent)
 
         self._expected_http_status = config.get("expected_http_status", self._expected_http_status)
         self._http_status_re = re.compile(f"^{self._expected_http_status}$")

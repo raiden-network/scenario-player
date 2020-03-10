@@ -316,13 +316,9 @@ class AssertPFSIoUTask(RESTAPIActionTask):
     _url_template = "{pfs_url}/api/v1/_debug/ious/{source_address}"
 
     def __init__(
-        self,
-        runner: scenario_runner.ScenarioRunner,
-        config: Any,
-        parent: Task = None,
-        abort_on_fail: bool = True,
+        self, runner: scenario_runner.ScenarioRunner, config: Any, parent: Task = None
     ) -> None:
-        super().__init__(runner, config, parent, abort_on_fail)
+        super().__init__(runner, config, parent)
 
         if "source" not in config:
             raise ScenarioError("Not all required keys provided. Required: source ")

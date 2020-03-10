@@ -95,7 +95,7 @@ class TransferTask(ChannelActionTask):
     def __init__(
         self, runner: scenario_runner.ScenarioRunner, config: Any, parent=None, abort_on_fail=True
     ) -> None:
-        super().__init__(runner, config, parent, abort_on_fail)
+        super().__init__(runner, config, parent)
         # Unique transfer identifier
         self.__class__._transfer_count += 1
         if str(self._config.get("identifier", "")).lower() == "generate":
@@ -123,13 +123,9 @@ class StoreChannelInfoTask(ChannelActionTask):
     _method = "get"
 
     def __init__(
-        self,
-        runner: scenario_runner.ScenarioRunner,
-        config: Any,
-        parent: Task = None,
-        abort_on_fail=True,
+        self, runner: scenario_runner.ScenarioRunner, config: Any, parent: Task = None
     ) -> None:
-        super().__init__(runner, config, parent, abort_on_fail)
+        super().__init__(runner, config, parent)
         if "key" not in config:
             raise ScenarioError('Required config "key" not found')
 

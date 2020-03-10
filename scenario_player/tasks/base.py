@@ -40,11 +40,7 @@ class Task:
     _name: str
 
     def __init__(
-        self,
-        runner: scenario_runner.ScenarioRunner,
-        config: Any,
-        parent: "Task" = None,
-        abort_on_fail=True,
+        self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
     ) -> None:
         global _TASK_ID
 
@@ -53,7 +49,6 @@ class Task:
         self._runner = runner
         self._config = copy(config)
         self._parent = parent
-        self._abort_on_fail = abort_on_fail
         self._state = TaskState.INITIALIZED
         self.exception: Optional[BaseException] = None
         self.level: int = parent.level + 1 if parent else 0
@@ -70,21 +65,18 @@ class Task:
         self._start_time = time.monotonic()
         try:
             return self._run(*args, **kwargs)
-        except gevent.GreenletExit:
-            pass
         except BaseException as ex:
             self.state = TaskState.ERRORED
             log.exception("Task errored", task=self)
             self.exception = ex
-            if self._abort_on_fail:
-                raise
+            raise
         finally:
             self._stop_time = time.monotonic()
             self._runner.running_task_count -= 1
-            if self.state is TaskState.RUNNING:
-                runtime = self._stop_time - self._start_time
-                log.info("Task successful", task=self, runtime=runtime)
-                self.state = TaskState.FINISHED
+
+        runtime = self._stop_time - self._start_time
+        log.info("Task successful", task=self, runtime=runtime)
+        self.state = TaskState.FINISHED
 
     def _run(self, *args, **kwargs):  # pylint: disable=unused-argument,no-self-use
         gevent.sleep(1)
