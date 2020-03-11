@@ -138,24 +138,9 @@ commands:
     description: Execute Smoketests to verify build.
     steps:
       - run:
-          name: Reclaim ether spent on previous smoketests
-          command: |
-           scenario_player reclaim-eth \
-           --data-path=${PROJECT_ROOT} \
-           --chain goerli:https://${SMOKETEST_NODE} \
-           --keystore-file=${CI_CONFIG_DIR}/smoketest.keystore \
-           --password=${SMOKETEST_PW} \
-           --min-age=1 \
-      - run:
           name: Run smoketests
           command: |
-            scenario_player \
-            run ${PROJECT_ROOT}/tests/smoketests/smoketests.yml \
-            --data-path=${PROJECT_ROOT} \
-            --chain goerli:https://${SMOKETEST_NODE} \
-            --keystore-file=${CI_CONFIG_DIR}/smoketest.keystore \
-            --password=${SMOKETEST_PW} \
-            --no-ui
+            scenario_player smoketest
 
   # ===================== #
   # CI Tear-down commands #
@@ -203,7 +188,7 @@ jobs:
       - setup-job
       - lint_codebase
       - run_test_harness
-      # - run_smoketests
+      - run_smoketests
       - store_env
 
   # Publish a wheel and tarball of the Scenario Player to pypi.
