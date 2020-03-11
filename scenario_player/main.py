@@ -158,7 +158,6 @@ def main(ctx):
 @main.command(name="run")
 @click.argument("scenario-file", type=click.File(), required=False)
 @click.option("--auth", default="")
-@click.option("--mailgun-api-key")
 @click.option(
     "--notify-tasks",
     type=EnumChoiceType(TaskNotifyType),
@@ -179,7 +178,6 @@ def run(
     ctx,
     chain,
     data_path,
-    mailgun_api_key,
     auth,
     password,
     keystore_file,
@@ -238,12 +236,10 @@ def run(
     success.clear()
     try:
         orchestrate(
-            report,
             success,
             enable_ui,
             log_buffer,
             log_file_name,
-            mailgun_api_key,
             ScenarioRunnerArgs(
                 account, auth, chain, data_path, scenario_file, notify_tasks_callable
             ),
@@ -294,15 +290,7 @@ ScenarioRunnerArgs = namedtuple(
 )
 
 
-def orchestrate(
-    report_container,
-    success,
-    enable_ui,
-    log_buffer,
-    log_file_name,
-    mailgun_api_key,
-    scenario_runner_args,
-):
+def orchestrate(success, enable_ui, log_buffer, log_file_name, scenario_runner_args):
     # We need to fix the log stream early in case the UI is active
     scenario_runner = ScenarioRunner(*scenario_runner_args)
     if enable_ui:

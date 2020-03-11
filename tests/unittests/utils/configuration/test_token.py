@@ -52,16 +52,6 @@ class TestTokenConfig:
 
         assert config.reuse_token == (reuse and exists)
 
-    @pytest.mark.parametrize("reuse", [True, False])
-    def test_save_token_property_returns_boolean_according_to_reuse_key(
-        self, reuse, minimal_definition_dict, token_info_path
-    ):
-        """The :attr:`TokenConfig.save_token` attribute's value is identical
-        to the `reuse` key value."""
-        minimal_definition_dict["token"]["reuse"] = reuse
-        config = TokenConfig(minimal_definition_dict, token_info_path)
-        assert config.save_token == reuse
-
     def test_symbol_property_uses_token_id_to_generate_symbol_if_not_given_in_config(
         self, minimal_definition_dict, token_info_path
     ):

@@ -1,10 +1,4 @@
-from scenario_player.exceptions.files import CannotImplicitlyChangeFileType
 from scenario_player.exceptions.legacy import (
-    ChannelError,
-    InvalidScenarioVersion,
-    MissingNodesConfiguration,
-    MultipleTaskDefinitions,
-    NodesUnreachableError,
     RESTAPIError,
     RESTAPIStatusMismatchError,
     RESTAPITimeout,
@@ -17,12 +11,6 @@ from scenario_player.exceptions.legacy import (
 )
 
 __all__ = [
-    "CannotImplicitlyChangeFileType",
-    "ChannelError",
-    "InvalidScenarioVersion",
-    "MultipleTaskDefinitions",
-    "MissingNodesConfiguration",
-    "NodesUnreachableError",
     "RESTAPIError",
     "RESTAPIStatusMismatchError",
     "RESTAPITimeout",

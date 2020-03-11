@@ -3,7 +3,6 @@ import pathlib
 import structlog
 import yaml
 
-from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from scenario_player.utils.configuration import (
     NodesConfig,
     ScenarioConfig,
@@ -32,8 +31,6 @@ class ScenarioDefinition:
         self.settings = SettingsConfig(self._loaded)
         self.settings.sp_root_dir = data_path
         self.scenario = ScenarioConfig(self._loaded)
-
-        self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
 
     @property
     def name(self) -> str:

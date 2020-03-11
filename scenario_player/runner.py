@@ -268,8 +268,6 @@ class ScenarioRunner:
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
     ) -> None:
-        self.auth = auth
-
         self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
         self.data_path = data_path
 
@@ -292,8 +290,6 @@ class ScenarioRunner:
         chain_name, endpoint = chain.split(":", maxsplit=1)
         self.definition.settings._cli_chain = chain_name
         self.definition.settings._cli_rpc_address = endpoint
-
-        self.chain_name = chain_name
         self.chain_id = NETWORKNAME_TO_ID[chain_name]
 
         self.client = JSONRPCClient(
@@ -655,12 +651,6 @@ class ScenarioRunner:
     def task_state_changed(self, task: "Task", state: "TaskState"):
         if self.task_state_callback:
             self.task_state_callback(self, task, state)
-
-    @staticmethod
-    def _spawn_and_wait(objects, callback):
-        tasks = {obj: gevent.spawn(callback, obj) for obj in objects}
-        gevent.joinall(set(tasks.values()))
-        return {obj: task.get() for obj, task in tasks.items()}
 
     def get_node_address(self, index):
         return self.node_controller[index].address

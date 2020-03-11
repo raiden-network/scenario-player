@@ -2,33 +2,24 @@ import json
 import os
 import pathlib
 import time
-import uuid
-from collections import defaultdict, deque
-from datetime import datetime
-from itertools import chain as iter_chain, islice
+from collections import defaultdict
+from itertools import chain as iter_chain
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set
 
 import click
 import requests
 import structlog
 from eth_keyfile import decode_keyfile_json
 from eth_utils import encode_hex, to_checksum_address
-from raiden_contracts.constants import CONTRACT_CUSTOM_TOKEN
 from requests.adapters import HTTPAdapter
 from web3 import HTTPProvider, Web3
-from web3.contract import Contract
 from web3.exceptions import TransactionNotFound
 
 from raiden.accounts import Account
-from raiden.network.rpc.client import (
-    EthTransfer,
-    JSONRPCClient,
-    TransactionSent,
-    check_address_has_code,
-)
-from raiden.utils.typing import ChecksumAddress, PrivateKey, TransactionHash
-from scenario_player.exceptions import ScenarioError, ScenarioTxError
+from raiden.network.rpc.client import EthTransfer, JSONRPCClient, TransactionSent
+from raiden.utils.typing import ChecksumAddress, PrivateKey
+from scenario_player.exceptions import ScenarioTxError
 
 RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)
 VALUE_TX_GAS_COST = 21_000
@@ -48,27 +39,6 @@ class TimeOutHTTPAdapter(HTTPAdapter):
         return super().send(*args, **kwargs)
 
 
-class LogBuffer:
-    def __init__(self, capacity=1000):
-        self.buffer = deque([""], maxlen=capacity)
-
-    def write(self, content):
-        lines = list(content.splitlines())
-        self.buffer[0] += lines[0]
-        if lines == [""]:
-            # Bare newline
-            self.buffer.appendleft("")
-        else:
-            self.buffer.extendleft(lines[1:])
-
-    def getlines(self, start, stop=None):
-        if stop:
-            slice_ = islice(self.buffer, start, stop)
-        else:
-            slice_ = islice(self.buffer, start)
-        return reversed(list(slice_))
-
-
 class ConcatenableNone:
     def __radd__(self, other):
         return other
@@ -77,19 +47,6 @@ class ConcatenableNone:
 class DummyStream:
     def write(self, content):
         pass
-
-
-class ChainConfigType(click.ParamType):
-    name = "chain-config"
-
-    def get_metavar(self, param):  # pylint: disable=unused-argument,no-self-use
-        return "<chain-name>:<eth-node-rpc-url>"
-
-    def convert(self, value, param, ctx):  # pylint: disable=unused-argument
-        name, _, rpc_url = value.partition(":")
-        if name.startswith("http") or "" in (name, rpc_url):
-            self.fail(f"Invalid value: {value}. Use {self.get_metavar(None)}.")
-        return name, rpc_url
 
 
 class MutuallyExclusiveOption(click.Option):
@@ -148,90 +105,6 @@ def wait_for_txs(client: JSONRPCClient, transactions: Set[TransactionSent], time
     if len(txhashes):
         txhashes_str = ", ".join(encode_hex(txhash) for txhash in txhashes)
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
-
-
-def get_or_deploy_token(runner) -> Tuple[Contract, int]:
-    """ Deploy or reuse  """
-    token_contract = runner.contract_manager.get_contract(CONTRACT_CUSTOM_TOKEN)
-
-    token_config = runner.definition.token
-    if not token_config:
-        token_config = {}
-    address = token_config.get("address")
-    block = token_config.get("block", 0)
-    reuse = token_config.get("reuse", False)
-
-    token_address_file = runner.definition.settings.sp_scenario_dir.joinpath("token.infos")
-    if reuse:
-        if address:
-            raise ScenarioError('Token settings "address" and "reuse" are mutually exclusive.')
-        if token_address_file.exists():
-            token_data = json.loads(token_address_file.read_text())
-            address = token_data["address"]
-            block = token_data["block"]
-    if address:
-        check_address_has_code(
-            client=runner.client,
-            address=address,
-            contract_name="Token",
-            given_block_identifier="latest",
-        )
-        token_ctr = runner.client.new_contract_proxy(token_contract["abi"], address)
-
-        log.debug(
-            "Reusing token",
-            address=to_checksum_address(address),
-            name=token_ctr.contract.functions.name().call(),
-            symbol=token_ctr.contract.functions.symbol().call(),
-        )
-        return token_ctr, block
-
-    token_id = uuid.uuid4()
-    now = datetime.now()
-    name = token_config.get("name", f"Scenario Test Token {token_id!s} {now:%Y-%m-%dT%H:%M}")
-    symbol = token_config.get("symbol", f"T{token_id!s:.3}")
-    decimals = token_config.get("decimals", 0)
-
-    log.debug("Deploying token", name=name, symbol=symbol, decimals=decimals)
-
-    token_ctr, receipt = runner.client.deploy_single_contract(
-        "CustomToken",
-        runner.contract_manager.contracts["CustomToken"],
-        constructor_parameters=(1, decimals, name, symbol),
-    )
-    contract_deployment_block = receipt["blockNumber"]
-    contract_checksum_address = to_checksum_address(token_ctr.address)
-    if reuse:
-        token_address_file.write_text(
-            json.dumps({"address": contract_checksum_address, "block": contract_deployment_block})
-        )
-
-    log.info("Deployed token", address=contract_checksum_address, name=name, symbol=symbol)
-    return token_ctr, contract_deployment_block
-
-
-def mint_token_if_balance_low(
-    token_contract: Contract,
-    target_address: str,
-    min_balance: int,
-    fund_amount: int,
-    gas_limit: int,
-    mint_msg: str,
-    no_action_msg: str = None,
-) -> Optional[TransactionHash]:
-    """ Check token balance and mint if below minimum """
-    balance = token_contract.contract.functions.balanceOf(target_address).call()
-    if balance < min_balance:
-        mint_amount = fund_amount - balance
-        log.debug(mint_msg, address=target_address, amount=mint_amount)
-        return TransactionHash(
-            token_contract.transact("mintFor", gas_limit, mint_amount, target_address)
-        )
-    else:
-        if no_action_msg:
-            log.debug(no_action_msg, balance=balance)
-
-    return None
 
 
 def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_age_hours: int):

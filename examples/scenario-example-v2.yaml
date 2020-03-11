@@ -1,9 +1,6 @@
 version: 2
 
 settings:
-  ## Mail notification address - needs a mailgun api key to be given on the command line
-  #notify: "raiden-scenario-basic@example.com"
-
   ## Gas price to use, either `fast`, `medium` or an integer (in gwei)
   gas_price: "fast"
 

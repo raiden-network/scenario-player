@@ -26,7 +26,6 @@ from gevent.pool import Pool
 from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
 from raiden.utils.nursery import Nursery
 from scenario_player.exceptions import ScenarioError
-from scenario_player.utils.types import NetlocWithPort
 
 if TYPE_CHECKING:
     from scenario_player.runner import ScenarioRunner
@@ -176,7 +175,6 @@ class NodeRunner:
         )
 
         self._address: Optional[ChecksumAddress] = None
-        self._eth_rpc_endpoint: Optional[NetlocWithPort] = None
         self._api_address: Optional[str] = None
 
         self._output_files: Dict[str, IO] = {}
@@ -444,6 +442,3 @@ class NodeController:
     @property
     def address_to_index(self) -> Dict[ChecksumAddress, int]:
         return {runner.address: i for i, runner in enumerate(self._node_runners)}
-
-    def start_node_monitor(self):
-        raise NotImplementedError
