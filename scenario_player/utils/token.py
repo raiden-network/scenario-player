@@ -33,14 +33,17 @@ def token_maybe_mint(
 
 
 def eth_maybe_transfer(
-    orchestration_client: JSONRPCClient, target: Address, minimum_balance: int
+    orchestration_client: JSONRPCClient,
+    target: Address,
+    minimum_balance: int,
+    maximum_balance: int,
 ) -> None:
     balance = orchestration_client.balance(target)
 
     if balance < minimum_balance:
         eth_transfer = EthTransfer(
             to_address=target,
-            value=minimum_balance - balance,
+            value=maximum_balance - balance,
             gas_price=orchestration_client.web3.eth.gasPrice,
         )
         tx_hash = orchestration_client.transact(eth_transfer)
