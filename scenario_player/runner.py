@@ -460,13 +460,13 @@ class ScenarioRunner:
         log.debug("Waiting for funding transactions to be mined")
         pool.join(raise_error=True)
 
-        log.debug("Waiting for the REST APIs")
-        wait_for_nodes_to_be_ready(self.node_controller._node_runners, self.session)
-
         log.debug("Registering token to create the network")
         token_network_address = maybe_create_token_network(
             token_network_registry_proxy, token_proxy
         )
+
+        log.debug("Waiting for the REST APIs")
+        wait_for_nodes_to_be_ready(self.node_controller._node_runners, self.session)
 
         log.info("Making sure all nodes have the same token network")
         self.ensure_token_network_discovery(token_proxy, token_network_address)
