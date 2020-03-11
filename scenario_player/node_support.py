@@ -237,7 +237,7 @@ class NodeRunner:
             "--password-file",
             self._password_file,
             "--network-id",
-            self._runner.definition.settings.chain_id,
+            self._runner.definition.settings.chain,
             "--sync-check",  # FIXME: Disable sync check for private chains
             "--gas-price",
             self._options.get("gas-price", "normal"),

@@ -2,15 +2,10 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 
 import structlog
+from raiden_contracts.constants import NETWORKNAME_TO_ID
 
 from raiden.utils.typing import ChainID
-from scenario_player.constants import (
-    BB_ETH_RPC_ADDRESS,
-    DEFAULT_CLIENT,
-    DEFAULT_NETWORK,
-    GAS_STRATEGIES,
-    TIMEOUT,
-)
+from scenario_player.constants import DEFAULT_CLIENT, GAS_STRATEGIES, TIMEOUT
 from scenario_player.exceptions.config import (
     ScenarioConfigurationError,
     ServiceConfigurationError,
@@ -178,7 +173,6 @@ class SettingsConfig(ConfigMapping):
         settings:
           timeout: 55
           notify: False
-          chain: any
           gas_price: fast
           services:
             <ServicesSettingsConfig>
@@ -192,11 +186,8 @@ class SettingsConfig(ConfigMapping):
         super(SettingsConfig, self).__init__(loaded_definition.get("settings") or {})
         self.services = ServiceSettingsConfig(loaded_definition)
         self.validate()
-        # If chain or rpc address are given via CLI, they override the scenario
-        # definition values. These attributes store these overrides.
-        self._cli_rpc_address: Optional[str] = None
-        self._cli_chain: Optional[str] = None
-        self.chain_id: Optional[ChainID] = None
+        self._cli_chain: str
+        self._cli_rpc_address: str
         self.sp_root_dir: Optional[Path] = None
         self._sp_scenario_root_dir: Optional[Path] = None
 
@@ -230,11 +221,12 @@ class SettingsConfig(ConfigMapping):
     @property
     def chain(self) -> str:
         """Return the name of the chain to be used for this scenario.
-
-        Defaults to :var:`DEFAULT_NETWORK` test net.
         """
-        chain = self.get("chain", DEFAULT_NETWORK)
-        return self._cli_chain or chain
+        return self._cli_chain
+
+    @property
+    def chain_id(self) -> ChainID:
+        return NETWORKNAME_TO_ID[self.chain]
 
     @property
     def eth_client(self) -> str:
@@ -258,11 +250,7 @@ class SettingsConfig(ConfigMapping):
              :attr:`.chain` and :attr:`.eth_client`.
 
         """
-        rpc_address = self.get(
-            "eth-client-rpc-address",
-            BB_ETH_RPC_ADDRESS.format(network=self.chain, client=self.eth_client),
-        )
-        return NetlocWithPort(self._cli_rpc_address or rpc_address)
+        return NetlocWithPort(self._cli_rpc_address)
 
     @property
     def gas_price(self) -> Union[str, int]:

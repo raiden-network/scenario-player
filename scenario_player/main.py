@@ -139,7 +139,7 @@ def chain_option(func):
         "--chain",
         "chain",
         multiple=False,
-        required=False,
+        required=True,
         help="Chain name to eth rpc url mapping.",
     )
     @functools.wraps(func)
@@ -226,7 +226,7 @@ def run(
     if enable_ui:
         log_buffer = attach_urwid_logbuffer()
 
-    # Dynamically import valid Task classes from sceanrio_player.tasks package.
+    # Dynamically import valid Task classes from scenario_player.tasks package.
     collect_tasks(tasks)
 
     # Start our Services

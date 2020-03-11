@@ -298,8 +298,6 @@ class ScenarioRunner:
             gas_price_strategy=self.definition.settings.gas_price_strategy,
         )
 
-        self.definition.settings.chain_id = self.client.chain_id
-
         assert account.address
         balance = self.client.balance(account.address)
         if balance < OWN_ACCOUNT_BALANCE_MIN:

@@ -18,7 +18,7 @@ class TestSettingsConfig:
         """The class is a subclass of :class:`ConfigMapping`."""
         assert isinstance(SettingsConfig(minimal_definition_dict), ConfigMapping)
 
-    @pytest.mark.parametrize("key", ["timeout", "chain", "gas_price"])
+    @pytest.mark.parametrize("key", ["timeout", "gas_price"])
     def test_class_returns_expected_default_for_key(
         self, key, expected_defaults, minimal_definition_dict
     ):
