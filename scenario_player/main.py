@@ -16,7 +16,6 @@ import structlog
 from eth_utils import to_checksum_address
 from gevent.event import Event
 from urwid import ExitMainLoop
-from web3._utils.transactions import TRANSACTION_DEFAULTS
 
 import scenario_player.utils
 from raiden.accounts import Account
@@ -33,9 +32,8 @@ from scenario_player.utils import DummyStream, post_task_state_to_rc
 from scenario_player.utils.legacy import MutuallyExclusiveOption
 from scenario_player.utils.version import get_complete_spec
 
-log = structlog.get_logger(__name__)
 
-TRANSACTION_DEFAULTS["gas"] = lambda web3, tx: web3.eth.estimateGas(tx) * 2
+log = structlog.get_logger(__name__)
 
 
 class TaskNotifyType(Enum):
