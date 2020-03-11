@@ -618,12 +618,17 @@ class ScenarioRunner:
         token_definition = self.definition.token
         reuse_token_from_file = token_definition.reuse_token
         token_address = to_canonical_address(token_definition.address)
-        deploy_new = not (reuse_token_from_file or token_address)
-        token_data_path = str(self.data_path.joinpath("token.info"))
+        token_info_path = self.data_path.joinpath("token.info")
 
-        if deploy_new:
+        if token_address:
+            token_proxy = proxy_manager.custom_token(TokenAddress(token_address), "latest")
+        elif reuse_token_from_file and token_info_path.exists():
+            token_details = load_token_configuration_from_file(str(token_info_path))
+            token_address = to_canonical_address(token_details["address"])
+            token_proxy = proxy_manager.custom_token(TokenAddress(token_address), "latest")
+        else:
             contract = proxy_manager.contract_manager.get_contract(CONTRACT_HUMAN_STANDARD_TOKEN)
-            contract_proxy, receipt = self.client.deploy_single_contract(
+            token_proxy, receipt = self.client.deploy_single_contract(
                 contract_name=CONTRACT_HUMAN_STANDARD_TOKEN,
                 contract=contract,
                 constructor_parameters=(
@@ -633,7 +638,7 @@ class ScenarioRunner:
                     token_definition.symbol,
                 ),
             )
-            token_address = to_canonical_address(contract_proxy.address)
+            token_address = to_canonical_address(token_proxy.address)
 
             if reuse_token_from_file:
                 details = TokenDetails(
@@ -643,15 +648,9 @@ class ScenarioRunner:
                         "block": receipt["blockNumber"],
                     }
                 )
-                save_token_configuration_to_file(token_data_path, details)
+                save_token_configuration_to_file(str(token_info_path), details)
 
-            token_address = contract_proxy.address
-
-        elif reuse_token_from_file:
-            token_details = load_token_configuration_from_file(token_data_path)
-            token_address = to_canonical_address(token_details["address"])
-
-        return proxy_manager.custom_token(TokenAddress(token_address), "latest")
+        return token_proxy
 
     def task_state_changed(self, task: "Task", state: "TaskState"):
         if self.task_state_callback:
