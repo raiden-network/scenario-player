@@ -47,6 +47,7 @@ from raiden.utils.typing import (
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
     MAX_RAIDEN_STARTUP_TIME,
+    NODE_ACCOUNT_BALANCE_FUND,
     NODE_ACCOUNT_BALANCE_MIN,
     OWN_ACCOUNT_BALANCE_MIN,
     RUN_NUMBER_FILENAME,
@@ -495,9 +496,10 @@ class ScenarioRunner:
         for address in node_addresses:
             g = pool.spawn(
                 eth_maybe_transfer,
-                self.client,
-                to_canonical_address(address),
-                NODE_ACCOUNT_BALANCE_MIN,
+                orchestration_client=self.client,
+                target=to_canonical_address(address),
+                minimum_balance=NODE_ACCOUNT_BALANCE_MIN,
+                maximum_balance=NODE_ACCOUNT_BALANCE_FUND,
             )
             greenlets.add(g)
 
@@ -534,8 +536,8 @@ class ScenarioRunner:
 
         mint_greenlet = pool.spawn(
             token_maybe_mint,
-            token_proxy,
-            to_checksum_address(self.client.address),
+            token_proxy=token_proxy,
+            target_address=to_checksum_address(self.client.address),
             minimum_balance=required_allowance,
             maximum_balance=ORCHESTRATION_MAXIMUM_BALANCE,
         )
