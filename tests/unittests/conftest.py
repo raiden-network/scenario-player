@@ -13,7 +13,6 @@ from tests.unittests.constants import TEST_TOKEN_ADDRESS, TEST_TOKEN_NETWORK_ADD
 from raiden.network.rpc.client import JSONRPCClient
 from raiden.utils.formatting import to_canonical_address
 from raiden.utils.typing import Address
-from scenario_player.constants import GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL
 from scenario_player.tasks.base import Task
 
 
@@ -73,7 +72,6 @@ def dummy_scenario_definition(dummy_settings_config):
             self.name = scenario_name
             self.settings = dummy_settings_config
             self.token = DummyTokenConfig()
-            self.gas_limit = GAS_LIMIT_FOR_TOKEN_CONTRACT_CALL * 2
             self.scenario_dir = dummy_settings_config.sp_scenario_root_dir.joinpath(self.name)
             self.scenario_dir.mkdir(parents=True, exist_ok=True)
 

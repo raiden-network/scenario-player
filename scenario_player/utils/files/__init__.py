@@ -1,23 +1,4 @@
-from scenario_player.utils.files.base import ManagedFile
-from scenario_player.utils.files.constants import (
-    ARCHIVE_FNAME_TEMPLATE,
-    BINARY_FNAME_TEMPLATE,
-    CLOUD_STORAGE_URL,
-)
-from scenario_player.utils.files.parsing import (
-    detect_target_config,
-    parse_architecture,
-    parse_platform,
-    parse_version,
-)
+from scenario_player.utils.files.constants import BINARY_FNAME_TEMPLATE
+from scenario_player.utils.files.parsing import parse_architecture, parse_platform, parse_version
 
-__all__ = [
-    "ManagedFile",
-    "ARCHIVE_FNAME_TEMPLATE",
-    "BINARY_FNAME_TEMPLATE",
-    "CLOUD_STORAGE_URL",
-    "parse_version",
-    "parse_platform",
-    "parse_architecture",
-    "detect_target_config",
-]
+__all__ = ["BINARY_FNAME_TEMPLATE", "parse_version", "parse_platform", "parse_architecture"]

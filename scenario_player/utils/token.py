@@ -50,26 +50,6 @@ def eth_maybe_transfer(
         orchestration_client.poll_transaction(tx_hash)
 
 
-def userdeposit_maybe_mint_tokens(
-    token_proxy: CustomToken,
-    userdeposit_proxy: UserDeposit,
-    minimum_balance: int,
-    maximum_balance: int,
-) -> None:
-    """The mint function isn't present on the UDC, pass the UDTC address instead."""
-    given_token_address = token_proxy.address
-    user_deposit_token_address = userdeposit_proxy.token_address("latest")
-
-    if user_deposit_token_address != given_token_address:
-        raise ValueError(
-            f"The allowance for the user deposit contract must be increase on the "
-            f"corresponding token. Given token: {to_hex(given_token_address)} "
-            f"user deposit token: {to_hex(user_deposit_token_address)}."
-        )
-
-    token_maybe_mint(token_proxy, userdeposit_proxy.address, minimum_balance, maximum_balance)
-
-
 def userdeposit_maybe_increase_allowance(
     token_proxy: CustomToken,
     userdeposit_proxy: UserDeposit,

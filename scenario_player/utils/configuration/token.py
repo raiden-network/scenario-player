@@ -97,10 +97,6 @@ class TokenConfig(ConfigMapping):
         return self.get("reuse", False) and self._token_file.exists()
 
     @property
-    def save_token(self):
-        return self.get("reuse", False)
-
-    @property
     def symbol(self):
         return self.get("symbol", f"T{self._token_id!s:.3}")
 
