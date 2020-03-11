@@ -2,25 +2,31 @@ import functools
 import json
 import os
 import sys
+import tempfile
 import traceback
 from collections import namedtuple
-from contextlib import AbstractContextManager, nullcontext
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from datetime import datetime
 from enum import Enum
+from io import StringIO
 from pathlib import Path
-from typing import Dict
+from tempfile import mkdtemp
 
 import click
 import gevent
 import structlog
+import yaml
+from click import Context
 from eth_utils import to_checksum_address
 from gevent.event import Event
 from urwid import ExitMainLoop
 
 import scenario_player.utils
 from raiden.accounts import Account
+from raiden.constants import EthClient
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
-from raiden.utils.cli import EnumChoiceType
+from raiden.utils.cli import EnumChoiceType, option
+from raiden.utils.typing import TYPE_CHECKING, AnyStr, Dict, Optional
 from scenario_player import __version__, tasks
 from scenario_player.constants import DEFAULT_ETH_RPC_ADDRESS, DEFAULT_NETWORK
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
@@ -32,6 +38,8 @@ from scenario_player.utils import DummyStream, post_task_state_to_rc
 from scenario_player.utils.legacy import MutuallyExclusiveOption
 from scenario_player.utils.version import get_complete_spec
 
+if TYPE_CHECKING:
+    from raiden.tests.utils.smoketest import RaidenTestSetup
 
 log = structlog.get_logger(__name__)
 
@@ -185,6 +193,40 @@ def run(
     password_file,
 ):
     """Execute a scenario as defined in scenario definition file.
+    click entrypoint, this dispatches to `run_`.
+    """
+    data_path = Path(data_path)
+    scenario_file = Path(scenario_file.name).absolute()
+    log_file_name = construct_log_file_name("run", data_path, scenario_file)
+    configure_logging_for_subcommand(log_file_name)
+    run_(
+        chain,
+        data_path,
+        auth,
+        password,
+        keystore_file,
+        scenario_file,
+        notify_tasks,
+        enable_ui,
+        password_file,
+        log_file_name,
+    )
+
+
+def run_(
+    chain,
+    data_path,
+    auth,
+    password,
+    keystore_file,
+    scenario_file,
+    notify_tasks,
+    enable_ui,
+    password_file,
+    log_file_name,
+):
+    """Execute a scenario as defined in scenario definition file.
+    (Shared code for `run` and `smoketest` command).
 
     Calls :func:`exit` when done, with the following status codes:
 
@@ -201,14 +243,9 @@ def run(
         There was an assertion error while executing the scenario. This points
         to an error in a `raiden` component (the client, services or contracts).
     """
-    data_path = Path(data_path)
-    scenario_file = Path(scenario_file.name).absolute()
-    log_file_name = construct_log_file_name("run", data_path, scenario_file)
-    configure_logging_for_subcommand(log_file_name)
     log.info("Scenario Player version:", version_info=get_complete_spec())
 
     password = get_password(password, password_file)
-
     account = get_account(keystore_file, password)
 
     notify_tasks_callable = None
@@ -233,6 +270,7 @@ def run(
     success = Event()
     success.clear()
     try:
+        assert isinstance(data_path, Path), type(data_path)
         orchestrate(
             success,
             enable_ui,
@@ -366,6 +404,103 @@ def version(short):
     else:
         spec = get_complete_spec()
         click.secho(message=json.dumps(spec, indent=2))
+
+
+@main.command(name="smoketest", help="Run a short self-test.")
+@option(
+    "--eth-client",
+    type=EnumChoiceType(EthClient),
+    default=EthClient.GETH.value,
+    show_default=True,
+    help="Which Ethereum client to run for the smoketests",
+)
+@click.pass_context
+def smoketest(ctx: Context, eth_client: EthClient):
+    from raiden.tests.utils.smoketest import setup_smoketest, step_printer
+    from raiden.network.utils import get_free_port
+
+    free_port_generator = get_free_port()
+    datadir = mkdtemp()
+
+    captured_stdout = StringIO()
+
+    with report(capture=captured_stdout) as (report_file, append_report):
+        append_report("Setting up Smoketest")
+        with step_printer(step_count=6, stdout=sys.stdout) as print_step:
+            with setup_smoketest(
+                eth_client=eth_client,
+                print_step=print_step,
+                free_port_generator=free_port_generator,
+                debug=False,
+                stdout=captured_stdout,
+                append_report=append_report,
+            ) as setup:
+                config_file = create_smoketest_config_file(setup, datadir)
+
+                chain = f"smoketest:{setup.args['eth_rpc_endpoint']}"
+                keystore_file = os.path.join(setup.args["keystore_path"], "keyfile")
+                password_file = setup.args["password_file"].name
+                print_step("Running scenario player")
+                append_report("Scenario Player Log", captured_stdout.getvalue())
+                try:
+                    run_(
+                        chain=chain,
+                        data_path=Path(datadir),
+                        auth=None,
+                        password=None,
+                        keystore_file=keystore_file,
+                        scenario_file=config_file,
+                        notify_tasks=None,
+                        enable_ui=False,
+                        password_file=password_file,
+                        log_file_name=report_file,
+                    )
+                except SystemExit as ex:
+                    append_report("Captured", captured_stdout.getvalue())
+                    if ex.code != 0:
+                        print_step("Error when running scenario player", error=True)
+                        sys.exit(ex.code)
+                    else:
+                        print_step("Smoketest successful!")
+
+
+@contextmanager
+def report(capture, report_path=None, disable_debug_logfile=True):
+    if report_path is None:
+        report_file = tempfile.mktemp(suffix=".log")
+    else:
+        report_file = report_path
+    click.secho(f"Report file: {report_file}", fg="yellow")
+    configure_logging(
+        logger_level_config={"": "INFO", "raiden": "DEBUG", "scenario_player": "DEBUG"},
+        log_file=report_file,
+        disable_debug_logfile=disable_debug_logfile,
+    )
+
+    def append_report(subject: str, data: Optional[AnyStr] = None) -> None:
+        with open(report_file, "a", encoding="UTF-8") as handler:
+            handler.write(f'{f" {subject.upper()} ":=^80}{os.linesep}')
+            if data is not None:
+                write_data: str
+                if isinstance(data, bytes):
+                    write_data = data.decode()
+                else:
+                    write_data = data
+                handler.writelines([write_data + os.linesep])
+
+    yield report_file, append_report
+
+
+def create_smoketest_config_file(setup: "RaidenTestSetup", datadir: str) -> Path:
+    udc_address = to_checksum_address(setup.args["user_deposit_contract_address"])
+    config = yaml.safe_load(Path("tests/smoketests/template.yaml").read_text())
+    config_file = Path(tempfile.mktemp(dir=datadir, suffix=".yaml"))
+    config["nodes"]["default_options"]["user-deposit-contract-address"] = udc_address
+    config["token"]["address"] = to_checksum_address(setup.token.address)
+    with open(config_file, "w") as f:
+        yaml.dump(config, f)
+        log.info(f"Written scenario to {config_file}.")
+    return config_file
 
 
 if __name__ == "__main__":
