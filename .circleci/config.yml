@@ -74,7 +74,7 @@ commands:
       - run:
           name: Add Environment variables to bash env.
           command: |
-            echo 'export PATH=/home/circleci/ci/venv/bin:$PATH' >> ${BASH_ENV}
+            echo 'export PATH=/home/circleci/ci/venv/bin:~/.local/bin:$PATH' >> ${BASH_ENV}
 
   install_tools_for_ci:
     description: Install packages needed to run our scripts. These may not be included in SP's dependencies.
@@ -85,6 +85,11 @@ commands:
             pip install bump2version
             pip install flit
             pip install tomlkit
+            mkdir -p ~/.local/bin
+            curl -o geth.tar.gz https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.9.11-6a62fe39.tar.gz
+            tar zxf geth.tar.gz
+            cd geth*/
+            install -m 755 geth ~/.local/bin/geth
 
   prep_venv:
     description: Restore cache and virtualenv, and install dependencies.
@@ -188,6 +193,7 @@ jobs:
       - setup-job
       - lint_codebase
       - run_test_harness
+      - prep_venv
       - run_smoketests
       - store_env
 

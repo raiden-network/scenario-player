@@ -60,17 +60,18 @@ keywords = "raiden, raiden-network"
 test = ["pytest==4.5.0"]
 dev = [
     "black==19.3b0",
+    "coverage",
+    "codecov",
     "flake8-bugbear==18.8.0",
     "flake8-tuple==0.2.13",
     "flake8==3.7.5",
     "isort==4.3.16",
+    "matrix-synapse==1.5.1",
+    "mypy==0.761",
     "pytest==4.5.0",
     "pytest-cov",
     "pytest-dependency==0.4.0",
     "responses==0.10.6",
-    "coverage",
-    "codecov",
-    "mypy==0.761",
 ]
 
 [tool.flit.metadata.urls]
