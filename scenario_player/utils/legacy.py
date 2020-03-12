@@ -5,7 +5,7 @@ import time
 from collections import defaultdict
 from itertools import chain as iter_chain
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Dict, Iterable, List
 
 import click
 import requests
@@ -70,8 +70,7 @@ class MutuallyExclusiveOption(click.Option):
         return super(MutuallyExclusiveOption, self).handle_parse_result(ctx, opts, args)
 
 
-def wait_for_txs(client: JSONRPCClient, transactions: Set[TransactionSent], timeout: int = 360):
-    web3 = client.web3
+def wait_for_txs(web3: Web3, transactions: Iterable[TransactionSent], timeout: int = 360):
     start = time.monotonic()
     outstanding = None
     txhashes = set(transaction_sent.transaction_hash for transaction_sent in transactions)
@@ -148,7 +147,7 @@ def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_a
 
     log.info("Reclaiming candidates", addresses=list(address_to_keyfile.keys()))
 
-    txs: Dict[str, Set[TransactionSent]] = defaultdict(set)
+    txs: Dict[str, List[TransactionSent]] = defaultdict(list)
     reclaim_amount: Dict[str, int] = defaultdict(int)
     for chain_name, web3 in web3s.items():
         log.info("Checking chain", chain=chain_name)
@@ -167,7 +166,7 @@ def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_a
                 )
                 reclaim_amount[chain_name] += drain_amount
                 client = JSONRPCClient(web3, privkey)
-                txs[chain_name].add(
+                txs[chain_name].append(
                     client.transact(
                         EthTransfer(
                             to_address=account.address,
