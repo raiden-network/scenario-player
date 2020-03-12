@@ -23,7 +23,7 @@ TokenDetails = TypedDict("TokenDetails", {"name": str, "address": ChecksumAddres
 
 
 def token_maybe_mint(
-    token_proxy: CustomToken, target_address, minimum_balance: int, maximum_balance: int
+    token_proxy: CustomToken, target_address: Address, minimum_balance: int, maximum_balance: int
 ) -> None:
     current_balance = token_proxy.balance_of(target_address)
 
