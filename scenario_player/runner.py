@@ -12,7 +12,7 @@ from eth_utils import encode_hex, is_checksum_address, to_checksum_address, to_h
 from gevent import Greenlet
 from gevent.pool import Pool
 from raiden_contracts.constants import (
-    CONTRACT_HUMAN_STANDARD_TOKEN,
+    CONTRACT_CUSTOM_TOKEN,
     CONTRACT_TOKEN_NETWORK_REGISTRY,
     CONTRACT_USER_DEPOSIT,
     NETWORKNAME_TO_ID,
@@ -613,28 +613,26 @@ class ScenarioRunner:
         """
         token_definition = self.definition.token
         reuse_token_from_file = token_definition.reuse_token
-        token_address = to_canonical_address(token_definition.address)
         token_info_path = self.data_path.joinpath("token.info")
 
-        if token_address:
-            token_proxy = proxy_manager.custom_token(TokenAddress(token_address), "latest")
+        if token_definition.address:
+            token_address = to_canonical_address(token_definition.address)
         elif reuse_token_from_file and token_info_path.exists():
             token_details = load_token_configuration_from_file(str(token_info_path))
             token_address = to_canonical_address(token_details["address"])
-            token_proxy = proxy_manager.custom_token(TokenAddress(token_address), "latest")
         else:
-            contract = proxy_manager.contract_manager.get_contract(CONTRACT_HUMAN_STANDARD_TOKEN)
-            token_proxy, receipt = self.client.deploy_single_contract(
-                contract_name=CONTRACT_HUMAN_STANDARD_TOKEN,
-                contract=contract,
+            contract_data = proxy_manager.contract_manager.get_contract(CONTRACT_CUSTOM_TOKEN)
+            contract, receipt = self.client.deploy_single_contract(
+                contract_name=CONTRACT_CUSTOM_TOKEN,
+                contract=contract_data,
                 constructor_parameters=(
                     ORCHESTRATION_MAXIMUM_BALANCE,
-                    token_definition.name,
                     token_definition.decimals,
+                    token_definition.name,
                     token_definition.symbol,
                 ),
             )
-            token_address = to_canonical_address(token_proxy.address)
+            token_address = to_canonical_address(contract.address)
 
             if reuse_token_from_file:
                 details = TokenDetails(
@@ -646,7 +644,7 @@ class ScenarioRunner:
                 )
                 save_token_configuration_to_file(str(token_info_path), details)
 
-        return token_proxy
+        return proxy_manager.custom_token(TokenAddress(token_address), "latest")
 
     def task_state_changed(self, task: "Task", state: "TaskState"):
         if self.task_state_callback:
