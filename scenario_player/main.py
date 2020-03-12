@@ -19,14 +19,17 @@ import yaml
 from click import Context
 from eth_utils import to_checksum_address
 from gevent.event import Event
+from raiden_contracts.constants import NETWORKNAME_TO_ID
+from raiden_contracts.contract_manager import DeployedContract, DeployedContracts
 from urwid import ExitMainLoop
 
 import scenario_player.utils
 from raiden.accounts import Account
 from raiden.constants import EthClient
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
+from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.cli import EnumChoiceType, option
-from raiden.utils.typing import TYPE_CHECKING, AnyStr, Dict, Optional
+from raiden.utils.typing import TYPE_CHECKING, Any, AnyStr, Dict, Optional
 from scenario_player import __version__, tasks
 from scenario_player.constants import DEFAULT_ETH_RPC_ADDRESS, DEFAULT_NETWORK
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
@@ -224,6 +227,7 @@ def run_(
     enable_ui,
     password_file,
     log_file_name,
+    smoketest_deployment_data=None,
 ):
     """Execute a scenario as defined in scenario definition file.
     (Shared code for `run` and `smoketest` command).
@@ -277,7 +281,13 @@ def run_(
             log_buffer,
             log_file_name,
             ScenarioRunnerArgs(
-                account, auth, chain, data_path, scenario_file, notify_tasks_callable
+                account,
+                auth,
+                chain,
+                data_path,
+                scenario_file,
+                notify_tasks_callable,
+                smoketest_deployment_data,
             ),
         )
     except ScenarioAssertionError as ex:
@@ -322,7 +332,15 @@ def run_(
 
 ScenarioRunnerArgs = namedtuple(
     "ScenarioRunnerArgs",
-    ["account", "auth", "chain", "data_path", "scenario_file", "notify_tasks_callable"],
+    [
+        "account",
+        "auth",
+        "chain",
+        "data_path",
+        "scenario_file",
+        "notify_tasks_callable",
+        "smoketest_deployment_data",
+    ],
 )
 
 
@@ -406,6 +424,23 @@ def version(short):
         click.secho(message=json.dumps(spec, indent=2))
 
 
+def smoketest_deployed_contracts(contracts: Dict[str, Any]) -> DeployedContracts:
+    return DeployedContracts(
+        chain_id=NETWORKNAME_TO_ID["smoketest"],
+        contracts={
+            name: DeployedContract(
+                address=to_checksum_address(address),
+                transaction_hash="",
+                block_number=1,
+                gas_cost=1000,
+                constructor_arguments=[],
+            )
+            for name, address in contracts.items()
+        },
+        contracts_version=RAIDEN_CONTRACT_VERSION,
+    )
+
+
 @main.command(name="smoketest", help="Run a short self-test.")
 @option(
     "--eth-client",
@@ -435,6 +470,7 @@ def smoketest(ctx: Context, eth_client: EthClient):
                 stdout=captured_stdout,
                 append_report=append_report,
             ) as setup:
+                deployment_data = smoketest_deployed_contracts(setup.contract_addresses)
                 config_file = create_smoketest_config_file(setup, datadir)
 
                 chain = f"smoketest:{setup.args['eth_rpc_endpoint']}"
@@ -454,6 +490,7 @@ def smoketest(ctx: Context, eth_client: EthClient):
                         enable_ui=False,
                         password_file=password_file,
                         log_file_name=report_file,
+                        smoketest_deployment_data=deployment_data,
                     )
                 except SystemExit as ex:
                     append_report("Captured", captured_stdout.getvalue())
