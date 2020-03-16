@@ -1,0 +1,39 @@
+version: 2
+
+settings:
+  gas_price: "fast"
+  chain: any
+
+token:
+  balance_fund: 10_000_000_000_000_000_000
+  balance_min:   5_000_000_000_000_000_000
+
+nodes:
+  count: 2
+  raiden_version: local
+
+  default_options:
+    gas-price: fast
+    environment-type: development
+    routing-mode: local
+    pathfinding-max-paths: 5
+    pathfinding-max-fee: 100
+    enable-monitoring: false
+    default-settle-timeout: 40
+    default-reveal-timeout: 20
+
+scenario:
+  serial:
+    tasks:
+      - parallel:
+          name: "Open channels"
+          tasks:
+            - open_channel: {from: 0, to: 1, total_deposit: 1_000_000_000_000_000_000, expected_http_status: 201}
+      - parallel:
+          name: "Assert after channel openings"
+          tasks:
+            - assert: {from: 0, to: 1, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+      - parallel:
+          name: "Make a transfer"
+          tasks:
+            - transfer: {from: 0, to: 1, amount: 42}

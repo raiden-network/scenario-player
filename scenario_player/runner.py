@@ -19,6 +19,7 @@ from raiden_contracts.constants import (
 )
 from raiden_contracts.contract_manager import (
     ContractManager,
+    DeployedContracts,
     contracts_precompiled_path,
     get_contracts_deployment_info,
 )
@@ -135,17 +136,22 @@ def get_udc_and_corresponding_token_from_dependencies(
 
 
 def get_token_network_registry_from_dependencies(
-    settings: SettingsConfig, proxy_manager: ProxyManager
+    settings: SettingsConfig,
+    proxy_manager: ProxyManager,
+    smoketest_deployment_data: DeployedContracts = None,
 ) -> TokenNetworkRegistry:
     """ Return contract proxies for the UserDepositContract and associated token.
 
     This will return a proxy to the `UserDeposit` contract as determined by the
-    **local** Raiden depedency.
+    **local** Raiden dependency.
     """
     chain_id = settings.chain_id
     assert chain_id, "Missing configuration, either set udc_address or the chain_id"
 
-    contracts = get_contracts_deployment_info(chain_id, version=RAIDEN_CONTRACT_VERSION)
+    if chain_id != NETWORKNAME_TO_ID["smoketest"]:
+        contracts = get_contracts_deployment_info(chain_id, version=RAIDEN_CONTRACT_VERSION)
+    else:
+        contracts = smoketest_deployment_data
 
     msg = f"invalid chain_id, {chain_id} is not available for version {RAIDEN_CONTRACT_VERSION}"
     assert contracts, msg
@@ -267,7 +273,10 @@ class ScenarioRunner:
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
+        smoketest_deployment_data: DeployedContracts = None,
     ) -> None:
+
+        self.smoketest_deployment_data = smoketest_deployment_data
         self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
         self.data_path = data_path
 
@@ -297,8 +306,6 @@ class ScenarioRunner:
             privkey=account.privkey,
             gas_price_strategy=self.definition.settings.gas_price_strategy,
         )
-
-        self.definition.settings.chain_id = self.client.chain_id
 
         assert account.address
         balance = self.client.balance(account.address)
@@ -395,11 +402,17 @@ class ScenarioRunner:
         udc_settings = settings.services.udc
 
         contract_manager = ContractManager(contracts_precompiled_path(RAIDEN_CONTRACT_VERSION))
-        deploy = get_contracts_deployment_info(self.chain_id, RAIDEN_CONTRACT_VERSION)
+        smoketesting = False
+        if self.chain_id != NETWORKNAME_TO_ID["smoketest"]:
+            deploy = get_contracts_deployment_info(self.chain_id, RAIDEN_CONTRACT_VERSION)
+        else:
+            smoketesting = True
+            deploy = self.smoketest_deployment_data
 
-        msg = "There is no deployement details for the given chain_id and contracts version pair"
+        msg = "There is no deployment details for the given chain_id and contracts version pair"
         assert deploy, msg
 
+        assert "contracts" in deploy, deploy
         token_network_deployment_details = deploy["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]
         deployed_at = token_network_deployment_details["block_number"]
         token_network_registry_deployed_at = BlockNumber(deployed_at)
@@ -439,9 +452,14 @@ class ScenarioRunner:
         # block until mined and confirmed, since that is a requirement for the
         # following setup calls.
         token_proxy = self.setup_token_contract_for_token_network(proxy_manager)
-        token_network_registry_proxy = get_token_network_registry_from_dependencies(
-            settings=settings, proxy_manager=proxy_manager
-        )
+        if smoketesting:
+            token_network_registry_proxy = get_token_network_registry_from_dependencies(
+                settings=settings, proxy_manager=proxy_manager, smoketest_deployment_data=deploy
+            )
+        else:
+            token_network_registry_proxy = get_token_network_registry_from_dependencies(
+                settings=settings, proxy_manager=proxy_manager
+            )
 
         self.setup_raiden_token_balances(pool, token_proxy, node_addresses)
 
