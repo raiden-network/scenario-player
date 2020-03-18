@@ -16,20 +16,15 @@ home-page = "https://github.com/raiden-network/scenario-player"
 description-file = "README.rst"
 
 # Pypi Requirements
-requires-python = ">3.6"
+requires-python = ">3.7"
 requires = [
     'click',
     'eth-utils',
-    'flask==1.0.3',
-    'flask_marshmallow',
     'gevent',
-    'marshmallow',
-    'pluggy',
-    'prometheus_client',
     'pyyaml',
     'requests',
     'raiden',
-    'structlog==19.1.0',
+    'structlog',
     'simplejson',
     'urwid!=2.1.0',
     'waitress',
