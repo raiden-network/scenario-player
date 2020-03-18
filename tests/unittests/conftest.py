@@ -18,7 +18,7 @@ from scenario_player.tasks.base import Task
 
 @pytest.fixture
 def minimal_definition_dict():
-    """A dictionary with the minimum required keys for instantiating any ConfigMapping."""
+    """A dictionary with the minimum required keys for instantiating any config."""
     return {
         "scenario": {"serial": {"tasks": {"wait_blocks": {"blocks": 5}}}},
         "settings": {},

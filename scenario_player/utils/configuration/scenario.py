@@ -3,12 +3,11 @@ from typing import Any, Dict, Tuple
 import structlog
 
 from scenario_player.exceptions.config import ScenarioConfigurationError
-from scenario_player.utils.configuration.base import ConfigMapping
 
 log = structlog.get_logger(__name__)
 
 
-class ScenarioConfig(ConfigMapping):
+class ScenarioConfig:
     """Thin wrapper class around the "scenario" setting section of a loaded scenario .yaml file.
 
     The configuration will automatically be checked for
@@ -29,15 +28,14 @@ class ScenarioConfig(ConfigMapping):
     CONFIGURATION_ERROR = ScenarioConfigurationError
 
     def __init__(self, config: dict) -> None:
-        super(ScenarioConfig, self).__init__(config.get("scenario") or {})
+        self.dict = config.get("scenario") or {}
         self.validate()
 
     def validate(self):
-        self.assert_option(self.dict, "Must specify 'scenario' setting section!")
-        self.assert_option(
-            len(self) == 1,
-            "Multiple tasks sections defined in scenario configuration! Must be only one!",
-        )
+        assert self.dict, "Must specify 'scenario' setting section!"
+        assert (
+            len(self.dict) == 1
+        ), "Multiple tasks sections defined in scenario configuration! Must be only one!"
 
     @property
     def root_task(self) -> Tuple[str, Dict[Any, Any]]:
@@ -52,7 +50,7 @@ class ScenarioConfig(ConfigMapping):
         The scenario runner takes care of recursively accessing all sub-tasks
         of the roo task.
         """
-        root_task_tuple, = self.items()
+        root_task_tuple, = self.dict.items()
         return root_task_tuple
 
     @property

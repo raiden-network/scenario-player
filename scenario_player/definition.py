@@ -3,12 +3,10 @@ import pathlib
 import structlog
 import yaml
 
-from scenario_player.utils.configuration import (
-    NodesConfig,
-    ScenarioConfig,
-    SettingsConfig,
-    TokenConfig,
-)
+from scenario_player.utils.configuration.nodes import NodesConfig
+from scenario_player.utils.configuration.scenario import ScenarioConfig
+from scenario_player.utils.configuration.settings import SettingsConfig
+from scenario_player.utils.configuration.token import TokenConfig
 
 log = structlog.get_logger(__name__)
 

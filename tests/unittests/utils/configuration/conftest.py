@@ -3,7 +3,7 @@ import pytest
 
 @pytest.fixture
 def expected_defaults():
-    """A dict containing all expected default values for keys of any ConfigMapping."""
+    """A dict containing all expected default values for keys of any config."""
     return {
         "version": 2,
         "name": "<Unnamed Scenario>",
