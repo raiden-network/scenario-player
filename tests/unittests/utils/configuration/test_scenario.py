@@ -1,15 +1,9 @@
 import pytest
 
-from scenario_player.exceptions.config import ScenarioConfigurationError
-from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.scenario import ScenarioConfig
 
 
 class TestScenarioConfig:
-    def test_is_subclass_of_config_mapping(self, minimal_definition_dict):
-        """The class is a subclass of :class:`ConfigMapping`."""
-        assert isinstance(ScenarioConfig(minimal_definition_dict), ConfigMapping)
-
     @pytest.mark.xfail
     def test_class_loads_root_task_type_correctly(self, minimal_definition_dict):
         """Root tasks are checked for validity when accessing the
@@ -32,20 +26,20 @@ class TestScenarioConfig:
         assert config.root_config == injected_task_config
 
     def test_missing_required_key_raises_configuration_error(self, minimal_definition_dict):
-        """Missing required keys in the config dict raises a ScenarioConfigurationError."""
+        """Missing required keys in the config dict raises an Exception."""
         minimal_definition_dict["scenario"].pop("serial")
-        with pytest.raises(ScenarioConfigurationError):
+        with pytest.raises(Exception):
             ScenarioConfig(minimal_definition_dict)
 
     def test_instantiating_with_an_empty_dict_raises_configuration_error(self):
         """Passing the ScenarioConfig class an empty dict is not allowed."""
-        with pytest.raises(ScenarioConfigurationError):
+        with pytest.raises(Exception):
             ScenarioConfig({})
 
     def test_defining_multiple_root_tasks_raises_configuration_error(
         self, minimal_definition_dict
     ):
-        """Defining multiple root tasks raises a :exc:`ScenarioConfigurationError`."""
+        """Defining multiple root tasks raises an Exception."""
         minimal_definition_dict["scenario"]["second_root"] = {}
-        with pytest.raises(ScenarioConfigurationError):
+        with pytest.raises(Exception):
             ScenarioConfig(minimal_definition_dict)

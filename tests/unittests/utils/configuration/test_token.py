@@ -4,16 +4,10 @@ from unittest.mock import patch
 import pytest
 
 from scenario_player.constants import DEFAULT_TOKEN_BALANCE_FUND, DEFAULT_TOKEN_BALANCE_MIN
-from scenario_player.exceptions.config import TokenConfigurationError
-from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.token import TokenConfig
 
 
 class TestTokenConfig:
-    def test_is_subclass_of_config_mapping(self, minimal_definition_dict, token_info_path):
-        """The class is a subclass of :class:`ConfigMapping`."""
-        assert isinstance(TokenConfig(minimal_definition_dict, token_info_path), ConfigMapping)
-
     @pytest.mark.parametrize("key", ["address", "decimals"])
     def test_class_returns_expected_default_for_key(
         self, key, expected_defaults, minimal_definition_dict, token_info_path
@@ -34,7 +28,7 @@ class TestTokenConfig:
     ):
         minimal_definition_dict["token"]["reuse"] = True
         minimal_definition_dict["token"]["address"] = "some_address"
-        with pytest.raises(TokenConfigurationError):
+        with pytest.raises(Exception):
             TokenConfig(minimal_definition_dict, token_info_path)
 
     @pytest.mark.parametrize("exists", [True, False])

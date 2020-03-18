@@ -11,13 +11,12 @@ from scenario_player.exceptions.config import (
     ServiceConfigurationError,
     UDCTokenConfigError,
 )
-from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.types import NetlocWithPort
 
 log = structlog.get_logger(__name__)
 
 
-class PFSSettingsConfig(ConfigMapping):
+class PFSSettingsConfig:
     """UDC Service Settings interface.
 
     Example scenario definition::
@@ -35,17 +34,17 @@ class PFSSettingsConfig(ConfigMapping):
     """
 
     def __init__(self, loaded_definition: dict):
-        super(PFSSettingsConfig, self).__init__(
-            loaded_definition.get("settings").get("services", {}).get("pfs", {})  # type: ignore
-        )
-        self.validate()
+        settings = loaded_definition.get("settings", {})
+        services = settings.get("services", {})
+        pfs = services.get("pfs", {})
+        self.dict = pfs
 
     @property
     def url(self):
-        return self.get("url")
+        return self.dict.get("url")
 
 
-class UDCTokenSettings(ConfigMapping):
+class UDCTokenSettings:
     """UDC Token Settings Interface.
 
     Example scenario definition::
@@ -64,10 +63,10 @@ class UDCTokenSettings(ConfigMapping):
     CONFIGURATION_ERROR = UDCTokenConfigError
 
     def __init__(self, loaded_definition: dict):
-        udc_settings = ((loaded_definition.get("settings") or {}).get("services") or {}).get(
-            "udc"
-        ) or {}
-        super(UDCTokenSettings, self).__init__(udc_settings.get("token"))
+        settings = loaded_definition.get("settings", {})
+        services = settings.get("services", {})
+        udc_settings = services.get("udc", {})
+        self.dict = udc_settings.get("token", {})
         self.validate()
 
     def validate(self) -> None:
@@ -75,10 +74,9 @@ class UDCTokenSettings(ConfigMapping):
 
         :raises UDCTokenConfigError: if :attr:`.max_funding` < :attr:`.balance_per_node`.
         """
-        self.assert_option(
-            self.max_funding >= self.balance_per_node,
-            "udc.token.max_funding must be >= udc.token.balance_per_node!",
-        )
+        assert (
+            self.max_funding >= self.balance_per_node
+        ), "udc.token.max_funding must be >= udc.token.balance_per_node!"
 
     @property
     def deposit(self) -> bool:
@@ -89,12 +87,14 @@ class UDCTokenSettings(ConfigMapping):
 
         Defaults to True.
         """
-        return self.get("deposit", True)
+        flag = self.dict.get("deposit", True)
+        assert isinstance(flag, bool)
+        return flag
 
     @property
     def balance_per_node(self) -> int:
         """The required amount of UDC/RDN tokens required by each node."""
-        return int(self.get("balance_per_node", 5000))
+        return int(self.dict.get("balance_per_node", 5000))
 
     @property
     def max_funding(self) -> int:
@@ -102,10 +102,10 @@ class UDCTokenSettings(ConfigMapping):
 
         It defaults to :attr:`.balance_per_node`'s value.
         """
-        return int(self.get("max_funding", self.balance_per_node))
+        return int(self.dict.get("max_funding", self.balance_per_node))
 
 
-class UDCSettingsConfig(ConfigMapping):
+class UDCSettingsConfig:
     """UDC Service Settings interface.
 
     Example scenario definition::
@@ -125,21 +125,26 @@ class UDCSettingsConfig(ConfigMapping):
     """
 
     def __init__(self, loaded_definition: dict):
-        services_dict = (loaded_definition.get("settings") or {}).get("services") or {}
-        super(UDCSettingsConfig, self).__init__(services_dict.get("udc", {}))
-        self.validate()
+        settings = loaded_definition.get("settings", {})
+        services = settings.get("services", {})
+        self.dict = services.get("udc", {})
         self.token = UDCTokenSettings(loaded_definition)
 
     @property
     def enable(self) -> bool:
-        return self.get("enable", False)
+        flag = self.dict.get("enable", False)
+        assert isinstance(flag, bool)
+        return flag
 
     @property
     def address(self) -> Union[str, None]:
-        return self.get("address")
+        address = self.dict.get("address")
+        assert isinstance(address, (str, type(None)))
+
+        return address
 
 
-class ServiceSettingsConfig(ConfigMapping):
+class ServiceSettingsConfig:
     """Service Configuration Setting interface.
 
     Does nothing special but delegate attribute-based access
@@ -149,15 +154,14 @@ class ServiceSettingsConfig(ConfigMapping):
     CONFIGURATION_ERROR = ServiceConfigurationError
 
     def __init__(self, loaded_definition: dict):
-        super(ServiceSettingsConfig, self).__init__(
-            (loaded_definition.get("settings") or {}).get("services") or {}
-        )
+        settings = loaded_definition.get("settings", {})
+        services = settings.get("services", {})
+        self.dict = services
         self.pfs = PFSSettingsConfig(loaded_definition)
         self.udc = UDCSettingsConfig(loaded_definition)
-        self.validate()
 
 
-class SettingsConfig(ConfigMapping):
+class SettingsConfig:
     """Settings Configuration Setting interface and validator.
 
     Handles default values as well as exception handling on missing settings.
@@ -183,7 +187,8 @@ class SettingsConfig(ConfigMapping):
     CONFIGURATION_ERROR = ScenarioConfigurationError
 
     def __init__(self, loaded_definition: dict) -> None:
-        super(SettingsConfig, self).__init__(loaded_definition.get("settings") or {})
+        settings = loaded_definition.get("settings", {})
+        self.dict = settings
         self.services = ServiceSettingsConfig(loaded_definition)
         self.validate()
         self._cli_chain: str
@@ -201,22 +206,23 @@ class SettingsConfig(ConfigMapping):
         return self._sp_scenario_root_dir
 
     def validate(self):
-        self.assert_option(
-            isinstance(self.gas_price, (int, str)),
+        assert isinstance(self.gas_price, (int, str)), (
             f"Gas Price must be an integer or one of "
-            f"{list(GAS_STRATEGIES.keys())}, not {self.gas_price}",
+            f"{list(GAS_STRATEGIES.keys())}, not {self.gas_price}"
         )
+
         if isinstance(self.gas_price, str):
-            self.assert_option(
-                self.gas_price in GAS_STRATEGIES,
+            assert self.gas_price in GAS_STRATEGIES, (
                 f"Gas Price must be an integer or one of "
-                f"{list(GAS_STRATEGIES.keys())}, not {self.gas_price}",
+                f"{list(GAS_STRATEGIES.keys())}, not {self.gas_price}"
             )
 
     @property
     def timeout(self) -> int:
         """Returns the scenario's set timeout in seconds."""
-        return self.get("timeout", TIMEOUT)
+        timeout = self.dict.get("timeout", TIMEOUT)
+        assert isinstance(timeout, int)
+        return timeout
 
     @property
     def chain(self) -> str:
@@ -236,7 +242,9 @@ class SettingsConfig(ConfigMapping):
 
         Defaults to :var:`DEFAULT_CLIENT`.
         """
-        return self.get("eth-client", DEFAULT_CLIENT)
+        client = self.dict.get("eth-client", DEFAULT_CLIENT)
+        assert isinstance(client, str)
+        return client
 
     @property
     def eth_client_rpc_address(self) -> NetlocWithPort:
@@ -258,7 +266,7 @@ class SettingsConfig(ConfigMapping):
 
         This defaults to 'fast'.
         """
-        gas_price = self.get("gas_price", "fast")
+        gas_price = self.dict.get("gas_price", "fast")
 
         if isinstance(gas_price, str):
             return gas_price.upper()

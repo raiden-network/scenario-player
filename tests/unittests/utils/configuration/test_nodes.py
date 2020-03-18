@@ -1,15 +1,9 @@
 import pytest
 
-from scenario_player.exceptions.config import NodeConfigurationError
-from scenario_player.utils.configuration.base import ConfigMapping
 from scenario_player.utils.configuration.nodes import NodesConfig
 
 
 class TestNodesConfig:
-    def test_is_subclass_of_config_mapping(self, minimal_definition_dict):
-        """The class is a subclass of :class:`ConfigMapping`."""
-        assert isinstance(NodesConfig(minimal_definition_dict), ConfigMapping)
-
     @pytest.mark.parametrize(
         "key", ["default_options", "node_options", "raiden_version", "commands"]
     )
@@ -40,13 +34,15 @@ class TestNodesConfig:
         assert minimal_definition_dict["nodes"][key] == actual
 
     @pytest.mark.parametrize("key", ["count"])
-    def test_missing_required_key_raises_node_configuration_error(self, key, minimal_definition_dict):
-        """OMissing required keys in the config dict raises a NodeConfigurationError."""
+    def test_missing_required_key_raises_node_configuration_error(
+        self, key, minimal_definition_dict
+    ):
+        """OMissing required keys in the config dict raises an Exception."""
         minimal_definition_dict["nodes"].pop(key)
-        with pytest.raises(NodeConfigurationError):
+        with pytest.raises(Exception):
             NodesConfig(minimal_definition_dict)
 
     def test_instantiating_with_an_empty_dict_raises_node_configuration_error(self):
         """Passing the NodeConfig class an empty dict is not allowed."""
-        with pytest.raises(NodeConfigurationError):
+        with pytest.raises(Exception):
             NodesConfig({})

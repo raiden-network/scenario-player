@@ -1,12 +1,11 @@
 import structlog
 
 from scenario_player.exceptions.config import NodeConfigurationError
-from scenario_player.utils.configuration.base import ConfigMapping
 
 log = structlog.get_logger(__name__)
 
 
-class NodesConfig(ConfigMapping):
+class NodesConfig:
     """Raiden nodes config settings interface.
 
     Thin wrapper around the 'nodes' setting section of a loaded scenario .yaml file.
@@ -33,7 +32,8 @@ class NodesConfig(ConfigMapping):
     CONFIGURATION_ERROR = NodeConfigurationError
 
     def __init__(self, loaded_definition: dict, environment=None):
-        super(NodesConfig, self).__init__(loaded_definition.get("nodes") or {})
+        self.dict = loaded_definition.get("nodes") or {}
+
         if environment is not None:
             default_options = self.dict.get("default_options", {})
             if "environment-type" not in default_options:
@@ -47,7 +47,7 @@ class NodesConfig(ConfigMapping):
 
     @property
     def count(self):
-        return self["count"]
+        return self.dict["count"]
 
     @property
     def default_options(self) -> dict:
@@ -57,12 +57,12 @@ class NodesConfig(ConfigMapping):
     @property
     def node_options(self) -> dict:
         """Node-specific overrides for the CLI options of nodes."""
-        return self.get("node_options", {})
+        return self.dict.get("node_options", {})
 
     @property
     def commands(self) -> dict:
         """Return the commands configured for the nodes."""
-        return self.get("commands", {})
+        return self.dict.get("commands", {})
 
     def validate(self):
         """Assert that the given configuration is valid.
@@ -74,8 +74,9 @@ class NodesConfig(ConfigMapping):
             * The "count" option is present in the config
             * If "node_options" is present, make sure its a dict of type `Dict[int, dict]`
         """
-        self.assert_option(self.dict, "Must specify 'nodes' setting section!")
-        self.assert_option("count" in self.dict, 'Must specify a "count" setting!')
+        assert self.dict, "Must specify 'nodes' setting section!"
+        assert "count" in self.dict, 'Must specify a "count" setting!'
+
         if self.node_options:
-            self.assert_option(all(isinstance(k, int) for k in self.node_options.keys()))
-            self.assert_option(all(isinstance(v, dict) for v in self.node_options.values()))
+            assert all(isinstance(k, int) for k in self.node_options.keys())
+            assert all(isinstance(v, dict) for v in self.node_options.values())
