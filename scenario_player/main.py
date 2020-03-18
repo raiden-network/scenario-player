@@ -5,7 +5,7 @@ import sys
 import tempfile
 import traceback
 from collections import namedtuple
-from contextlib import AbstractContextManager, contextmanager, nullcontext
+from contextlib import contextmanager
 from datetime import datetime
 from enum import Enum
 from io import StringIO
@@ -21,7 +21,6 @@ from eth_utils import to_checksum_address
 from gevent.event import Event
 from raiden_contracts.constants import NETWORKNAME_TO_ID
 from raiden_contracts.contract_manager import DeployedContract, DeployedContracts
-from urwid import ExitMainLoop
 
 import scenario_player.utils
 from raiden.accounts import Account
@@ -36,7 +35,6 @@ from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import collect_tasks
-from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import DummyStream, post_task_state_to_rc
 from scenario_player.utils.legacy import MutuallyExclusiveOption
 from scenario_player.utils.version import get_complete_spec
@@ -173,12 +171,6 @@ def main(ctx):
     default=TaskNotifyType.NONE.value,
     help="Notify of task status via chosen method.",
 )
-@click.option(
-    "--ui/--no-ui",
-    "enable_ui",
-    default=sys.stdout.isatty(),
-    help="En-/disable console UI. [default: auto-detect]",
-)
 @key_password_options
 @chain_option
 @data_path_option
@@ -192,7 +184,6 @@ def run(
     keystore_file,
     scenario_file,
     notify_tasks,
-    enable_ui,
     password_file,
 ):
     """Execute a scenario as defined in scenario definition file.
@@ -210,7 +201,6 @@ def run(
         keystore_file,
         scenario_file,
         notify_tasks,
-        enable_ui,
         password_file,
         log_file_name,
     )
@@ -224,7 +214,6 @@ def run_(
     keystore_file,
     scenario_file,
     notify_tasks,
-    enable_ui,
     password_file,
     log_file_name,
     smoketest_deployment_data=None,
@@ -262,8 +251,6 @@ def run_(
         notify_tasks_callable = post_task_state_to_rc
 
     log_buffer = None
-    if enable_ui:
-        log_buffer = attach_urwid_logbuffer()
 
     # Dynamically import valid Task classes from scenario_player.tasks package.
     collect_tasks(tasks)
@@ -277,7 +264,6 @@ def run_(
         assert isinstance(data_path, Path), type(data_path)
         orchestrate(
             success,
-            enable_ui,
             log_buffer,
             log_file_name,
             ScenarioRunnerArgs(
@@ -344,43 +330,11 @@ ScenarioRunnerArgs = namedtuple(
 )
 
 
-def orchestrate(success, enable_ui, log_buffer, log_file_name, scenario_runner_args):
+def orchestrate(success, log_buffer, log_file_name, scenario_runner_args):
     # We need to fix the log stream early in case the UI is active
     scenario_runner = ScenarioRunner(*scenario_runner_args)
-    if enable_ui:
-        ui: AbstractContextManager = ScenarioUIManager(
-            scenario_runner, log_buffer, log_file_name, success
-        )
-    else:
-        ui = nullcontext()
     log.info("Startup complete")
-    with ui:
-        scenario_runner.run_scenario()
-
-
-class ScenarioUIManager:
-    def __init__(self, runner, log_buffer, log_file_name, success):
-        self.ui = ScenarioUI(runner, log_buffer, log_file_name)
-        self.success = success
-
-    def __enter__(self):
-        self.ui_greenlet = self.ui.run()
-        return self.success
-
-    def __exit__(self, type, value, traceback):
-        if type is not None:
-            # This will cause some exceptions to be in the log twice, but
-            # that's better than not seeing the exception in the UI at all.
-            log.exception()
-        try:
-            self.ui.set_success(self.success.is_set())
-            log.warning("Press q to exit")
-            while not self.ui_greenlet.ready():
-                gevent.sleep(0.1)
-        finally:
-            if self.ui_greenlet is not None and not self.ui_greenlet.dead:
-                self.ui_greenlet.kill(ExitMainLoop)
-                self.ui_greenlet.join()
+    scenario_runner.run_scenario()
 
 
 @main.command(name="reclaim-eth")
@@ -487,7 +441,6 @@ def smoketest(ctx: Context, eth_client: EthClient):
                         keystore_file=keystore_file,
                         scenario_file=config_file,
                         notify_tasks=None,
-                        enable_ui=False,
                         password_file=password_file,
                         log_file_name=report_file,
                         smoketest_deployment_data=deployment_data,

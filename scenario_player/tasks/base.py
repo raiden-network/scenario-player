@@ -7,7 +7,6 @@ from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, Optional, Type
 
-import click
 import gevent
 import structlog
 
@@ -25,13 +24,6 @@ class TaskState(Enum):
     FINISHED = "✔"
     ERRORED = "✗"
 
-
-TASK_STATE_COLOR = {
-    TaskState.INITIALIZED: "",
-    TaskState.RUNNING: click.style("", fg="yellow", reset=False),
-    TaskState.FINISHED: click.style("", fg="green", reset=False),
-    TaskState.ERRORED: click.style("", fg="red", reset=False),
-}
 
 _TASK_ID = 0
 
@@ -86,28 +78,11 @@ class Task:
         return f"<{self.__class__.__name__}: {self._config}>"
 
     def __str__(self):
-        color = TASK_STATE_COLOR[self.state]
-        reset = click.termui._ansi_reset_all  # type: ignore
         return (
-            f'{" " * self.level * 2}- [{color}{self.state.value}{reset}] '
-            f'{color}{self.__class__.__name__.replace("Task", "")}{reset}'
+            f'{self.__class__.__name__.replace("Task", "")}'
+            f"{self.state.value} "
             f"{self._duration}{self._str_details}"
         )
-
-    @property
-    def urwid_label(self):
-        task_state_style = f"task_state_{self.state.name.lower()}"
-        duration = self._duration
-        label = [
-            ("default", "["),
-            (task_state_style, self.state.value),
-            ("default", "] "),
-            (task_state_style, self.__class__.__name__.replace("Task", "")),
-        ]
-        if duration:
-            label.append(("task_duration", self._duration))
-        label.extend(self._urwid_details)
-        return label
 
     def __hash__(self) -> int:
         return hash((self._config, self._parent))
@@ -115,10 +90,6 @@ class Task:
     @property
     def _str_details(self):
         return f": {self._config}"
-
-    @property
-    def _urwid_details(self):
-        return [": ", str(self._config)]
 
     @property
     def _duration(self):

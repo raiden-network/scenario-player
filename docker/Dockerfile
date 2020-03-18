@@ -64,7 +64,6 @@ ARG RAIDEN_VERSION
 # Install raiden from Github
 RUN pip uninstall raiden -y
 RUN pip install git+https://github.com/raiden-network/raiden.git@${RAIDEN_VERSION}
-RUN pip install --force-reinstall urwid!=2.1.0
 
 ################################################################################
 # DOWNLOAD SCENARIOS (scenarios-image)                                         #

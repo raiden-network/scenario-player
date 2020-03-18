@@ -1,6 +1,5 @@
 from typing import Any, List
 
-import click
 import gevent
 import structlog
 from gevent import Greenlet
@@ -36,17 +35,9 @@ class SerialTask(Task):
 
     @property
     def _str_details(self):
-        name = ""
-        if self._name:
-            name = f' - {click.style(self._name, fg="blue")}'
+        name = self._name or ""
         tasks = "\n".join(str(t) for t in self._tasks)
         return f"{name}\n{tasks}"
-
-    @property
-    def _urwid_details(self):
-        if not self._name:
-            return []
-        return [" - ", ("task_name", self._name)]
 
 
 class ParallelTask(SerialTask):
