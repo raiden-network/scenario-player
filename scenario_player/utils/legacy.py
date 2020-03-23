@@ -5,16 +5,18 @@ import time
 from collections import defaultdict
 from itertools import chain as iter_chain
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Optional
 
 import click
 import requests
 import structlog
 from eth_keyfile import decode_keyfile_json
+from eth_typing import URI
 from eth_utils import encode_hex, to_checksum_address
 from requests.adapters import HTTPAdapter
 from web3 import HTTPProvider, Web3
 from web3.exceptions import TransactionNotFound
+from web3.types import TxReceipt
 
 from raiden.accounts import Account
 from raiden.network.rpc.client import EthTransfer, JSONRPCClient, TransactionSent
@@ -87,7 +89,8 @@ def wait_for_txs(web3: Web3, transactions: Iterable[TransactionSent], timeout: i
         for txhash in txhashes.copy():
             # TODO: use `JsonRpcClient.poll_transaction` here?
             try:
-                tx = web3.eth.getTransactionReceipt(txhash)
+                # FIXME: remove `encode_hex` when TxHash type is fixed
+                tx: Optional[TxReceipt] = web3.eth.getTransactionReceipt(encode_hex(txhash))
             except TransactionNotFound:
                 tx = None
 
@@ -111,7 +114,7 @@ def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_a
     chain_name, chain_url = chain_str.split(":", maxsplit=1)
     log.info("in cmd", chain=chain_str, chain_name=chain_name, chain_url=chain_url)
 
-    web3s: Dict[str, Web3] = {chain_name: Web3(HTTPProvider(chain_url))}
+    web3s: Dict[str, Web3] = {chain_name: Web3(HTTPProvider(URI(chain_url)))}
     log.info("Starting eth reclaim", data_path=data_path)
 
     address_to_keyfile: Dict[ChecksumAddress, dict] = dict()

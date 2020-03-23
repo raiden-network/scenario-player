@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 
 import structlog
-from raiden_contracts.constants import NETWORKNAME_TO_ID
+from raiden_contracts.constants import CHAINNAME_TO_ID
 
 from raiden.utils.typing import ChainID
 from scenario_player.constants import DEFAULT_CLIENT, GAS_STRATEGIES, TIMEOUT
@@ -232,7 +232,7 @@ class SettingsConfig:
 
     @property
     def chain_id(self) -> ChainID:
-        return NETWORKNAME_TO_ID[self.chain]
+        return CHAINNAME_TO_ID[self.chain]
 
     @property
     def eth_client(self) -> str:

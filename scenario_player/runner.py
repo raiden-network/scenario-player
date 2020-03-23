@@ -12,10 +12,10 @@ from eth_utils import encode_hex, is_checksum_address, to_checksum_address, to_h
 from gevent import Greenlet
 from gevent.pool import Pool
 from raiden_contracts.constants import (
+    CHAINNAME_TO_ID,
     CONTRACT_CUSTOM_TOKEN,
     CONTRACT_TOKEN_NETWORK_REGISTRY,
     CONTRACT_USER_DEPOSIT,
-    NETWORKNAME_TO_ID,
 )
 from raiden_contracts.contract_manager import (
     ContractManager,
@@ -148,7 +148,7 @@ def get_token_network_registry_from_dependencies(
     chain_id = settings.chain_id
     assert chain_id, "Missing configuration, either set udc_address or the chain_id"
 
-    if chain_id != NETWORKNAME_TO_ID["smoketest"]:
+    if chain_id != CHAINNAME_TO_ID["smoketest"]:
         contracts = get_contracts_deployment_info(chain_id, version=RAIDEN_CONTRACT_VERSION)
     else:
         contracts = smoketest_deployment_data
@@ -299,7 +299,7 @@ class ScenarioRunner:
         chain_name, endpoint = chain.split(":", maxsplit=1)
         self.definition.settings._cli_chain = chain_name
         self.definition.settings._cli_rpc_address = endpoint
-        self.chain_id = NETWORKNAME_TO_ID[chain_name]
+        self.chain_id = CHAINNAME_TO_ID[chain_name]
 
         self.client = JSONRPCClient(
             Web3(HTTPProvider(self.definition.settings.eth_client_rpc_address)),
@@ -403,7 +403,7 @@ class ScenarioRunner:
 
         contract_manager = ContractManager(contracts_precompiled_path(RAIDEN_CONTRACT_VERSION))
         smoketesting = False
-        if self.chain_id != NETWORKNAME_TO_ID["smoketest"]:
+        if self.chain_id != CHAINNAME_TO_ID["smoketest"]:
             deploy = get_contracts_deployment_info(self.chain_id, RAIDEN_CONTRACT_VERSION)
         else:
             smoketesting = True

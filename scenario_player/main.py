@@ -17,9 +17,10 @@ import gevent
 import structlog
 import yaml
 from click import Context
+from eth_typing import HexStr
 from eth_utils import to_checksum_address
 from gevent.event import Event
-from raiden_contracts.constants import NETWORKNAME_TO_ID
+from raiden_contracts.constants import CHAINNAME_TO_ID
 from raiden_contracts.contract_manager import DeployedContract, DeployedContracts
 from urwid import ExitMainLoop
 
@@ -426,11 +427,11 @@ def version(short):
 
 def smoketest_deployed_contracts(contracts: Dict[str, Any]) -> DeployedContracts:
     return DeployedContracts(
-        chain_id=NETWORKNAME_TO_ID["smoketest"],
+        chain_id=CHAINNAME_TO_ID["smoketest"],
         contracts={
             name: DeployedContract(
                 address=to_checksum_address(address),
-                transaction_hash="",
+                transaction_hash=HexStr(""),
                 block_number=1,
                 gas_cost=1000,
                 constructor_arguments=[],

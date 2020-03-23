@@ -2,13 +2,7 @@ from typing import Any, Dict, List, cast
 
 import structlog
 from eth_abi.codec import ABICodec
-from eth_utils import (
-    decode_hex,
-    encode_hex,
-    event_abi_to_log_topic,
-    to_canonical_address,
-    to_checksum_address,
-)
+from eth_utils import encode_hex, event_abi_to_log_topic, to_canonical_address, to_checksum_address
 from raiden_contracts.constants import (
     CONTRACT_MONITORING_SERVICE,
     CONTRACT_TOKEN_NETWORK,
@@ -18,6 +12,7 @@ from raiden_contracts.contract_manager import ContractManager, get_contracts_dep
 from web3 import Web3
 from web3._utils.abi import filter_by_type
 from web3._utils.events import get_event_data
+from web3.types import FilterParams, LogReceipt
 
 from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.typing import ABI, Address, BlockNumber
@@ -29,7 +24,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
 log = structlog.get_logger(__name__)
 
 
-def decode_event(abi_codec: ABICodec, abi: ABI, log_: Dict) -> Dict:
+def decode_event(abi_codec: ABICodec, abi: ABI, log_: LogReceipt) -> Dict:
     """ Helper function to unpack event data using a provided ABI
 
     Args:
@@ -40,13 +35,11 @@ def decode_event(abi_codec: ABICodec, abi: ABI, log_: Dict) -> Dict:
     Returns:
         The decoded event
     """
-    if isinstance(log_["topics"][0], str):
-        log_["topics"][0] = decode_hex(log_["topics"][0])
-    elif isinstance(log_["topics"][0], int):
-        log_["topics"][0] = decode_hex(hex(log_["topics"][0]))
     event_id = log_["topics"][0]
     events = filter_by_type("event", abi)
-    topic_to_event_abi = {event_abi_to_log_topic(event_abi): event_abi for event_abi in events}
+    topic_to_event_abi = {
+        event_abi_to_log_topic(event_abi): event_abi for event_abi in events  # type: ignore
+    }
     event_abi = topic_to_event_abi[event_id]
     event_data = get_event_data(abi_codec=abi_codec, event_abi=event_abi, log_entry=log_)
     return cast(Dict[Any, Any], event_data)
@@ -75,12 +68,14 @@ def query_blockchain_events(
     Returns:
         All matching events
     """
-    filter_params = {
-        "fromBlock": from_block,
-        "toBlock": to_block,
-        "address": to_checksum_address(contract_address),
-        "topics": topics,
-    }
+    filter_params = FilterParams(
+        {
+            "fromBlock": from_block,
+            "toBlock": to_block,
+            "address": to_checksum_address(contract_address),
+            "topics": topics,
+        }
+    )
 
     events = web3.eth.getLogs(filter_params)
 
