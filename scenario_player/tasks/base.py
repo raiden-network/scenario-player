@@ -59,7 +59,7 @@ class Task:
         runner.task_count += 1
 
     def __call__(self, *args, **kwargs):
-        log.info("Starting task", task=self)
+        log.info("Starting task", task=self, id=self.id)
         self.state = TaskState.RUNNING
         self._runner.running_task_count += 1
         self._start_time = time.monotonic()
@@ -75,7 +75,7 @@ class Task:
             self._runner.running_task_count -= 1
 
         runtime = self._stop_time - self._start_time
-        log.info("Task successful", task=self, runtime=runtime)
+        log.info("Task successful", id=self.id, task=self, runtime=runtime)
         self.state = TaskState.FINISHED
         return return_val
 
