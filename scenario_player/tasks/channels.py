@@ -101,13 +101,14 @@ class TransferTask(ChannelActionTask):
         super().__init__(runner, config, parent)
         # Unique transfer identifier
         self.__class__._transfer_count += 1
-        if str(self._config.get("identifier", "")).lower() == "generate":
+        id_scheme = str(self._config.get("identifier", "generate")).lower()
+        if id_scheme == "generate":
             transfer_count = self.__class__._transfer_count
             scenario_hash = int.from_bytes(
                 hashlib.sha256(self._runner.definition.name.encode()).digest()[:2], "little"
             )
             self._config["identifier"] = int(
-                f"1{scenario_hash}1{self._runner.run_number:04d}{transfer_count:06d}"
+                f"1{scenario_hash}1{self._runner.run_number:04d}1{transfer_count:06d}"
             )
 
     @property
