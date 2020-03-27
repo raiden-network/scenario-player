@@ -4,13 +4,14 @@ import os
 import sys
 import tempfile
 import traceback
-from collections import namedtuple
 from contextlib import AbstractContextManager, contextmanager, nullcontext
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import StringIO
 from pathlib import Path
 from tempfile import mkdtemp
+from typing import IO
 
 import click
 import gevent
@@ -46,6 +47,7 @@ if TYPE_CHECKING:
     from raiden.tests.utils.smoketest import RaidenTestSetup
 
 log = structlog.get_logger(__name__)
+DEFAULT_ENV_FILE = Path(__file__).parent.parent / "environment" / "development.json"
 
 
 class TaskNotifyType(Enum):
@@ -180,6 +182,13 @@ def main(ctx):
     default=sys.stdout.isatty(),
     help="En-/disable console UI. [default: auto-detect]",
 )
+@click.option(
+    "--environment",
+    default=DEFAULT_ENV_FILE,
+    help="A JSON file containing the settings for Eth-RPC, PFS, transport servers, env-type...",
+    show_default=True,
+    type=click.File(),
+)
 @key_password_options
 @chain_option
 @data_path_option
@@ -195,26 +204,37 @@ def run(
     notify_tasks,
     enable_ui,
     password_file,
+    environment: IO,
 ):
     """Execute a scenario as defined in scenario definition file.
     click entrypoint, this dispatches to `run_`.
     """
+    env = _load_environment(environment)
     data_path = Path(data_path)
     scenario_file = Path(scenario_file.name).absolute()
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
     run_(
-        chain,
-        data_path,
-        auth,
-        password,
-        keystore_file,
-        scenario_file,
-        notify_tasks,
-        enable_ui,
-        password_file,
-        log_file_name,
+        chain=chain,
+        data_path=data_path,
+        auth=auth,
+        password=password,
+        keystore_file=keystore_file,
+        scenario_file=scenario_file,
+        notify_tasks=notify_tasks,
+        enable_ui=enable_ui,
+        password_file=password_file,
+        log_file_name=log_file_name,
+        environment=env,
     )
+
+
+def _load_environment(environment_file: IO) -> Dict[str, Any]:
+    environment = json.load(environment_file)
+    assert isinstance(environment, dict)
+    for i, transport_server in enumerate(environment["transport_servers"]):
+        environment["transport{}".format(i + 1)] = transport_server
+    return environment
 
 
 def run_(
@@ -228,8 +248,9 @@ def run_(
     enable_ui,
     password_file,
     log_file_name,
+    environment: Dict[str, Any],
     smoketest_deployment_data=None,
-):
+) -> None:
     """Execute a scenario as defined in scenario definition file.
     (Shared code for `run` and `smoketest` command).
 
@@ -282,13 +303,14 @@ def run_(
             log_buffer,
             log_file_name,
             ScenarioRunnerArgs(
-                account,
-                auth,
-                chain,
-                data_path,
-                scenario_file,
-                notify_tasks_callable,
-                smoketest_deployment_data,
+                account=account,
+                auth=auth,
+                chain=chain,
+                data_path=data_path,
+                scenario_file=scenario_file,
+                notify_tasks_callable=notify_tasks_callable,
+                smoketest_deployment_data=smoketest_deployment_data,
+                environment=environment,
             ),
         )
     except ScenarioAssertionError as ex:
@@ -331,23 +353,32 @@ def run_(
         exit(exit_code)
 
 
-ScenarioRunnerArgs = namedtuple(
-    "ScenarioRunnerArgs",
-    [
-        "account",
-        "auth",
-        "chain",
-        "data_path",
-        "scenario_file",
-        "notify_tasks_callable",
-        "smoketest_deployment_data",
-    ],
-)
+@dataclass
+class ScenarioRunnerArgs:
+    # TODO: improve typing
+    account: Any
+    auth: Any
+    chain: Any
+    data_path: Any
+    scenario_file: Any
+    notify_tasks_callable: Any
+    smoketest_deployment_data: Any
+    environment: Dict[str, Any]
 
 
-def orchestrate(success, enable_ui, log_buffer, log_file_name, scenario_runner_args):
+def orchestrate(
+    success, enable_ui, log_buffer, log_file_name, scenario_runner_args: ScenarioRunnerArgs
+) -> None:
     # We need to fix the log stream early in case the UI is active
-    scenario_runner = ScenarioRunner(*scenario_runner_args)
+    scenario_runner = ScenarioRunner(
+        account=scenario_runner_args.account,
+        auth=scenario_runner_args.auth,
+        chain=scenario_runner_args.chain,
+        data_path=scenario_runner_args.data_path,
+        scenario_file=scenario_runner_args.scenario_file,
+        environment=scenario_runner_args.environment,
+        smoketest_deployment_data=scenario_runner_args.smoketest_deployment_data,
+    )
     if enable_ui:
         ui: AbstractContextManager = ScenarioUIManager(
             scenario_runner, log_buffer, log_file_name, success
@@ -479,6 +510,7 @@ def smoketest(ctx: Context, eth_client: EthClient):
                 password_file = setup.args["password_file"].name
                 print_step("Running scenario player")
                 append_report("Scenario Player Log", captured_stdout.getvalue())
+                env = _load_environment(open(DEFAULT_ENV_FILE))
                 try:
                     run_(
                         chain=chain,
@@ -491,6 +523,7 @@ def smoketest(ctx: Context, eth_client: EthClient):
                         enable_ui=False,
                         password_file=password_file,
                         log_file_name=report_file,
+                        environment=env,
                         smoketest_deployment_data=deployment_data,
                     )
                 except SystemExit as ex:

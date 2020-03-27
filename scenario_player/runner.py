@@ -2,7 +2,7 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Set, Tuple, cast
 
 import gevent
 import requests
@@ -270,6 +270,7 @@ class ScenarioRunner:
         chain: str,
         data_path: Path,
         scenario_file: Path,
+        environment: Dict[str, Any],
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
@@ -279,6 +280,7 @@ class ScenarioRunner:
         self.smoketest_deployment_data = smoketest_deployment_data
         self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
         self.data_path = data_path
+        self.environment = environment
 
         self.task_count = 0
         self.running_task_count = 0
@@ -287,7 +289,7 @@ class ScenarioRunner:
         # Storage for arbitrary data tasks might need to persist
         self.task_storage: Dict[str, dict] = defaultdict(dict)
 
-        self.definition = ScenarioDefinition(scenario_file, data_path)
+        self.definition = ScenarioDefinition(scenario_file, data_path, self.environment)
 
         log.debug("Local seed", seed=self.local_seed)
 
