@@ -38,9 +38,9 @@ def test_environment_default_type_on_token(tmpdir, token, default_options, envir
         )
         json.dump(data, f)
     definition = ScenarioDefinition(
-        yaml_path=pathlib.Path(testfile), data_path=pathlib.Path(dir), environment={}
+        yaml_path=pathlib.Path(testfile),
+        data_path=pathlib.Path(dir),
+        environment={"environment_type": environment_type or "development"},
     )
     if environment_type is not None:
         assert definition.nodes.default_options["environment-type"] == environment_type
-    else:
-        assert "environment-type" not in definition.nodes.default_options

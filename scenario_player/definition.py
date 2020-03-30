@@ -38,6 +38,13 @@ class ScenarioDefinition:
         self.settings.sp_root_dir = data_path
         self.scenario = ScenarioConfig(self._loaded)
 
+        # If the environment sets a list of matrix servers, the nodes must not
+        # choose other servers, so let's set the first server from the list as
+        # default.
+        if "matrix_server_list" in environment:
+            self.nodes.dict["default_options"]["matrix-server"] = environment["matrix_servers"][0]
+        self.nodes.dict["default_options"]["environment-type"] = environment["environment_type"]
+
     @property
     def name(self) -> str:
         """Return the name of the scenario file, sans extension."""

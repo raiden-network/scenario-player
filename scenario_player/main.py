@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import StringIO
+from itertools import cycle, islice
 from pathlib import Path
 from tempfile import mkdtemp
 from typing import IO
@@ -27,10 +28,10 @@ from urwid import ExitMainLoop
 
 import scenario_player.utils
 from raiden.accounts import Account
-from raiden.constants import EthClient
+from raiden.constants import Environment, EthClient
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
-from raiden.settings import RAIDEN_CONTRACT_VERSION
-from raiden.utils.cli import EnumChoiceType, option
+from raiden.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
+from raiden.utils.cli import EnumChoiceType, get_matrix_servers, option
 from raiden.utils.typing import TYPE_CHECKING, Any, AnyStr, Dict, Optional
 from scenario_player import __version__, tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
@@ -226,10 +227,23 @@ def run(
 
 
 def _load_environment(environment_file: IO) -> Dict[str, Any]:
+    """ Load the environment JSON file and process matrix server list
+
+    Nodes can be assigned to fixed matrix servers. To allow this, we must
+    download the list of matrix severs.
+    """
     environment = json.load(environment_file)
     assert isinstance(environment, dict)
-    for i, transport_server in enumerate(environment["transport_servers"]):
-        environment["transport{}".format(i + 1)] = transport_server
+
+    matrix_server_list = environment.get(
+        "matrix_server_list",
+        DEFAULT_MATRIX_KNOWN_SERVERS[Environment(environment["environment_type"])],
+    )
+    matrix_servers = get_matrix_servers(matrix_server_list)
+    if len(matrix_servers) < 4:
+        matrix_servers = list(islice(cycle(matrix_servers), 4))
+    environment["matrix_servers"] = matrix_servers
+
     return environment
 
 

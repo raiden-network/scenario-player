@@ -58,10 +58,11 @@ MANAGED_CONFIG_OPTIONS = {
 MANAGED_CONFIG_OPTIONS_OVERRIDABLE = {
     "api-address",
     "endpoint-registry-contract-address",
-    "tokennetwork-registry-contract-address",
+    "matrix-server",
+    "pathfinding-service-address",
     "secret-registry-contract-address",
     "service-registry-contract-address",
-    "pathfinding-service-address",
+    "tokennetwork-registry-contract-address",
 }
 
 
@@ -261,7 +262,7 @@ class NodeRunner:
             cmd.extend(["--pathfinding-service-address", pfs_address])
 
         for option_name in MANAGED_CONFIG_OPTIONS_OVERRIDABLE:
-            if option_name in ("api-address", "pathfinding-service-address"):
+            if option_name in ("api-address", "pathfinding-service-address", "matrix-server"):
                 # already handled above
                 continue
             if option_name in self._options:

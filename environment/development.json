@@ -1,6 +1,5 @@
 {
 	"environment_type": "development",
-	"transport_servers": ["https://transport01.raiden.network", "https://transport02.raiden.network", "https://transport03.raiden.network", "https://transport04.raiden.network"],
 	"pfs_with_fee": "https://pfs-goerli-with-fee.services-dev.raiden.network",
 	"pfs_without_fee": "https://pfs-goerli.services-dev.raiden.network",
 	"eth_rpc_endpoint": "http://parity.goerli.ethnodes.brainbot.com:8545"
