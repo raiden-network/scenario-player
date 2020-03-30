@@ -33,7 +33,6 @@ from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.cli import EnumChoiceType, option
 from raiden.utils.typing import TYPE_CHECKING, Any, AnyStr, Dict, Optional
 from scenario_player import __version__, tasks
-from scenario_player.constants import DEFAULT_ETH_RPC_ADDRESS, DEFAULT_NETWORK
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.runner import ScenarioRunner
@@ -190,12 +189,10 @@ def main(ctx):
     type=click.File(),
 )
 @key_password_options
-@chain_option
 @data_path_option
 @click.pass_context
 def run(
     ctx,
-    chain,
     data_path,
     auth,
     password,
@@ -215,7 +212,6 @@ def run(
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
     run_(
-        chain=chain,
         data_path=data_path,
         auth=auth,
         password=password,
@@ -238,7 +234,6 @@ def _load_environment(environment_file: IO) -> Dict[str, Any]:
 
 
 def run_(
-    chain,
     data_path,
     auth,
     password,
@@ -305,7 +300,6 @@ def run_(
             ScenarioRunnerArgs(
                 account=account,
                 auth=auth,
-                chain=chain,
                 data_path=data_path,
                 scenario_file=scenario_file,
                 notify_tasks_callable=notify_tasks_callable,
@@ -358,7 +352,6 @@ class ScenarioRunnerArgs:
     # TODO: improve typing
     account: Any
     auth: Any
-    chain: Any
     data_path: Any
     scenario_file: Any
     notify_tasks_callable: Any
@@ -373,7 +366,6 @@ def orchestrate(
     scenario_runner = ScenarioRunner(
         account=scenario_runner_args.account,
         auth=scenario_runner_args.auth,
-        chain=scenario_runner_args.chain,
         data_path=scenario_runner_args.data_path,
         scenario_file=scenario_runner_args.scenario_file,
         environment=scenario_runner_args.environment,
@@ -430,8 +422,6 @@ def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chain, dat
     log.info("start cmd", chain=chain)
 
     data_path = Path(data_path)
-    if not chain:
-        chain = f"{DEFAULT_NETWORK}:{DEFAULT_ETH_RPC_ADDRESS}"
     log.info("using chain", chain=chain)
 
     password = get_password(password, password_file)
@@ -505,15 +495,17 @@ def smoketest(ctx: Context, eth_client: EthClient):
                 deployment_data = smoketest_deployed_contracts(setup.contract_addresses)
                 config_file = create_smoketest_config_file(setup, datadir)
 
-                chain = f"smoketest:{setup.args['eth_rpc_endpoint']}"
                 keystore_file = os.path.join(setup.args["keystore_path"], "keyfile")
                 password_file = setup.args["password_file"].name
                 print_step("Running scenario player")
                 append_report("Scenario Player Log", captured_stdout.getvalue())
-                env = _load_environment(open(DEFAULT_ENV_FILE))
+                env = {
+                    "eth_rpc_endpoint": setup.args["eth_rpc_endpoint"],
+                    "environment_type": "development",
+                    "transport_servers": [],
+                }
                 try:
                     run_(
-                        chain=chain,
                         data_path=Path(datadir),
                         auth=None,
                         password=None,

@@ -39,6 +39,7 @@ from raiden.utils.nursery import Janitor
 from raiden.utils.typing import (
     Address,
     BlockNumber,
+    ChainID,
     TokenAddress,
     TokenAmount,
     TokenNetworkAddress,
@@ -267,7 +268,6 @@ class ScenarioRunner:
         self,
         account: Account,
         auth: str,
-        chain: str,
         data_path: Path,
         scenario_file: Path,
         environment: Dict[str, Any],
@@ -298,13 +298,13 @@ class ScenarioRunner:
         log.info("Run number", run_number=self.run_number)
 
         self.protocol = "http"
-        chain_name, endpoint = chain.split(":", maxsplit=1)
-        self.definition.settings._cli_chain = chain_name
-        self.definition.settings._cli_rpc_address = endpoint
-        self.chain_id = CHAINNAME_TO_ID[chain_name]
+        web3 = Web3(HTTPProvider(environment["eth_rpc_endpoint"]))
+        self.chain_id = ChainID(web3.eth.chainId)
+        self.definition.settings.eth_rpc_endpoint = environment["eth_rpc_endpoint"]
+        self.definition.settings.chain_id = self.chain_id
 
         self.client = JSONRPCClient(
-            Web3(HTTPProvider(self.definition.settings.eth_client_rpc_address)),
+            web3,
             privkey=account.privkey,
             gas_price_strategy=self.definition.settings.gas_price_strategy,
         )
@@ -315,7 +315,7 @@ class ScenarioRunner:
             raise ScenarioError(
                 f"Insufficient balance ({balance / 10 ** 18} Eth) "
                 f"in account {to_checksum_address(account.address)} "
-                f'on chain "{self.definition.settings.chain}"'
+                f'on chain "{self.definition.settings.chain_id}"'
                 f" - it needs additional {(OWN_ACCOUNT_BALANCE_MIN - balance) / 10 ** 18} Eth ("
                 f"that is {OWN_ACCOUNT_BALANCE_MIN - balance} Wei)."
             )

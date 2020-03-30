@@ -15,7 +15,6 @@ SCENARIO = f"{Path(__file__).parent.joinpath('scenario', 'join-network-scenario-
 CLI_ARGS = (
     f"--keystore-file {KEYSTORE_PATH.joinpath('UTC--1')} "
     f"--no-ui "
-    "--chain smoketest:http://localhost:12345 "
     f"{{pw_option}} "
     f"{SCENARIO}"
 )

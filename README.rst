@@ -87,7 +87,7 @@ ways, depending on how you installed the tool.
 
 Invoke the command directly on the cli::
 
-    $ scenario-player run --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
+    $ scenario-player run \
         --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW} \
         /path/to/scenario.yaml
 
@@ -116,5 +116,5 @@ can be found `here <https://github.com/raiden-network/raiden/tree/develop/raiden
 
 Tools
 =================
-With the `Performance Analysis Tool <https://github.com/raiden-network/performance-analysis-tool>`_ 
+With the `Performance Analysis Tool <https://github.com/raiden-network/performance-analysis-tool>`_
 the logs of the scenario player can be analyzed and visualized.

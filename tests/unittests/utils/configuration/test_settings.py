@@ -63,22 +63,6 @@ class TestSettingsConfig:
         config = SettingsConfig(minimal_definition_dict)
         assert config.gas_price_strategy == expected_func
 
-    def test_chain_property_prioritizes_cli_attr_over_scenario_definition(
-        self, minimal_definition_dict
-    ):
-        minimal_definition_dict["chain"] = "kovan"
-        instance = SettingsConfig(minimal_definition_dict)
-        instance._cli_chain = "my_chain"
-        assert instance.chain == "my_chain"
-
-    def test_eth_rpc_address_property_prioritizes_cli_attr_over_scenario_definition(
-        self, minimal_definition_dict
-    ):
-        instance = SettingsConfig(minimal_definition_dict)
-        instance._cli_rpc_address = "my_address"
-        minimal_definition_dict["settings"]["eth-client-rpc-address"] = "http://ethnodes.io"
-        assert instance.eth_client_rpc_address == "my_address"
-
 
 class TestServiceSettingsConfig:
     def test_pfs_attribute_returns_pfs_settings_config(self, minimal_definition_dict):
