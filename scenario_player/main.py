@@ -144,15 +144,17 @@ def data_path_option(func):
     return wrapper
 
 
-def chain_option(func):
-    """Decorator for adding '--chain' to subcommands."""
+def eth_rpc_option(func):
+    """Decorator for adding '--eth-rpc-endpoint' to subcommands."""
 
     @click.option(
-        "--chain",
-        "chain",
+        "--eth-rpc-endpoint",
         multiple=False,
         required=True,
-        help="Chain name to eth rpc url mapping.",
+        help=(
+            '"host:port" address of ethereum JSON-RPC server. '
+            "Accepts a protocol prefix (http:// or https://) with optional port."
+        ),
     )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -429,22 +431,23 @@ class ScenarioUIManager:
     help="Minimum account non-usage age before reclaiming eth. In hours.",
 )
 @key_password_options
-@chain_option
+@eth_rpc_option
 @data_path_option
 @click.pass_context
-def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chain, data_path):
-    log.info("start cmd", chain=chain)
+def reclaim_eth(ctx, min_age, password, password_file, keystore_file, eth_rpc_endpoint, data_path):
+    log.info("start cmd")
 
     data_path = Path(data_path)
-    log.info("using chain", chain=chain)
-
     password = get_password(password, password_file)
     account = get_account(keystore_file, password)
 
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
-    log.info("start reclaim", chain=chain)
+    log.info("start reclaim", eth_rpc_endpoint=eth_rpc_endpoint)
     scenario_player.utils.reclaim_eth(
-        min_age_hours=min_age, chain_str=chain, data_path=data_path, account=account
+        min_age_hours=min_age,
+        eth_rpc_endpoint=eth_rpc_endpoint,
+        data_path=data_path,
+        account=account,
     )
 
 
