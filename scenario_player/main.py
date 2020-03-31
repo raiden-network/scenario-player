@@ -4,13 +4,15 @@ import os
 import sys
 import tempfile
 import traceback
-from collections import namedtuple
 from contextlib import AbstractContextManager, contextmanager, nullcontext
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import StringIO
+from itertools import cycle, islice
 from pathlib import Path
 from tempfile import mkdtemp
+from typing import IO
 
 import click
 import gevent
@@ -26,13 +28,12 @@ from urwid import ExitMainLoop
 
 import scenario_player.utils
 from raiden.accounts import Account
-from raiden.constants import EthClient
+from raiden.constants import Environment, EthClient
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
-from raiden.settings import RAIDEN_CONTRACT_VERSION
-from raiden.utils.cli import EnumChoiceType, option
+from raiden.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
+from raiden.utils.cli import EnumChoiceType, get_matrix_servers, option
 from raiden.utils.typing import TYPE_CHECKING, Any, AnyStr, Dict, Optional
 from scenario_player import __version__, tasks
-from scenario_player.constants import DEFAULT_ETH_RPC_ADDRESS, DEFAULT_NETWORK
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.runner import ScenarioRunner
@@ -46,6 +47,7 @@ if TYPE_CHECKING:
     from raiden.tests.utils.smoketest import RaidenTestSetup
 
 log = structlog.get_logger(__name__)
+DEFAULT_ENV_FILE = Path(__file__).parent.parent / "environment" / "development.json"
 
 
 class TaskNotifyType(Enum):
@@ -180,13 +182,18 @@ def main(ctx):
     default=sys.stdout.isatty(),
     help="En-/disable console UI. [default: auto-detect]",
 )
+@click.option(
+    "--environment",
+    default=DEFAULT_ENV_FILE,
+    help="A JSON file containing the settings for Eth-RPC, PFS, transport servers, env-type...",
+    show_default=True,
+    type=click.File(),
+)
 @key_password_options
-@chain_option
 @data_path_option
 @click.pass_context
 def run(
     ctx,
-    chain,
     data_path,
     auth,
     password,
@@ -195,30 +202,52 @@ def run(
     notify_tasks,
     enable_ui,
     password_file,
+    environment: IO,
 ):
     """Execute a scenario as defined in scenario definition file.
     click entrypoint, this dispatches to `run_`.
     """
+    env = _load_environment(environment)
     data_path = Path(data_path)
     scenario_file = Path(scenario_file.name).absolute()
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
     configure_logging_for_subcommand(log_file_name)
     run_(
-        chain,
-        data_path,
-        auth,
-        password,
-        keystore_file,
-        scenario_file,
-        notify_tasks,
-        enable_ui,
-        password_file,
-        log_file_name,
+        data_path=data_path,
+        auth=auth,
+        password=password,
+        keystore_file=keystore_file,
+        scenario_file=scenario_file,
+        notify_tasks=notify_tasks,
+        enable_ui=enable_ui,
+        password_file=password_file,
+        log_file_name=log_file_name,
+        environment=env,
     )
 
 
+def _load_environment(environment_file: IO) -> Dict[str, Any]:
+    """ Load the environment JSON file and process matrix server list
+
+    Nodes can be assigned to fixed matrix servers. To allow this, we must
+    download the list of matrix severs.
+    """
+    environment = json.load(environment_file)
+    assert isinstance(environment, dict)
+
+    matrix_server_list = environment.get(
+        "matrix_server_list",
+        DEFAULT_MATRIX_KNOWN_SERVERS[Environment(environment["environment_type"])],
+    )
+    matrix_servers = get_matrix_servers(matrix_server_list)
+    if len(matrix_servers) < 4:
+        matrix_servers = list(islice(cycle(matrix_servers), 4))
+    environment["matrix_servers"] = matrix_servers
+
+    return environment
+
+
 def run_(
-    chain,
     data_path,
     auth,
     password,
@@ -228,8 +257,9 @@ def run_(
     enable_ui,
     password_file,
     log_file_name,
+    environment: Dict[str, Any],
     smoketest_deployment_data=None,
-):
+) -> None:
     """Execute a scenario as defined in scenario definition file.
     (Shared code for `run` and `smoketest` command).
 
@@ -282,13 +312,13 @@ def run_(
             log_buffer,
             log_file_name,
             ScenarioRunnerArgs(
-                account,
-                auth,
-                chain,
-                data_path,
-                scenario_file,
-                notify_tasks_callable,
-                smoketest_deployment_data,
+                account=account,
+                auth=auth,
+                data_path=data_path,
+                scenario_file=scenario_file,
+                notify_tasks_callable=notify_tasks_callable,
+                smoketest_deployment_data=smoketest_deployment_data,
+                environment=environment,
             ),
         )
     except ScenarioAssertionError as ex:
@@ -331,23 +361,30 @@ def run_(
         exit(exit_code)
 
 
-ScenarioRunnerArgs = namedtuple(
-    "ScenarioRunnerArgs",
-    [
-        "account",
-        "auth",
-        "chain",
-        "data_path",
-        "scenario_file",
-        "notify_tasks_callable",
-        "smoketest_deployment_data",
-    ],
-)
+@dataclass
+class ScenarioRunnerArgs:
+    # TODO: improve typing
+    account: Any
+    auth: Any
+    data_path: Any
+    scenario_file: Any
+    notify_tasks_callable: Any
+    smoketest_deployment_data: Any
+    environment: Dict[str, Any]
 
 
-def orchestrate(success, enable_ui, log_buffer, log_file_name, scenario_runner_args):
+def orchestrate(
+    success, enable_ui, log_buffer, log_file_name, scenario_runner_args: ScenarioRunnerArgs
+) -> None:
     # We need to fix the log stream early in case the UI is active
-    scenario_runner = ScenarioRunner(*scenario_runner_args)
+    scenario_runner = ScenarioRunner(
+        account=scenario_runner_args.account,
+        auth=scenario_runner_args.auth,
+        data_path=scenario_runner_args.data_path,
+        scenario_file=scenario_runner_args.scenario_file,
+        environment=scenario_runner_args.environment,
+        smoketest_deployment_data=scenario_runner_args.smoketest_deployment_data,
+    )
     if enable_ui:
         ui: AbstractContextManager = ScenarioUIManager(
             scenario_runner, log_buffer, log_file_name, success
@@ -399,8 +436,6 @@ def reclaim_eth(ctx, min_age, password, password_file, keystore_file, chain, dat
     log.info("start cmd", chain=chain)
 
     data_path = Path(data_path)
-    if not chain:
-        chain = f"{DEFAULT_NETWORK}:{DEFAULT_ETH_RPC_ADDRESS}"
     log.info("using chain", chain=chain)
 
     password = get_password(password, password_file)
@@ -474,14 +509,17 @@ def smoketest(ctx: Context, eth_client: EthClient):
                 deployment_data = smoketest_deployed_contracts(setup.contract_addresses)
                 config_file = create_smoketest_config_file(setup, datadir)
 
-                chain = f"smoketest:{setup.args['eth_rpc_endpoint']}"
                 keystore_file = os.path.join(setup.args["keystore_path"], "keyfile")
                 password_file = setup.args["password_file"].name
                 print_step("Running scenario player")
                 append_report("Scenario Player Log", captured_stdout.getvalue())
+                env = {
+                    "eth_rpc_endpoint": setup.args["eth_rpc_endpoint"],
+                    "environment_type": "development",
+                    "transport_servers": [],
+                }
                 try:
                     run_(
-                        chain=chain,
                         data_path=Path(datadir),
                         auth=None,
                         password=None,
@@ -491,6 +529,7 @@ def smoketest(ctx: Context, eth_client: EthClient):
                         enable_ui=False,
                         password_file=password_file,
                         log_file_name=report_file,
+                        environment=env,
                         smoketest_deployment_data=deployment_data,
                     )
                 except SystemExit as ex:

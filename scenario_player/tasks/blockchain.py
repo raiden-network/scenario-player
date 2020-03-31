@@ -135,7 +135,6 @@ class AssertBlockchainEventsTask(Task):
         self.web3 = self._runner.client.web3
 
     def _run(self, *args, **kwargs):  # pylint: disable=unused-argument
-        assert self._runner.definition.settings.chain
         # get the correct contract address
         # this has to be done in `_run`, otherwise `_runner` is not initialized yet
         contract_data = get_contracts_deployment_info(
@@ -203,7 +202,6 @@ class AssertMSClaimTask(Task):
         self.contract_name = CONTRACT_MONITORING_SERVICE
 
         # get the MS contract address
-        assert self._runner.definition.settings.chain
         contract_data = get_contracts_deployment_info(
             chain_id=self._runner.definition.settings.chain_id, version=RAIDEN_CONTRACT_VERSION
         )

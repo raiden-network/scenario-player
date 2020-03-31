@@ -28,6 +28,7 @@ requires = [
     'simplejson',
     'urwid!=2.1.0',
     'waitress',
+    'jinja2',
 ]
 
 # Classifiers, Licensing, keywords for pypi.

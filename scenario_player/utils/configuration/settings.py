@@ -2,16 +2,15 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 
 import structlog
-from raiden_contracts.constants import CHAINNAME_TO_ID
+from eth_typing import URI
 
 from raiden.utils.typing import ChainID
-from scenario_player.constants import DEFAULT_CLIENT, GAS_STRATEGIES, TIMEOUT
+from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
 from scenario_player.exceptions.config import (
     ScenarioConfigurationError,
     ServiceConfigurationError,
     UDCTokenConfigError,
 )
-from scenario_player.utils.types import NetlocWithPort
 
 log = structlog.get_logger(__name__)
 
@@ -191,8 +190,8 @@ class SettingsConfig:
         self.dict = settings
         self.services = ServiceSettingsConfig(loaded_definition)
         self.validate()
-        self._cli_chain: str
-        self._cli_rpc_address: str
+        self.eth_rpc_endpoint: URI
+        self.chain_id: ChainID
         self.sp_root_dir: Optional[Path] = None
         self._sp_scenario_root_dir: Optional[Path] = None
 
@@ -223,42 +222,6 @@ class SettingsConfig:
         timeout = self.dict.get("timeout", TIMEOUT)
         assert isinstance(timeout, int)
         return timeout
-
-    @property
-    def chain(self) -> str:
-        """Return the name of the chain to be used for this scenario.
-        """
-        return self._cli_chain
-
-    @property
-    def chain_id(self) -> ChainID:
-        return CHAINNAME_TO_ID[self.chain]
-
-    @property
-    def eth_client(self) -> str:
-        """Return the Ethereum Client to use.
-
-        This should be the name of the executable, not a path.
-
-        Defaults to :var:`DEFAULT_CLIENT`.
-        """
-        client = self.dict.get("eth-client", DEFAULT_CLIENT)
-        assert isinstance(client, str)
-        return client
-
-    @property
-    def eth_client_rpc_address(self) -> NetlocWithPort:
-        """Return the Ethereum client's RPC address.
-
-        The value is loaded in the following order:
-
-            - `--chain` value passed via CLI
-            - `eth-client-rpc-address` value in the scenario definition file
-            - :var:`BB_ETH_RPC_ADDRESS`, populated with values of
-             :attr:`.chain` and :attr:`.eth_client`.
-
-        """
-        return NetlocWithPort(self._cli_rpc_address)
 
     @property
     def gas_price(self) -> Union[str, int]:

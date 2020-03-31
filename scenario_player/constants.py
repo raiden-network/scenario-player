@@ -21,10 +21,3 @@ GAS_STRATEGIES: Dict[str, Callable] = {
 # DO NOT CHANGE THIS! It would break backwards compatibility, since i.e. wallet generation
 # depends on it!!!
 RUN_NUMBER_FILENAME = "run_number.txt"
-
-
-#: Ethereum Nodes hosted by Brainbot
-BB_ETH_RPC_ADDRESS = "http://{client}.{network}.ethnodes.brainbot.com:5085"
-DEFAULT_CLIENT = "parity"
-DEFAULT_NETWORK = "goerli"
-DEFAULT_ETH_RPC_ADDRESS = BB_ETH_RPC_ADDRESS.format(client=DEFAULT_CLIENT, network=DEFAULT_NETWORK)
