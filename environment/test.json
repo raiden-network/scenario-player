@@ -1,0 +1,7 @@
+{
+	"environment_type": "production",
+        "matrix_server_list": "https://raw.githubusercontent.com/raiden-network/raiden-service-bundle/master/known_servers.test-split.yaml",
+	"pfs_with_fee": "https://pfs.t01.testtransport.raiden.network",
+	"pfs_without_fee": "https://pfs.t01.testtransport.raiden.network",
+	"eth_rpc_endpoint": "http://parity.goerli.ethnodes.brainbot.com:8545"
+}
