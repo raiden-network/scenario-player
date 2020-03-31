@@ -2,7 +2,6 @@ import json
 import os
 import pathlib
 import time
-from collections import defaultdict
 from itertools import chain as iter_chain
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
@@ -109,13 +108,11 @@ def wait_for_txs(web3: Web3, transactions: Iterable[TransactionSent], timeout: i
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
 
 
-def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_age_hours: int):
-    assert account.address
-    chain_name, chain_url = chain_str.split(":", maxsplit=1)
-    log.info("in cmd", chain=chain_str, chain_name=chain_name, chain_url=chain_url)
-
-    web3s: Dict[str, Web3] = {chain_name: Web3(HTTPProvider(URI(chain_url)))}
-    log.info("Starting eth reclaim", data_path=data_path)
+def reclaim_eth(
+    account: Account, eth_rpc_endpoint: URI, data_path: pathlib.Path, min_age_hours: int
+):
+    log.info("Starting eth reclaim", data_path=data_path, eth_rpc_endpoint=eth_rpc_endpoint)
+    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
 
     address_to_keyfile: Dict[ChecksumAddress, dict] = dict()
     address_to_privkey: Dict[ChecksumAddress, PrivateKey] = dict()
@@ -150,38 +147,31 @@ def reclaim_eth(account: Account, chain_str: str, data_path: pathlib.Path, min_a
 
     log.info("Reclaiming candidates", addresses=list(address_to_keyfile.keys()))
 
-    txs: Dict[str, List[TransactionSent]] = defaultdict(list)
-    reclaim_amount: Dict[str, int] = defaultdict(int)
-    for chain_name, web3 in web3s.items():
-        log.info("Checking chain", chain=chain_name)
-        for address, keyfile_content in address_to_keyfile.items():
-            balance = web3.eth.getBalance(address)
-            if balance > RECLAIM_MIN_BALANCE:
-                if address not in address_to_privkey:
-                    address_to_privkey[address] = decode_keyfile_json(keyfile_content, b"")
-                privkey = address_to_privkey[address]
-                drain_amount = balance - (web3.eth.gasPrice * VALUE_TX_GAS_COST)
-                log.info(
-                    "Reclaiming",
-                    from_address=address,
-                    amount=drain_amount.__format__(",d"),
-                    chain=chain_name,
-                )
-                reclaim_amount[chain_name] += drain_amount
-                client = JSONRPCClient(web3, privkey)
-                txs[chain_name].append(
-                    client.transact(
-                        EthTransfer(
-                            to_address=account.address,
-                            value=drain_amount,
-                            gas_price=web3.eth.gasPrice,
-                        )
+    txs = []
+    reclaim_amount = 0
+
+    log.info("Checking chain")
+    for address, keyfile_content in address_to_keyfile.items():
+        balance = web3.eth.getBalance(address)
+        if balance > RECLAIM_MIN_BALANCE:
+            if address not in address_to_privkey:
+                address_to_privkey[address] = decode_keyfile_json(keyfile_content, b"")
+            privkey = address_to_privkey[address]
+            drain_amount = balance - (web3.eth.gasPrice * VALUE_TX_GAS_COST)
+            log.info("Reclaiming", from_address=address, amount=drain_amount.__format__(",d"))
+            reclaim_amount += drain_amount
+            client = JSONRPCClient(web3, privkey)
+            assert account.address
+            txs.append(
+                client.transact(
+                    EthTransfer(
+                        to_address=account.address, value=drain_amount, gas_price=web3.eth.gasPrice
                     )
                 )
-    for chain_name, chain_txs in txs.items():
-        wait_for_txs(web3s[chain_name], chain_txs, 1000)
-    for chain_name, amount in reclaim_amount.items():
-        log.info("Reclaimed", chain=chain_name, amount=amount.__format__(",d"))
+            )
+
+    wait_for_txs(web3, txs, 1000)
+    log.info("Reclaimed", reclaim_amount=reclaim_amount.__format__(",d"))
 
 
 def post_task_state_to_rc(scenario, task, state) -> None:

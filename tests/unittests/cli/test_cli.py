@@ -118,7 +118,7 @@ class TestDataPathBehavior:
         result = runner.invoke(
             main.reclaim_eth,
             f"--data-path {path_arg} "
-            "--chain smoketest:http://localhost:12345 "
+            "--eth-rpc-endpoint http://localhost:12345 "
             f"--password-file {KEYSTORE_PATH.joinpath('password')} "
             f"--keystore-file {KEYSTORE_PATH.joinpath('UTC--1')} ",
         )
