@@ -144,21 +144,20 @@ def data_path_option(func):
     return wrapper
 
 
-def eth_rpc_option(func):
-    """Decorator for adding '--eth-rpc-endpoint' to subcommands."""
+def environment_option(func):
+    """Decorator for adding '--environment' to subcommands."""
 
     @click.option(
-        "--eth-rpc-endpoint",
-        multiple=False,
-        required=True,
-        help=(
-            '"host:port" address of ethereum JSON-RPC server. '
-            "Accepts a protocol prefix (http:// or https://) with optional port."
-        ),
+        "--environment",
+        default=DEFAULT_ENV_FILE,
+        help="A JSON file containing the settings for Eth-RPC, PFS, "
+        "transport servers, env-type...",
+        show_default=True,
+        type=click.File(),
     )
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
+    def wrapper(*args, environment: IO, **kwargs):
+        return func(*args, environment=_load_environment(environment), **kwargs)
 
     return wrapper
 
@@ -184,13 +183,7 @@ def main(ctx):
     default=sys.stdout.isatty(),
     help="En-/disable console UI. [default: auto-detect]",
 )
-@click.option(
-    "--environment",
-    default=DEFAULT_ENV_FILE,
-    help="A JSON file containing the settings for Eth-RPC, PFS, transport servers, env-type...",
-    show_default=True,
-    type=click.File(),
-)
+@environment_option
 @key_password_options
 @data_path_option
 @click.pass_context
@@ -204,12 +197,11 @@ def run(
     notify_tasks,
     enable_ui,
     password_file,
-    environment: IO,
+    environment: Dict[str, Any],
 ):
     """Execute a scenario as defined in scenario definition file.
     click entrypoint, this dispatches to `run_`.
     """
-    env = _load_environment(environment)
     data_path = Path(data_path)
     scenario_file = Path(scenario_file.name).absolute()
     log_file_name = construct_log_file_name("run", data_path, scenario_file)
@@ -224,7 +216,7 @@ def run(
         enable_ui=enable_ui,
         password_file=password_file,
         log_file_name=log_file_name,
-        environment=env,
+        environment=environment,
     )
 
 
@@ -431,15 +423,16 @@ class ScenarioUIManager:
     help="Minimum account non-usage age before reclaiming eth. In hours.",
 )
 @key_password_options
-@eth_rpc_option
+@environment_option
 @data_path_option
 @click.pass_context
-def reclaim_eth(ctx, min_age, password, password_file, keystore_file, eth_rpc_endpoint, data_path):
+def reclaim_eth(ctx, min_age, password, password_file, keystore_file, environment, data_path):
     log.info("start cmd")
 
     data_path = Path(data_path)
     password = get_password(password, password_file)
     account = get_account(keystore_file, password)
+    eth_rpc_endpoint = environment["eth_rpc_endpoint"]
 
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
     log.info("start reclaim", eth_rpc_endpoint=eth_rpc_endpoint)
