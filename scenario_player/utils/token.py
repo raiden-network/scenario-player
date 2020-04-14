@@ -36,6 +36,16 @@ def token_maybe_mint(
         token_proxy.mint_for(amount=mint_amount, address=target_address)
 
 
+def token_maybe_transfer(
+    token_proxy: CustomToken, target_address: Address, minimum_balance: int, maximum_balance: int
+) -> None:
+    current_balance = token_proxy.balance_of(target_address)
+
+    if minimum_balance > current_balance:
+        transfer_amount = TokenAmount(maximum_balance - current_balance)
+        token_proxy.transfer(to_address=target_address, amount=transfer_amount)
+
+
 def eth_maybe_transfer(
     orchestration_client: JSONRPCClient,
     target: Address,
