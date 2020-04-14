@@ -67,7 +67,7 @@ from scenario_player.utils.token import (
     eth_maybe_transfer,
     load_token_configuration_from_file,
     save_token_configuration_to_file,
-    token_maybe_mint,
+    token_maybe_transfer,
     userdeposit_maybe_deposit,
     userdeposit_maybe_increase_allowance,
 )
@@ -536,15 +536,15 @@ class ScenarioRunner:
             maximum_allowance=UINT256_MAX,
         )
 
-        mint_greenlet = pool.spawn(
-            token_maybe_mint,
-            token_proxy=token_proxy,
-            target_address=to_checksum_address(self.client.address),
-            minimum_balance=required_allowance,
-            maximum_balance=ORCHESTRATION_MAXIMUM_BALANCE,
-        )
+        # mint_greenlet = pool.spawn(
+        #     token_maybe_mint,
+        #     token_proxy=token_proxy,
+        #     target_address=to_checksum_address(self.client.address),
+        #     minimum_balance=required_allowance,
+        #     maximum_balance=ORCHESTRATION_MAXIMUM_BALANCE,
+        # )
 
-        return {allowance_greenlet, mint_greenlet}
+        return {allowance_greenlet}
 
     def setup_raiden_token_balances(
         self, pool: Pool, token_proxy: CustomToken, node_addresses: Set[ChecksumAddress]
@@ -560,7 +560,7 @@ class ScenarioRunner:
         greenlets: Set[Greenlet] = set()
         for address in node_addresses:
             g = pool.spawn(
-                token_maybe_mint,
+                token_maybe_transfer,
                 token_proxy=token_proxy,
                 target_address=address,
                 minimum_balance=token_min_amount,
