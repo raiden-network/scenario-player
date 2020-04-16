@@ -2,7 +2,7 @@ import json
 import os
 import re
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -111,15 +111,18 @@ class TestVersionInformation:
 
 
 class TestDataPathBehavior:
-    def test_reclaim_eth_data_path(self, runner, tmpdir):
+    @patch("scenario_player.utils.legacy.Web3")
+    def test_reclaim_eth_data_path(self, web3_mock, runner, tmpdir):
         """Regression test, to make sure '--data-path' is respected for
         'reclaim-eth' subcommand."""
+        web3_mock.eth.gasCost = 1
         path_arg = str(tmpdir.mkdir("use_this"))
         result = runner.invoke(
             main.reclaim_eth,
             f"--data-path {path_arg} "
             f"--password-file {KEYSTORE_PATH.joinpath('password')} "
             f"--keystore-file {KEYSTORE_PATH.joinpath('UTC--1')} ",
+            catch_exceptions=False,
         )
         print(result.output)
         assert result.exit_code == 0
