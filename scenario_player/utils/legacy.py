@@ -22,7 +22,6 @@ from raiden.network.rpc.client import EthTransfer, JSONRPCClient, TransactionSen
 from raiden.utils.typing import ChecksumAddress, PrivateKey
 from scenario_player.exceptions import ScenarioTxError
 
-RECLAIM_MIN_BALANCE = 10 ** 12  # 1 µEth (a.k.a. Twei, szabo)
 VALUE_TX_GAS_COST = 21_000
 
 log = structlog.get_logger(__name__)
@@ -149,15 +148,16 @@ def reclaim_eth(
 
     txs = []
     reclaim_amount = 0
+    reclaim_tx_cost = web3.eth.gasPrice * VALUE_TX_GAS_COST
 
     log.info("Checking chain")
     for address, keyfile_content in address_to_keyfile.items():
         balance = web3.eth.getBalance(address)
-        if balance > RECLAIM_MIN_BALANCE:
+        if balance > reclaim_tx_cost:
             if address not in address_to_privkey:
                 address_to_privkey[address] = decode_keyfile_json(keyfile_content, b"")
             privkey = address_to_privkey[address]
-            drain_amount = balance - (web3.eth.gasPrice * VALUE_TX_GAS_COST)
+            drain_amount = balance - reclaim_tx_cost
             log.info("Reclaiming", from_address=address, amount=drain_amount.__format__(",d"))
             reclaim_amount += drain_amount
             client = JSONRPCClient(web3, privkey)
