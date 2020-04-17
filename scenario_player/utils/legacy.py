@@ -148,7 +148,8 @@ def reclaim_eth(
 
     txs = []
     reclaim_amount = 0
-    reclaim_tx_cost = web3.eth.gasPrice * VALUE_TX_GAS_COST
+    gas_price = web3.eth.gasPrice
+    reclaim_tx_cost = gas_price * VALUE_TX_GAS_COST
 
     log.info("Checking chain")
     for address, keyfile_content in address_to_keyfile.items():
@@ -165,7 +166,7 @@ def reclaim_eth(
             txs.append(
                 client.transact(
                     EthTransfer(
-                        to_address=account.address, value=drain_amount, gas_price=web3.eth.gasPrice
+                        to_address=account.address, value=drain_amount, gas_price=gas_price
                     )
                 )
             )
