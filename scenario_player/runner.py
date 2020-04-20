@@ -101,6 +101,24 @@ def wait_for_nodes_to_be_ready(node_runners, session):
                 gevent.sleep(0.5)
 
 
+def get_proxy_manager(client: JSONRPCClient, deploy: DeployedContracts) -> ProxyManager:
+    contract_manager = ContractManager(contracts_precompiled_path(RAIDEN_CONTRACT_VERSION))
+
+    assert "contracts" in deploy, deploy
+    token_network_deployment_details = deploy["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]
+    deployed_at = token_network_deployment_details["block_number"]
+    token_network_registry_deployed_at = BlockNumber(deployed_at)
+
+    return ProxyManager(
+        client,
+        contract_manager,
+        ProxyManagerMetadata(
+            token_network_registry_deployed_at=token_network_registry_deployed_at,
+            filters_start_at=token_network_registry_deployed_at,
+        ),
+    )
+
+
 def get_udc_and_corresponding_token_from_dependencies(
     udc_address: Optional[ChecksumAddress], chain_id: ChainID, proxy_manager: ProxyManager
 ) -> Tuple[UserDeposit, CustomToken]:
@@ -397,7 +415,6 @@ class ScenarioRunner:
         settings = self.definition.settings
         udc_settings = settings.services.udc
 
-        contract_manager = ContractManager(contracts_precompiled_path(RAIDEN_CONTRACT_VERSION))
         smoketesting = False
         if self.chain_id != CHAINNAME_TO_ID["smoketest"]:
             deploy = get_contracts_deployment_info(self.chain_id, RAIDEN_CONTRACT_VERSION)
@@ -408,19 +425,7 @@ class ScenarioRunner:
         msg = "There is no deployment details for the given chain_id and contracts version pair"
         assert deploy, msg
 
-        assert "contracts" in deploy, deploy
-        token_network_deployment_details = deploy["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]
-        deployed_at = token_network_deployment_details["block_number"]
-        token_network_registry_deployed_at = BlockNumber(deployed_at)
-
-        proxy_manager = ProxyManager(
-            self.client,
-            contract_manager,
-            ProxyManagerMetadata(
-                token_network_registry_deployed_at=token_network_registry_deployed_at,
-                filters_start_at=token_network_registry_deployed_at,
-            ),
-        )
+        proxy_manager = get_proxy_manager(self.client, deploy)
 
         # Tracking pool to synchronize on all concurrent transactions
         pool = Pool()
