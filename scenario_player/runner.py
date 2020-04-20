@@ -102,19 +102,13 @@ def wait_for_nodes_to_be_ready(node_runners, session):
 
 
 def get_udc_and_corresponding_token_from_dependencies(
-    udc_settings: UDCSettingsConfig, settings: SettingsConfig, proxy_manager: ProxyManager
+    udc_address: Optional[ChecksumAddress], chain_id: ChainID, proxy_manager: ProxyManager
 ) -> Tuple[UserDeposit, CustomToken]:
     """ Return contract proxies for the UserDepositContract and associated token.
 
     This will return a proxy to the `UserDeposit` contract as determined by the
     **local** Raiden depedency.
     """
-    assert udc_settings.enable
-    chain_id = settings.chain_id
-    assert chain_id, "Missing configuration, either set udc_address or the chain_id"
-
-    udc_address = udc_settings.address
-
     if udc_address is None:
 
         contracts = get_contracts_deployment_info(chain_id, version=RAIDEN_CONTRACT_VERSION)
@@ -439,7 +433,9 @@ class ScenarioRunner:
                 userdeposit_proxy,
                 user_token_proxy,
             ) = get_udc_and_corresponding_token_from_dependencies(
-                udc_settings=udc_settings, settings=settings, proxy_manager=proxy_manager
+                udc_address=udc_settings.address,
+                chain_id=settings.chain_id,
+                proxy_manager=proxy_manager,
             )
 
             log.debug("Minting utility tokens and /scheduling/ transfers to the nodes")
