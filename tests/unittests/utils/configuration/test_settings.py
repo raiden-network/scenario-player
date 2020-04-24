@@ -10,6 +10,8 @@ from scenario_player.utils.configuration.settings import (
     UDCTokenSettings,
 )
 
+dummy_env = {"pfs_fee": 100}
+
 
 class TestSettingsConfig:
     @pytest.mark.parametrize("key", ["timeout", "gas_price"])
@@ -18,7 +20,7 @@ class TestSettingsConfig:
     ):
         """If supported  keys are absent, sensible defaults are returned for them when accessing
         them as a class attribute."""
-        config = SettingsConfig(minimal_definition_dict)
+        config = SettingsConfig(minimal_definition_dict, dummy_env)
 
         try:
             actual = getattr(config, key)
@@ -28,7 +30,7 @@ class TestSettingsConfig:
         assert expected_defaults["settings"][key] == actual
 
     def test_settings_attr_returns_service_settings_config_instance(self, minimal_definition_dict):
-        config = SettingsConfig(minimal_definition_dict)
+        config = SettingsConfig(minimal_definition_dict, dummy_env)
         assert isinstance(config.services, ServiceSettingsConfig)
 
     @pytest.mark.parametrize(
@@ -41,14 +43,14 @@ class TestSettingsConfig:
     ):
         minimal_definition_dict["settings"]["gas_price"] = value
         try:
-            SettingsConfig(minimal_definition_dict)
+            SettingsConfig(minimal_definition_dict, dummy_env)
         except Exception:
             if not raises:
                 pytest.fail("Raised ScenarioConfigurationError unexpectedly!")
 
     def test_gas_price_strategy_returns_a_callable(self, minimal_definition_dict):
         """The :attr:`SettingsConfig.gas_price_strategy` returns a callable."""
-        config = SettingsConfig(minimal_definition_dict)
+        config = SettingsConfig(minimal_definition_dict, dummy_env)
         assert callable(config.gas_price_strategy)
 
     @pytest.mark.parametrize(
@@ -60,17 +62,17 @@ class TestSettingsConfig:
     ):
         """The gas price strategy is dynamically fetched."""
         minimal_definition_dict["settings"]["gas_price"] = strategy
-        config = SettingsConfig(minimal_definition_dict)
+        config = SettingsConfig(minimal_definition_dict, dummy_env)
         assert config.gas_price_strategy == expected_func
 
 
 class TestServiceSettingsConfig:
     def test_pfs_attribute_returns_pfs_settings_config(self, minimal_definition_dict):
-        config = ServiceSettingsConfig(minimal_definition_dict)
+        config = ServiceSettingsConfig(minimal_definition_dict, dummy_env)
         assert isinstance(config.pfs, PFSSettingsConfig)
 
     def test_ucd_attribute_returns_udc_settings_config(self, minimal_definition_dict):
-        config = ServiceSettingsConfig(minimal_definition_dict)
+        config = ServiceSettingsConfig(minimal_definition_dict, dummy_env)
         assert isinstance(config.udc, UDCSettingsConfig)
 
 
@@ -87,13 +89,15 @@ class TestPFSSettingsConfig:
 
 class TestUDCSettingsConfig:
     def test_token_attribute_is_an_instance_of_udctokenconfig(self, minimal_definition_dict):
-        assert isinstance(UDCSettingsConfig(minimal_definition_dict).token, UDCTokenSettings)
+        assert isinstance(
+            UDCSettingsConfig(minimal_definition_dict, dummy_env).token, UDCTokenSettings
+        )
 
     @pytest.mark.parametrize("key, expected", argvalues=[("enable", False), ("address", None)])
     def test_attributes_whose_key_is_absent_return_expected_default(
         self, key, expected, minimal_definition_dict
     ):
-        config = UDCSettingsConfig(minimal_definition_dict)
+        config = UDCSettingsConfig(minimal_definition_dict, dummy_env)
         MISSING = object()
         assert getattr(config, key, MISSING) == expected
 
@@ -102,7 +106,7 @@ class TestUDCSettingsConfig:
         self, key, expected, minimal_definition_dict
     ):
         minimal_definition_dict["settings"] = {"services": {"udc": {key: expected}}}
-        config = UDCSettingsConfig(minimal_definition_dict)
+        config = UDCSettingsConfig(minimal_definition_dict, dummy_env)
         MISSING = object()
         assert getattr(config, key, MISSING) == expected
 
@@ -116,7 +120,7 @@ class TestUDCTokenConfig:
         self, key, expected, minimal_definition_dict
     ):
         minimal_definition_dict["settings"] = {"services": {"udc": {"token": {key: expected}}}}
-        config = UDCTokenSettings(minimal_definition_dict)
+        config = UDCTokenSettings(minimal_definition_dict, dummy_env)
         MISSING = object()
         assert getattr(config, key, MISSING) == expected
 
@@ -127,7 +131,7 @@ class TestUDCTokenConfig:
     def test_attributes_whose_key_is_absent_return_expected_default(
         self, key, expected, minimal_definition_dict
     ):
-        config = UDCTokenSettings(minimal_definition_dict)
+        config = UDCTokenSettings(minimal_definition_dict, dummy_env)
         MISSING = object()
         assert getattr(config, key, MISSING) == expected
 
@@ -136,4 +140,4 @@ class TestUDCTokenConfig:
             "services": {"udc": {"token": {"max_funding": 6000, "balance_per_node": 6001}}}
         }
         with pytest.raises(Exception):
-            UDCTokenSettings(minimal_definition_dict)
+            UDCTokenSettings(minimal_definition_dict, dummy_env)

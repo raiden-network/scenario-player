@@ -61,11 +61,12 @@ class UDCTokenSettings:
 
     CONFIGURATION_ERROR = UDCTokenConfigError
 
-    def __init__(self, loaded_definition: dict):
+    def __init__(self, loaded_definition: dict, environment: dict):
         settings = loaded_definition.get("settings", {})
         services = settings.get("services", {})
         udc_settings = services.get("udc", {})
         self.dict = udc_settings.get("token", {})
+        self.environment = environment
         self.validate()
 
     def validate(self) -> None:
@@ -93,7 +94,7 @@ class UDCTokenSettings:
     @property
     def balance_per_node(self) -> int:
         """The required amount of UDC/RDN tokens required by each node."""
-        return int(self.dict.get("balance_per_node", 5000))
+        return int(self.dict.get("balance_per_node", 50 * self.environment["pfs_fee"]))
 
     @property
     def max_funding(self) -> int:
@@ -123,11 +124,12 @@ class UDCSettingsConfig:
             ...
     """
 
-    def __init__(self, loaded_definition: dict):
+    def __init__(self, loaded_definition: dict, environment: dict):
         settings = loaded_definition.get("settings", {})
         services = settings.get("services", {})
         self.dict = services.get("udc", {})
-        self.token = UDCTokenSettings(loaded_definition)
+        self.environment = environment
+        self.token = UDCTokenSettings(loaded_definition, environment)
 
     @property
     def enable(self) -> bool:
@@ -152,12 +154,12 @@ class ServiceSettingsConfig:
 
     CONFIGURATION_ERROR = ServiceConfigurationError
 
-    def __init__(self, loaded_definition: dict):
+    def __init__(self, loaded_definition: dict, environment: dict):
         settings = loaded_definition.get("settings", {})
         services = settings.get("services", {})
         self.dict = services
         self.pfs = PFSSettingsConfig(loaded_definition)
-        self.udc = UDCSettingsConfig(loaded_definition)
+        self.udc = UDCSettingsConfig(loaded_definition, environment)
 
 
 class SettingsConfig:
@@ -185,10 +187,10 @@ class SettingsConfig:
 
     CONFIGURATION_ERROR = ScenarioConfigurationError
 
-    def __init__(self, loaded_definition: dict) -> None:
+    def __init__(self, loaded_definition: dict, environment: dict) -> None:
         settings = loaded_definition.get("settings", {})
         self.dict = settings
-        self.services = ServiceSettingsConfig(loaded_definition)
+        self.services = ServiceSettingsConfig(loaded_definition, environment)
         self.validate()
         self.eth_rpc_endpoint: URI
         self.chain_id: ChainID
