@@ -34,7 +34,7 @@ class ScenarioDefinition:
         self.token = TokenConfig(self._loaded, data_path.joinpath("token.info"))
         deploy_token = self.token.address is None
         self.nodes = NodesConfig(self._loaded, environment="development" if deploy_token else None)
-        self.settings = SettingsConfig(self._loaded)
+        self.settings = SettingsConfig(self._loaded, environment)
         self.settings.sp_root_dir = data_path
         self.scenario = ScenarioConfig(self._loaded)
 

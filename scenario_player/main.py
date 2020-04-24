@@ -513,6 +513,7 @@ def smoketest(ctx: Context, eth_client: EthClient):
                     "eth_rpc_endpoint": setup.args["eth_rpc_endpoint"],
                     "environment_type": "development",
                     "transport_servers": [],
+                    "pfs_fee": 100,
                 }
                 try:
                     run_(
