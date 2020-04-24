@@ -429,6 +429,7 @@ class ScenarioUIManager:
 )
 @click.option(
     "--reclaim-token",
+    "reclaim_tokens",
     multiple=True,
     type=AddressType(),
     help="ERC20 token address for which tokens should also be reclaimed",
@@ -446,7 +447,7 @@ class ScenarioUIManager:
 def reclaim_eth(
     ctx,
     min_age,
-    reclaim_token: List[TokenAddress],
+    reclaim_tokens: List[TokenAddress],
     withdraw_from_udc: bool,
     password,
     password_file,
@@ -475,7 +476,7 @@ def reclaim_eth(
             account=account,
         )
 
-    for token_address in reclaim_token:
+    for token_address in reclaim_tokens:
         log.info(
             "start ERC20 token reclaim",
             token=to_checksum_address(token_address),
