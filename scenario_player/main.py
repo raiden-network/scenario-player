@@ -465,7 +465,7 @@ def reclaim_eth(
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
 
     reclamation_candidates = get_reclamation_candidates(data_path, min_age)
-    log.info("Reclaiming candidates", addresses=list(reclamation_candidates.keys()))
+    log.info("Reclaiming candidates", addresses=list(c.address for c in reclamation_candidates))
 
     if withdraw_from_udc:
         scenario_player.utils.withdraw_from_udc(

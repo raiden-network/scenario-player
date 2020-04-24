@@ -2,6 +2,7 @@ import json
 import os
 import pathlib
 import time
+from dataclasses import dataclass
 from itertools import chain as iter_chain
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -13,25 +14,19 @@ from eth_keyfile import decode_keyfile_json
 from eth_typing import URI
 from eth_utils import encode_hex, to_canonical_address, to_checksum_address
 from raiden_contracts.contract_manager import ContractManager, get_contracts_deployment_info
-from requests.adapters import HTTPAdapter
+from requests.adapters import HTTPAdapter  # ugly import, it'll be in py3.8
 from web3 import HTTPProvider, Web3
 from web3.exceptions import TransactionNotFound
 from web3.types import TxReceipt
 
 from raiden.accounts import Account
 from raiden.exceptions import InsufficientEth
+from raiden.messages.abstract import cached_property
 from raiden.network.proxies.custom_token import CustomToken
 from raiden.network.proxies.proxy_manager import ProxyManager
 from raiden.network.rpc.client import EthTransfer, JSONRPCClient, TransactionSent
 from raiden.settings import RAIDEN_CONTRACT_VERSION
-from raiden.utils.typing import (
-    BlockNumber,
-    ChainID,
-    ChecksumAddress,
-    PrivateKey,
-    TokenAddress,
-    TokenAmount,
-)
+from raiden.utils.typing import BlockNumber, ChainID, ChecksumAddress, TokenAddress, TokenAmount
 from scenario_player.exceptions import ScenarioTxError
 from scenario_player.utils.contracts import (
     get_proxy_manager,
@@ -123,10 +118,25 @@ def wait_for_txs(web3: Web3, transactions: Iterable[TransactionSent], timeout: i
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
 
 
-def get_keyfiles(data_path: pathlib.Path, min_age_hours: int) -> Dict[ChecksumAddress, dict]:
-    address_to_keyfile: Dict[ChecksumAddress, dict] = dict()
+@dataclass
+class ReclamationCandidate:
+    address: ChecksumAddress
+    keyfile_content: dict
+    node_dir: pathlib.Path
+
+    @cached_property
+    def privkey(self):
+        return decode_keyfile_json(self.keyfile_content, b"")
+
+
+def get_reclamation_candidates(
+    data_path: pathlib.Path, min_age_hours: int
+) -> List[ReclamationCandidate]:
+    candidates: List[ReclamationCandidate] = []
     for node_dir in iter_chain(data_path.glob("**/node_???"), data_path.glob("**/node_*_???")):
-        scenario_name: Path = Path(node_dir.parent.name)
+        if (node_dir / "reclaimed").exists():
+            continue
+
         last_run = next(
             iter(
                 sorted(
@@ -141,6 +151,7 @@ def get_keyfiles(data_path: pathlib.Path, min_age_hours: int) -> Dict[ChecksumAd
         if last_run:
             age_hours = (time.time() - last_run.stat().st_mtime) / 3600
             if age_hours < min_age_hours:
+                scenario_name: Path = Path(node_dir.parent.name)
                 log.debug(
                     "Skipping too recent node",
                     scenario_name=scenario_name,
@@ -152,22 +163,18 @@ def get_keyfiles(data_path: pathlib.Path, min_age_hours: int) -> Dict[ChecksumAd
             keyfile_content = json.loads(keyfile.read_text())
             address = keyfile_content.get("address")
             if address:
-                address_to_keyfile[to_checksum_address(address)] = keyfile_content
-    return address_to_keyfile
-
-
-def get_reclamation_candidates(
-    data_path: pathlib.Path, min_age_hours: int
-) -> Dict[ChecksumAddress, PrivateKey]:
-    address_to_keyfile = get_keyfiles(data_path, min_age_hours)
-    return {
-        address: decode_keyfile_json(keyfile_content, b"")
-        for address, keyfile_content in address_to_keyfile.items()
-    }
+                candidates.append(
+                    ReclamationCandidate(
+                        address=to_checksum_address(address),
+                        node_dir=node_dir,
+                        keyfile_content=keyfile_content,
+                    )
+                )
+    return candidates
 
 
 def withdraw_from_udc(
-    reclamation_candidates: Dict[ChecksumAddress, PrivateKey],
+    reclamation_candidates: List[ReclamationCandidate],
     contract_manager: ContractManager,
     account: Account,
     eth_rpc_endpoint: URI,
@@ -181,34 +188,38 @@ def withdraw_from_udc(
     planned_withdraws: Dict[ChecksumAddress, Tuple[BlockNumber, TokenAmount]] = dict()
 
     log.info("Checking chain for deposits in UserDeposit contact")
-    for address, privkey in reclamation_candidates.items():
-        if address not in address_to_proxy_manager:
-            client = JSONRPCClient(web3, privkey)
-            address_to_proxy_manager[address] = get_proxy_manager(client, deploy)
-        proxy_manager = address_to_proxy_manager[address]
+    for node in reclamation_candidates:
+        if node.address not in address_to_proxy_manager:
+            client = JSONRPCClient(web3, node.privkey)
+            address_to_proxy_manager[node.address] = get_proxy_manager(client, deploy)
+        proxy_manager = address_to_proxy_manager[node.address]
         (userdeposit_proxy, user_token_proxy) = get_udc_and_corresponding_token_from_dependencies(
             chain_id=chain_id, proxy_manager=proxy_manager
         )
 
-        balance = userdeposit_proxy.get_total_deposit(to_canonical_address(address), "latest")
-        log.debug("UDC balance", balance=balance, address=address)
+        balance = userdeposit_proxy.get_total_deposit(to_canonical_address(node.address), "latest")
+        log.debug("UDC balance", balance=balance, address=node.address)
         if balance > 0:
             drain_amount = TokenAmount(balance)
             log.info(
-                "Planning withdraw", from_address=address, amount=drain_amount.__format__(",d")
+                "Planning withdraw",
+                from_address=node.address,
+                amount=drain_amount.__format__(",d"),
             )
             try:
                 ready_at_block = userdeposit_proxy.plan_withdraw(drain_amount, "latest")
             except InsufficientEth:
-                log.warning("Not sufficient eth in node wallet to withdraw", address=address)
+                log.warning("Not sufficient eth in node wallet to withdraw", address=node.address)
                 continue
-            planned_withdraws[address] = ready_at_block, drain_amount
+            planned_withdraws[node.address] = ready_at_block, drain_amount
 
-    if planned_withdraws:
-        log.info(
-            "Withdraws successfully planned, waiting until withdraws are ready",
-            planned_withdraws=planned_withdraws,
-        )
+    if not planned_withdraws:
+        return
+
+    log.info(
+        "Withdraws successfully planned, waiting until withdraws are ready",
+        planned_withdraws=planned_withdraws,
+    )
 
     reclaim_amount = 0
     for address, (ready_at_block, amount) in planned_withdraws.items():
@@ -239,7 +250,7 @@ def withdraw_from_udc(
 
 
 def reclaim_erc20(
-    reclamation_candidates: Dict[ChecksumAddress, PrivateKey],
+    reclamation_candidates: List[ReclamationCandidate],
     token_address: TokenAddress,
     contract_manager: ContractManager,
     account: Account,
@@ -250,18 +261,23 @@ def reclaim_erc20(
     reclaim_amount = 0
 
     log.info("Checking chain")
-    for address, privkey in reclamation_candidates.items():
-        client = JSONRPCClient(web3, privkey)
+    for node in reclamation_candidates:
+        client = JSONRPCClient(web3, node.privkey)
         token = CustomToken(client, token_address, contract_manager, "latest")
 
-        balance = token.balance_of(to_canonical_address(address))
+        balance = token.balance_of(to_canonical_address(node.address))
         log.debug(
-            "balance", token=to_checksum_address(token_address), balance=balance, address=address
+            "balance",
+            token=to_checksum_address(token_address),
+            balance=balance,
+            address=node.address,
         )
         if balance > 0:
             drain_amount = balance
             log.info(
-                "Reclaiming tokens", from_address=address, amount=drain_amount.__format__(",d")
+                "Reclaiming tokens",
+                from_address=node.address,
+                amount=drain_amount.__format__(",d"),
             )
             reclaim_amount += drain_amount
             assert account.address
@@ -270,20 +286,21 @@ def reclaim_erc20(
             except InsufficientEth:
                 log.warning(
                     "Not sufficient eth in node wallet to reclaim",
-                    address=address,
+                    address=node.address,
                     token_address=token_address,
                 )
                 continue
 
-    log.info(
-        "Reclaimed", reclaim_amount=reclaim_amount.__format__(",d"), token_address=token.address
-    )
+    if reclaim_amount:
+        log.info(
+            "Reclaimed",
+            reclaim_amount=reclaim_amount.__format__(",d"),
+            token_address=token.address,
+        )
 
 
 def reclaim_eth(
-    reclamation_candidates: Dict[ChecksumAddress, PrivateKey],
-    account: Account,
-    eth_rpc_endpoint: URI,
+    reclamation_candidates: List[ReclamationCandidate], account: Account, eth_rpc_endpoint: URI
 ):
     web3 = Web3(HTTPProvider(eth_rpc_endpoint))
 
@@ -293,13 +310,13 @@ def reclaim_eth(
     reclaim_tx_cost = gas_price * VALUE_TX_GAS_COST
 
     log.info("Checking chain")
-    for address, privkey in reclamation_candidates.items():
-        balance = web3.eth.getBalance(address)
+    for node in reclamation_candidates:
+        balance = web3.eth.getBalance(node.address)
         if balance > reclaim_tx_cost:
             drain_amount = balance - reclaim_tx_cost
-            log.info("Reclaiming", from_address=address, amount=drain_amount.__format__(",d"))
+            log.info("Reclaiming", from_address=node.address, amount=drain_amount.__format__(",d"))
             reclaim_amount += drain_amount
-            client = JSONRPCClient(web3, privkey)
+            client = JSONRPCClient(web3, node.privkey)
             assert account.address
             txs.append(
                 client.transact(
@@ -308,6 +325,7 @@ def reclaim_eth(
                     )
                 )
             )
+        (node.node_dir / "reclaimed").touch()
 
     wait_for_txs(web3, txs, 1000)
     log.info("Reclaimed", reclaim_amount=reclaim_amount.__format__(",d"))
