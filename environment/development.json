@@ -5,5 +5,6 @@
 	"eth_rpc_endpoint": "http://parity.goerli.ethnodes.brainbot.com:8545",
 	"transfer_token": "0x59105441977ecD9d805A4f5b060E34676F50F806",
 	"pfs_fee": 100,
+	"ms_reward_with_margin": 5500000000000000000,
 	"settlement_timeout_min": 40
 }
