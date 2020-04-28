@@ -45,7 +45,8 @@ from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import DummyStream, post_task_state_to_rc
-from scenario_player.utils.legacy import MutuallyExclusiveOption, get_reclamation_candidates
+from scenario_player.utils.legacy import MutuallyExclusiveOption
+from scenario_player.utils.reclaim import get_reclamation_candidates
 from scenario_player.utils.version import get_complete_spec
 
 if TYPE_CHECKING:
@@ -469,7 +470,7 @@ def reclaim_eth(
     log.info("Reclaiming candidates", addresses=list(c.address for c in reclamation_candidates))
 
     if withdraw_from_udc:
-        scenario_player.utils.withdraw_from_udc(
+        scenario_player.utils.reclaim.withdraw_from_udc(
             reclamation_candidates=reclamation_candidates,
             contract_manager=contract_manager,
             eth_rpc_endpoint=eth_rpc_endpoint,
@@ -482,7 +483,7 @@ def reclaim_eth(
             token=to_checksum_address(token_address),
             eth_rpc_endpoint=eth_rpc_endpoint,
         )
-        scenario_player.utils.reclaim_erc20(
+        scenario_player.utils.reclaim.reclaim_erc20(
             reclamation_candidates=reclamation_candidates,
             token_address=token_address,
             contract_manager=contract_manager,
@@ -491,7 +492,7 @@ def reclaim_eth(
         )
 
     log.info("start eth reclaim", eth_rpc_endpoint=eth_rpc_endpoint)
-    scenario_player.utils.reclaim_eth(
+    scenario_player.utils.reclaim.reclaim_eth(
         reclamation_candidates=reclamation_candidates,
         eth_rpc_endpoint=eth_rpc_endpoint,
         account=account,
