@@ -112,7 +112,7 @@ def userdeposit_maybe_deposit(
         new_total_deposit = TokenAmount(current_total_deposit + topup_amount)
 
         # Wait for mint transactions, if necessary
-        gevent.wait(mint_greenlets)
+        gevent.joinall(mint_greenlets, raise_error=True)
 
         userdeposit_proxy.deposit(
             target_address, new_total_deposit, userdeposit_proxy.client.get_confirmed_blockhash()
