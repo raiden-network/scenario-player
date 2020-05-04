@@ -483,6 +483,13 @@ def reclaim_eth(
             token=to_checksum_address(token_address),
             eth_rpc_endpoint=eth_rpc_endpoint,
         )
+        scenario_player.utils.reclaim.withdraw_all(
+            reclamation_candidates=reclamation_candidates,
+            token_address=token_address,
+            contract_manager=contract_manager,
+            eth_rpc_endpoint=eth_rpc_endpoint,
+            account=account,
+        )
         scenario_player.utils.reclaim.reclaim_erc20(
             reclamation_candidates=reclamation_candidates,
             token_address=token_address,
