@@ -4,7 +4,7 @@ from typing import Callable, Optional, Union
 import structlog
 from eth_typing import URI
 
-from raiden.utils.typing import ChainID
+from raiden.utils.typing import ChainID, ChecksumAddress
 from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
 from scenario_player.exceptions.config import (
     ScenarioConfigurationError,
@@ -138,11 +138,12 @@ class UDCSettingsConfig:
         return flag
 
     @property
-    def address(self) -> Union[str, None]:
+    def address(self) -> Optional[ChecksumAddress]:
         address = self.dict.get("address")
-        assert isinstance(address, (str, type(None)))
+        if address is None:
+            return None
 
-        return address
+        return ChecksumAddress(address)
 
 
 class ServiceSettingsConfig:

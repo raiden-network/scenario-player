@@ -15,21 +15,15 @@ from raiden_contracts.constants import (
     CHAINNAME_TO_ID,
     CONTRACT_CUSTOM_TOKEN,
     CONTRACT_TOKEN_NETWORK_REGISTRY,
-    CONTRACT_USER_DEPOSIT,
 )
-from raiden_contracts.contract_manager import (
-    ContractManager,
-    DeployedContracts,
-    contracts_precompiled_path,
-    get_contracts_deployment_info,
-)
+from raiden_contracts.contract_manager import DeployedContracts, get_contracts_deployment_info
 from requests import HTTPError, Session
 from web3 import HTTPProvider, Web3
 
 from raiden.accounts import Account
 from raiden.constants import UINT256_MAX
 from raiden.network.proxies.custom_token import CustomToken
-from raiden.network.proxies.proxy_manager import ProxyManager, ProxyManagerMetadata
+from raiden.network.proxies.proxy_manager import ProxyManager
 from raiden.network.proxies.token_network_registry import TokenNetworkRegistry
 from raiden.network.proxies.user_deposit import UserDeposit
 from raiden.network.rpc.client import JSONRPCClient
@@ -38,13 +32,11 @@ from raiden.utils.formatting import to_canonical_address
 from raiden.utils.nursery import Janitor
 from raiden.utils.typing import (
     Address,
-    BlockNumber,
     ChainID,
     TokenAddress,
     TokenAmount,
     TokenNetworkAddress,
     TokenNetworkRegistryAddress,
-    UserDepositAddress,
 )
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
@@ -60,6 +52,10 @@ from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
 from scenario_player.node_support import NodeController, RaidenReleaseKeeper
 from scenario_player.utils import TimeOutHTTPAdapter
 from scenario_player.utils.configuration.settings import SettingsConfig, UDCSettingsConfig
+from scenario_player.utils.contracts import (
+    get_proxy_manager,
+    get_udc_and_corresponding_token_from_dependencies,
+)
 from scenario_player.utils.token import (
     TokenDetails,
     eth_maybe_transfer,
@@ -99,41 +95,6 @@ def wait_for_nodes_to_be_ready(node_runners, session):
                 except requests.exceptions.RequestException:
                     pass
                 gevent.sleep(0.5)
-
-
-def get_udc_and_corresponding_token_from_dependencies(
-    udc_settings: UDCSettingsConfig, settings: SettingsConfig, proxy_manager: ProxyManager
-) -> Tuple[UserDeposit, CustomToken]:
-    """ Return contract proxies for the UserDepositContract and associated token.
-
-    This will return a proxy to the `UserDeposit` contract as determined by the
-    **local** Raiden depedency.
-    """
-    assert udc_settings.enable
-    chain_id = settings.chain_id
-    assert chain_id, "Missing configuration, either set udc_address or the chain_id"
-
-    udc_address = udc_settings.address
-
-    if udc_address is None:
-
-        contracts = get_contracts_deployment_info(chain_id, version=RAIDEN_CONTRACT_VERSION)
-
-        msg = (
-            f"invalid chain_id, {chain_id} is not available for version {RAIDEN_CONTRACT_VERSION}"
-        )
-        assert contracts, msg
-
-        udc_address = contracts["contracts"][CONTRACT_USER_DEPOSIT]["address"]
-
-    userdeposit_proxy = proxy_manager.user_deposit(
-        UserDepositAddress(to_canonical_address(udc_address)), "latest"
-    )
-
-    token_address = userdeposit_proxy.token_address("latest")
-    user_token_proxy = proxy_manager.custom_token(token_address, "latest")
-
-    return userdeposit_proxy, user_token_proxy
 
 
 def get_token_network_registry_from_dependencies(
@@ -403,7 +364,6 @@ class ScenarioRunner:
         settings = self.definition.settings
         udc_settings = settings.services.udc
 
-        contract_manager = ContractManager(contracts_precompiled_path(RAIDEN_CONTRACT_VERSION))
         smoketesting = False
         if self.chain_id != CHAINNAME_TO_ID["smoketest"]:
             deploy = get_contracts_deployment_info(self.chain_id, RAIDEN_CONTRACT_VERSION)
@@ -414,19 +374,7 @@ class ScenarioRunner:
         msg = "There is no deployment details for the given chain_id and contracts version pair"
         assert deploy, msg
 
-        assert "contracts" in deploy, deploy
-        token_network_deployment_details = deploy["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]
-        deployed_at = token_network_deployment_details["block_number"]
-        token_network_registry_deployed_at = BlockNumber(deployed_at)
-
-        proxy_manager = ProxyManager(
-            self.client,
-            contract_manager,
-            ProxyManagerMetadata(
-                token_network_registry_deployed_at=token_network_registry_deployed_at,
-                filters_start_at=token_network_registry_deployed_at,
-            ),
-        )
+        proxy_manager = get_proxy_manager(self.client, deploy)
 
         # Tracking pool to synchronize on all concurrent transactions
         pool = Pool()
@@ -439,7 +387,9 @@ class ScenarioRunner:
                 userdeposit_proxy,
                 user_token_proxy,
             ) = get_udc_and_corresponding_token_from_dependencies(
-                udc_settings=udc_settings, settings=settings, proxy_manager=proxy_manager
+                udc_address=udc_settings.address,
+                chain_id=settings.chain_id,
+                proxy_manager=proxy_manager,
             )
 
             log.debug("Minting utility tokens and /scheduling/ transfers to the nodes")

@@ -12,7 +12,7 @@ from io import StringIO
 from itertools import cycle, islice
 from pathlib import Path
 from tempfile import mkdtemp
-from typing import IO
+from typing import IO, List
 
 import click
 import gevent
@@ -23,7 +23,12 @@ from eth_typing import HexStr
 from eth_utils import to_checksum_address
 from gevent.event import Event
 from raiden_contracts.constants import CHAINNAME_TO_ID
-from raiden_contracts.contract_manager import DeployedContract, DeployedContracts
+from raiden_contracts.contract_manager import (
+    ContractManager,
+    DeployedContract,
+    DeployedContracts,
+    contracts_precompiled_path,
+)
 from urwid import ExitMainLoop
 
 import scenario_player.utils
@@ -31,8 +36,8 @@ from raiden.accounts import Account
 from raiden.constants import Environment, EthClient
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
-from raiden.utils.cli import EnumChoiceType, get_matrix_servers, option
-from raiden.utils.typing import TYPE_CHECKING, Any, AnyStr, Dict, Optional
+from raiden.utils.cli import AddressType, EnumChoiceType, get_matrix_servers, option
+from raiden.utils.typing import TYPE_CHECKING, Any, AnyStr, Dict, Optional, TokenAddress
 from scenario_player import __version__, tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
@@ -40,7 +45,7 @@ from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import DummyStream, post_task_state_to_rc
-from scenario_player.utils.legacy import MutuallyExclusiveOption
+from scenario_player.utils.legacy import MutuallyExclusiveOption, get_reclamation_candidates
 from scenario_player.utils.version import get_complete_spec
 
 if TYPE_CHECKING:
@@ -422,24 +427,73 @@ class ScenarioUIManager:
     show_default=True,
     help="Minimum account non-usage age before reclaiming eth. In hours.",
 )
+@click.option(
+    "--reclaim-token",
+    "reclaim_tokens",
+    multiple=True,
+    type=AddressType(),
+    help="ERC20 token address for which tokens should also be reclaimed",
+)
+@click.option(
+    "--withdraw-from-udc",
+    is_flag=True,
+    default=False,
+    help="Withdraw and reclaim tokens deposited in the UserDeposit contract",
+)
 @key_password_options
 @environment_option
 @data_path_option
 @click.pass_context
-def reclaim_eth(ctx, min_age, password, password_file, keystore_file, environment, data_path):
-    log.info("start cmd")
+def reclaim_eth(
+    ctx,
+    min_age,
+    reclaim_tokens: List[TokenAddress],
+    withdraw_from_udc: bool,
+    password,
+    password_file,
+    keystore_file,
+    environment,
+    data_path,
+):
+    eth_rpc_endpoint = environment["eth_rpc_endpoint"]
+    log.info("start cmd", eth_rpc_endpoint=eth_rpc_endpoint)
 
     data_path = Path(data_path)
     password = get_password(password, password_file)
     account = get_account(keystore_file, password)
-    eth_rpc_endpoint = environment["eth_rpc_endpoint"]
+    contract_manager = ContractManager(contracts_precompiled_path(RAIDEN_CONTRACT_VERSION))
 
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
-    log.info("start reclaim", eth_rpc_endpoint=eth_rpc_endpoint)
+
+    reclamation_candidates = get_reclamation_candidates(data_path, min_age)
+    log.info("Reclaiming candidates", addresses=list(c.address for c in reclamation_candidates))
+
+    if withdraw_from_udc:
+        scenario_player.utils.withdraw_from_udc(
+            reclamation_candidates=reclamation_candidates,
+            contract_manager=contract_manager,
+            eth_rpc_endpoint=eth_rpc_endpoint,
+            account=account,
+        )
+
+    for token_address in reclaim_tokens:
+        log.info(
+            "start ERC20 token reclaim",
+            token=to_checksum_address(token_address),
+            eth_rpc_endpoint=eth_rpc_endpoint,
+        )
+        scenario_player.utils.reclaim_erc20(
+            reclamation_candidates=reclamation_candidates,
+            token_address=token_address,
+            contract_manager=contract_manager,
+            eth_rpc_endpoint=eth_rpc_endpoint,
+            account=account,
+        )
+
+    log.info("start eth reclaim", eth_rpc_endpoint=eth_rpc_endpoint)
     scenario_player.utils.reclaim_eth(
-        min_age_hours=min_age,
+        reclamation_candidates=reclamation_candidates,
         eth_rpc_endpoint=eth_rpc_endpoint,
-        data_path=data_path,
         account=account,
     )
 
