@@ -264,6 +264,7 @@ class ScenarioRunner:
         self.definition.settings.eth_rpc_endpoint = environment["eth_rpc_endpoint"]
         self.definition.settings.chain_id = self.chain_id
 
+        assert account.privkey
         self.client = JSONRPCClient(
             web3,
             privkey=account.privkey,
