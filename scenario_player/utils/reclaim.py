@@ -330,14 +330,15 @@ def _withdraw_all_from_channel(
         block_identifier="latest",
         channel_identifier=channel["channel_identifier"],
     )
-    amount = WithdrawAmount(
+    new_withdraw = WithdrawAmount(
         details.our_details.deposit
         - details.our_details.withdrawn
         + details.partner_details.deposit
         - details.partner_details.withdrawn
     )
-    if amount == 0:
+    if new_withdraw == 0:
         return
+    total_withdraw = WithdrawAmount(details.our_details.withdrawn + new_withdraw)
 
     # Pack withdraw, needed for signatures
     try:
@@ -357,7 +358,7 @@ def _withdraw_all_from_channel(
             channel_identifier=channel["channel_identifier"],
         ),
         participant=to_canonical_address(candidate.address),
-        total_withdraw=amount,
+        total_withdraw=total_withdraw,
         expiration_block=expiration_block,
     )
 
@@ -366,7 +367,7 @@ def _withdraw_all_from_channel(
         token_network.set_total_withdraw(
             given_block_identifier="latest",
             channel_identifier=channel["channel_identifier"],
-            total_withdraw=amount,
+            total_withdraw=total_withdraw,
             expiration_block=expiration_block,
             participant=to_canonical_address(candidate.address),
             partner=to_canonical_address(channel["participant2"]),
@@ -375,7 +376,7 @@ def _withdraw_all_from_channel(
         )
     except InsufficientEth:
         log.warning("Not enough ETH to withdraw", channel=channel)
-    log.info("Withdraw successful", channel=channel, amount=amount)
+    log.info("Withdraw successful", channel=channel, amount=new_withdraw)
 
 
 def withdraw_all(
