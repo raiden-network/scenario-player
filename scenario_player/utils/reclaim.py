@@ -204,7 +204,8 @@ def reclaim_erc20(
     log.info("Checking chain for claimable tokens", token_address=token_address)
     for node in reclamation_candidates:
         client = JSONRPCClient(web3, node.privkey)
-        token = CustomToken(client, token_address, contract_manager, "latest")
+        confirmed_block_hash = client.get_confirmed_blockhash()
+        token = CustomToken(client, token_address, contract_manager, confirmed_block_hash)
 
         balance = token.balance_of(to_canonical_address(node.address))
         log.debug(
@@ -309,10 +310,13 @@ def _get_token_network_address(
     token_network_registry_address = TokenNetworkRegistryAddress(
         to_canonical_address(deploy["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]["address"])
     )
+    confirmed_block_hash = client.get_confirmed_blockhash()
     token_network_registry = proxy_manager.token_network_registry(
-        token_network_registry_address, "latest"
+        token_network_registry_address, confirmed_block_hash
     )
-    token_network_address = token_network_registry.get_token_network(token_address, "latest")
+    token_network_address = token_network_registry.get_token_network(
+        token_address, confirmed_block_hash
+    )
     assert token_network_address
     return token_network_address
 
@@ -324,10 +328,11 @@ def _withdraw_all_from_channel(
     token_network: TokenNetwork,
 ):
     # Check if channel still has deposits
+    confirmed_block_hash = token_network.client.get_confirmed_blockhash()
     details = token_network.detail_participants(
         participant1=to_canonical_address(candidate.address),
         participant2=to_canonical_address(channel["participant2"]),
-        block_identifier="latest",
+        block_identifier=confirmed_block_hash,
         channel_identifier=channel["channel_identifier"],
     )
     new_withdraw = WithdrawAmount(
@@ -365,7 +370,7 @@ def _withdraw_all_from_channel(
     # Withdraw all deposits to participant1
     try:
         token_network.set_total_withdraw(
-            given_block_identifier="latest",
+            given_block_identifier=confirmed_block_hash,
             channel_identifier=channel["channel_identifier"],
             total_withdraw=total_withdraw,
             expiration_block=expiration_block,
@@ -403,7 +408,8 @@ def withdraw_all(
     for candidate in reclamation_candidates:
         client = JSONRPCClient(web3, candidate.privkey)
         proxy_manager = get_proxy_manager(client, deploy)
-        token_network = proxy_manager.token_network(token_network_address, "latest")
+        confirmed_block_hash = client.get_confirmed_blockhash()
+        token_network = proxy_manager.token_network(token_network_address, confirmed_block_hash)
 
         channels = _get_channels(
             candidate=candidate,
