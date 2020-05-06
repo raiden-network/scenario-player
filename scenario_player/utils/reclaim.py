@@ -327,11 +327,18 @@ def _withdraw_all_from_channel(
     channel: dict,
     token_network: TokenNetwork,
 ):
+    if channel["participant1"] == candidate.address:
+        partner_address = channel["participant2"]
+    elif channel["participant2"] == candidate.address:
+        partner_address = channel["participant1"]
+    else:
+        raise RuntimeError("not a participant of the given channel")
+
     # Check if channel still has deposits
     confirmed_block_hash = token_network.client.get_confirmed_blockhash()
     details = token_network.detail_participants(
         participant1=to_canonical_address(candidate.address),
-        participant2=to_canonical_address(channel["participant2"]),
+        participant2=to_canonical_address(partner_address),
         block_identifier=confirmed_block_hash,
         channel_identifier=channel["channel_identifier"],
     )
@@ -341,21 +348,25 @@ def _withdraw_all_from_channel(
         + details.partner_details.deposit
         - details.partner_details.withdrawn
     )
+
     if new_withdraw == 0:
         return
-    total_withdraw = WithdrawAmount(details.our_details.withdrawn + new_withdraw)
 
-    # Pack withdraw, needed for signatures
-    try:
-        partner_privkey = [
-            c.privkey for c in reclamation_candidates if c.address == channel["participant2"]
-        ][0]
-    except KeyError:
+    partner_privkey = None
+    for maybe_partner in reclamation_candidates:
+        if maybe_partner.address == to_checksum_address(details.partner_details.address):
+            partner_privkey = maybe_partner.privkey
+            break
+
+    if partner_privkey is None:
         log.warning(
-            "Both participants must be in list of reclamation_candidates. " "Skipping channel.",
+            "Both participants must be in list of reclamation_candidates. Skipping channel.",
             channel=channel,
         )
+        return
+
     expiration_block = BlockExpiration(100000000000000)
+    total_withdraw = WithdrawAmount(details.our_details.withdrawn + new_withdraw)
     packed_withdraw = pack_withdraw(
         canonical_identifier=CanonicalIdentifier(
             chain_identifier=token_network.chain_id(),
@@ -375,13 +386,14 @@ def _withdraw_all_from_channel(
             total_withdraw=total_withdraw,
             expiration_block=expiration_block,
             participant=to_canonical_address(candidate.address),
-            partner=to_canonical_address(channel["participant2"]),
+            partner=to_canonical_address(details.partner_details.address),
             participant_signature=LocalSigner(candidate.privkey).sign(packed_withdraw),
             partner_signature=LocalSigner(partner_privkey).sign(packed_withdraw),
         )
     except InsufficientEth:
         log.warning("Not enough ETH to withdraw", channel=channel)
-    log.info("Withdraw successful", channel=channel, amount=new_withdraw)
+    else:
+        log.info("Withdraw successful", channel=channel, amount=new_withdraw)
 
 
 def withdraw_all(
