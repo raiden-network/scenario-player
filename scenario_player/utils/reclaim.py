@@ -4,18 +4,14 @@ import time
 from dataclasses import dataclass
 from itertools import chain as iter_chain
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Iterable, List, Tuple
 
 import structlog
 from eth_keyfile import decode_keyfile_json
 from eth_typing import URI
-from eth_utils import encode_hex, to_canonical_address, to_checksum_address
-from eth_utils.abi import event_abi_to_log_topic
-from raiden_contracts.constants import (
-    CONTRACT_TOKEN_NETWORK,
-    CONTRACT_TOKEN_NETWORK_REGISTRY,
-    ChannelEvent,
-)
+from eth_utils import to_canonical_address, to_checksum_address
+from gevent.pool import Pool
+from raiden_contracts.constants import CONTRACT_TOKEN_NETWORK_REGISTRY, ChannelEvent
 from raiden_contracts.contract_manager import (
     ContractManager,
     DeployedContracts,
@@ -24,13 +20,19 @@ from raiden_contracts.contract_manager import (
 from web3 import HTTPProvider, Web3
 
 from raiden.accounts import Account
+from raiden.blockchain.events import BlockchainEvents, token_network_events
+from raiden.constants import BLOCK_ID_LATEST
 from raiden.exceptions import InsufficientEth
 from raiden.messages.abstract import cached_property
 from raiden.network.proxies.custom_token import CustomToken
-from raiden.network.proxies.proxy_manager import ProxyManager
+from raiden.network.proxies.proxy_manager import ProxyManager, ProxyManagerMetadata
 from raiden.network.proxies.token_network import TokenNetwork
 from raiden.network.rpc.client import EthTransfer, JSONRPCClient
-from raiden.settings import RAIDEN_CONTRACT_VERSION
+from raiden.settings import (
+    DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS,
+    RAIDEN_CONTRACT_VERSION,
+    BlockBatchSizeConfig,
+)
 from raiden.transfer.identifiers import CanonicalIdentifier
 from raiden.utils.packing import pack_withdraw
 from raiden.utils.signer import LocalSigner
@@ -39,6 +41,7 @@ from raiden.utils.typing import (
     BlockExpiration,
     BlockNumber,
     ChainID,
+    ChannelID,
     ChecksumAddress,
     PrivateKey,
     TokenAddress,
@@ -47,7 +50,6 @@ from raiden.utils.typing import (
     TokenNetworkRegistryAddress,
     WithdrawAmount,
 )
-from scenario_player.tasks.blockchain import query_blockchain_events
 from scenario_player.utils.contracts import (
     get_proxy_manager,
     get_udc_and_corresponding_token_from_dependencies,
@@ -273,32 +275,34 @@ def reclaim_eth(
     log.info("Reclaimed", reclaim_amount=reclaim_amount.__format__(",d"))
 
 
-def _get_channels(
-    candidate: ReclamationCandidate,
+def _get_all_token_network_events(
     contract_manager: ContractManager,
     web3: Web3,
     token_network_address: TokenNetworkAddress,
-    deploy: DeployedContracts,
-) -> List[dict]:
-    """ Read ChannelOpened events to get the channel_ids and participants """
-    new_channel_abi = contract_manager.get_event_abi(CONTRACT_TOKEN_NETWORK, ChannelEvent.OPENED)
-    topics = [
-        encode_hex(event_abi_to_log_topic(new_channel_abi)),  # type: ignore
-        None,
-        encode_hex(bytes([0] * 12) + to_canonical_address(candidate.address)),
-    ]
-    events = query_blockchain_events(
+    start_block: BlockNumber,
+    target_block: BlockNumber,
+) -> Iterable[Dict]:
+    """ Read all TokenNetwork events up to the current confirmed head. """
+
+    chain_id = ChainID(web3.eth.chainId)
+    filters = [token_network_events(token_network_address, contract_manager)]
+    blockchain_events = BlockchainEvents(
         web3=web3,
+        chain_id=chain_id,
         contract_manager=contract_manager,
-        contract_address=Address(token_network_address),
-        contract_name=CONTRACT_TOKEN_NETWORK,
-        topics=topics,
-        from_block=BlockNumber(
-            deploy["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]["block_number"]
-        ),
-        to_block=web3.eth.blockNumber,
+        last_fetched_block=start_block,
+        event_filters=filters,
+        block_batch_size_config=BlockBatchSizeConfig(),
     )
-    return [ev["args"] for ev in events]
+
+    while target_block > blockchain_events.last_fetched_block:
+        poll_result = blockchain_events.fetch_logs_in_batch(target_block)
+        if poll_result is None:
+            # No blocks could be fetched (due to timeout), retry
+            continue
+
+        for event in poll_result.events:
+            yield event.event_data
 
 
 def _get_token_network_address(
@@ -321,25 +325,27 @@ def _get_token_network_address(
     return token_network_address
 
 
-def _withdraw_all_from_channel(
-    candidate: ReclamationCandidate,
-    reclamation_candidates: List[ReclamationCandidate],
+def _withdraw_participant_left_capacity_from_channel(
+    address_to_candidate: Dict[Address, ReclamationCandidate],
     channel: dict,
     token_network: TokenNetwork,
-):
-    if channel["participant1"] == candidate.address:
+    current_confirmed_head,
+) -> None:
+    address = token_network.address
+    privkey = token_network.client.privkey
+
+    if channel["participant1"] == address:
         partner_address = channel["participant2"]
-    elif channel["participant2"] == candidate.address:
+    elif channel["participant2"] == address:
         partner_address = channel["participant1"]
     else:
         raise RuntimeError("not a participant of the given channel")
 
     # Check if channel still has deposits
-    confirmed_block_hash = token_network.client.get_confirmed_blockhash()
     details = token_network.detail_participants(
-        participant1=to_canonical_address(candidate.address),
+        participant1=to_canonical_address(address),
         participant2=to_canonical_address(partner_address),
-        block_identifier=confirmed_block_hash,
+        block_identifier=current_confirmed_head,
         channel_identifier=channel["channel_identifier"],
     )
     new_withdraw = WithdrawAmount(
@@ -348,18 +354,18 @@ def _withdraw_all_from_channel(
         + details.partner_details.deposit
         - details.partner_details.withdrawn
     )
+    assert new_withdraw >= 0, "negative withdrawn should never happen."
 
     if new_withdraw == 0:
+        log.info(
+            "Participant has no left over capacity in the channel. Skipping channel.",
+            channel=channel,
+        )
         return
 
-    partner_privkey = None
-    for maybe_partner in reclamation_candidates:
-        if maybe_partner.address == to_checksum_address(details.partner_details.address):
-            partner_privkey = maybe_partner.privkey
-            break
-
-    if partner_privkey is None:
-        log.warning(
+    partner_candidate = address_to_candidate.get(details.partner_details.address)
+    if partner_candidate is None:
+        log.error(
             "Both participants must be in list of reclamation_candidates. Skipping channel.",
             channel=channel,
         )
@@ -373,22 +379,21 @@ def _withdraw_all_from_channel(
             token_network_address=token_network.address,
             channel_identifier=channel["channel_identifier"],
         ),
-        participant=to_canonical_address(candidate.address),
+        participant=to_canonical_address(address),
         total_withdraw=total_withdraw,
         expiration_block=expiration_block,
     )
 
-    # Withdraw all deposits to participant1
     try:
         token_network.set_total_withdraw(
-            given_block_identifier=confirmed_block_hash,
+            given_block_identifier=current_confirmed_head,
             channel_identifier=channel["channel_identifier"],
             total_withdraw=total_withdraw,
             expiration_block=expiration_block,
-            participant=to_canonical_address(candidate.address),
+            participant=to_canonical_address(address),
             partner=to_canonical_address(details.partner_details.address),
-            participant_signature=LocalSigner(candidate.privkey).sign(packed_withdraw),
-            partner_signature=LocalSigner(partner_privkey).sign(packed_withdraw),
+            participant_signature=LocalSigner(privkey).sign(packed_withdraw),
+            partner_signature=LocalSigner(partner_candidate.privkey).sign(packed_withdraw),
         )
     except InsufficientEth:
         log.warning("Not enough ETH to withdraw", channel=channel)
@@ -397,12 +402,12 @@ def _withdraw_all_from_channel(
 
 
 def withdraw_all(
-    reclamation_candidates: List[ReclamationCandidate],
+    address_to_candidate: Dict[Address, ReclamationCandidate],
     account: Account,
     eth_rpc_endpoint: URI,
     contract_manager: ContractManager,
     token_address: TokenAddress,
-):
+) -> None:
     """ Withdraws all tokens from all channels
 
     For this to work, both channel participants have to be in ``reclamation_candidates``.
@@ -416,28 +421,100 @@ def withdraw_all(
     token_network_address = _get_token_network_address(
         token_address=token_address, web3=web3, privkey=account.privkey, deploy=deploy
     )
+    token_network_deployed_at = BlockNumber(
+        deploy["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]["block_number"]
+    )
 
-    for candidate in reclamation_candidates:
-        client = JSONRPCClient(web3, candidate.privkey)
-        proxy_manager = get_proxy_manager(client, deploy)
-        confirmed_block_hash = client.get_confirmed_blockhash()
-        token_network = proxy_manager.token_network(token_network_address, confirmed_block_hash)
+    # This assumes that reclamation will be done after the scenarios have
+    # executed, so we don't have to synchronize with the whole blockchain, just
+    # up to the last block used by the scenario run. Since we don't know the
+    # exact block, use the current confirmed head.
+    #
+    # This also assumes no RPC calls to pruned data will be performed, so the
+    # target_block is never updated!
+    confirmation_blocks = DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS
+    latest_block = web3.eth.getBlock(BLOCK_ID_LATEST)
+    latest_block_number = latest_block["number"]
+    current_confirmed_head = BlockNumber(latest_block_number - confirmation_blocks)
 
-        channels = _get_channels(
-            candidate=candidate,
-            contract_manager=contract_manager,
-            token_network_address=token_network_address,
-            web3=web3,
-            deploy=deploy,
+    # The block range is inclusive, meaning the block represented by
+    # last_fetched_block is skipped, so the block used has to be one before, to
+    # make sure the deployment block is included.
+    start_fetching_at = BlockNumber(token_network_deployed_at - 1)
+
+    all_network_events = _get_all_token_network_events(
+        contract_manager=contract_manager,
+        web3=web3,
+        token_network_address=token_network_address,
+        start_block=start_fetching_at,
+        target_block=current_confirmed_head,
+    )
+
+    tracked_channels: Dict[ChannelID, Dict] = dict()
+
+    # Ignore closed channels and if an address is not under our control. since
+    # The withdraw will only work properly on open channel if performed by both
+    # participants.
+    for event in all_network_events:
+        is_useful_channel_open = (
+            event["event"] == ChannelEvent.OPENED
+            and event["participant1"] in address_to_candidate
+            and event["participant2"] in address_to_candidate
         )
-        if not channels:
-            continue
+        if is_useful_channel_open:
+            tracked_channels[event["channel_identifier"]] = event
 
-        log.debug("Channels found", candidate=candidate.address, channels=len(channels))
-        for channel in channels:
-            _withdraw_all_from_channel(
-                candidate=candidate,
-                reclamation_candidates=reclamation_candidates,
-                channel=channel,
-                token_network=token_network,
+        is_useful_channel_close = event["event"] == ChannelEvent.CLOSED and (
+            event["channel_identifier"] in tracked_channels
+        )
+        if is_useful_channel_close:
+            del tracked_channels[event["channel_identifier"]]
+
+    log.debug("Channels found", channels=len(tracked_channels))
+
+    # There must be only one proxy per smart contract and and one JSONRPCClient
+    # per private key, this is necessary for transaction and nonce
+    # synchronization. This loops creates only the necessary instances. For
+    # this to work properly, this function cannot be executed concurrrently.
+    address_to_proxymanager: Dict[Address, ProxyManager] = dict()
+    for channel_open_event in tracked_channels.values():
+        for address in (channel_open_event["participant1"], channel_open_event["participant2"]):
+            if address not in address_to_proxymanager:
+                candidate = address_to_candidate[address]
+                client = JSONRPCClient(web3, candidate.privkey)
+                proxy_manager = ProxyManager(
+                    client,
+                    contract_manager,
+                    ProxyManagerMetadata(
+                        token_network_registry_deployed_at=None,
+                        filters_start_at=token_network_deployed_at,
+                    ),
+                )
+                address_to_proxymanager[address] = proxy_manager
+
+    pool = Pool()
+    greenlets = list()
+    for channel_open_event in tracked_channels.values():
+        for address in (channel_open_event["participant1"], channel_open_event["participant2"]):
+            candidate = address_to_candidate[address]
+            proxy_manager = address_to_proxymanager[address]
+            token_network = proxy_manager.token_network(
+                token_network_address, current_confirmed_head
             )
+
+            greenlets.append(
+                pool.spawn(
+                    _withdraw_participant_left_capacity_from_channel,
+                    address_to_candidate=address_to_candidate,
+                    channel=channel_open_event,
+                    token_network=token_network,
+                )
+            )
+
+    # Wait until all transactions are mined, at this point we are ignoring
+    # errors.
+    pool.join()
+
+    # Re-raise any errors that happened during operation.
+    for g in greenlets:
+        g.get()

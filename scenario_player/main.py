@@ -20,7 +20,7 @@ import structlog
 import yaml
 from click import Context
 from eth_typing import HexStr
-from eth_utils import to_checksum_address
+from eth_utils import to_canonical_address, to_checksum_address
 from gevent.event import Event
 from raiden_contracts.constants import CHAINNAME_TO_ID
 from raiden_contracts.contract_manager import (
@@ -37,7 +37,7 @@ from raiden.constants import Environment, EthClient
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
 from raiden.utils.cli import AddressType, EnumChoiceType, get_matrix_servers, option
-from raiden.utils.typing import TYPE_CHECKING, Any, AnyStr, Dict, Optional, TokenAddress
+from raiden.utils.typing import TYPE_CHECKING, Address, Any, AnyStr, Dict, Optional, TokenAddress
 from scenario_player import __version__, tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
@@ -46,7 +46,7 @@ from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import DummyStream, post_task_state_to_rc
 from scenario_player.utils.legacy import MutuallyExclusiveOption
-from scenario_player.utils.reclaim import get_reclamation_candidates
+from scenario_player.utils.reclaim import ReclamationCandidate, get_reclamation_candidates
 from scenario_player.utils.version import get_complete_spec
 
 if TYPE_CHECKING:
@@ -467,6 +467,9 @@ def reclaim_eth(
     configure_logging_for_subcommand(construct_log_file_name("reclaim-eth", data_path))
 
     reclamation_candidates = get_reclamation_candidates(data_path, min_age)
+    address_to_candidate: Dict[Address, ReclamationCandidate] = {
+        to_canonical_address(c.address): c for c in reclamation_candidates
+    }
     log.info("Reclaiming candidates", addresses=list(c.address for c in reclamation_candidates))
 
     if withdraw_from_udc:
@@ -484,7 +487,7 @@ def reclaim_eth(
             eth_rpc_endpoint=eth_rpc_endpoint,
         )
         scenario_player.utils.reclaim.withdraw_all(
-            reclamation_candidates=reclamation_candidates,
+            address_to_candidate=address_to_candidate,
             token_address=token_address,
             contract_manager=contract_manager,
             eth_rpc_endpoint=eth_rpc_endpoint,
