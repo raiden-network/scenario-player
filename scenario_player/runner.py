@@ -27,6 +27,7 @@ from raiden.network.proxies.proxy_manager import ProxyManager
 from raiden.network.proxies.token_network_registry import TokenNetworkRegistry
 from raiden.network.proxies.user_deposit import UserDeposit
 from raiden.network.rpc.client import JSONRPCClient
+from raiden.network.rpc.middleware import faster_gas_price_strategy
 from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.formatting import to_canonical_address
 from raiden.utils.nursery import Janitor
@@ -265,9 +266,7 @@ class ScenarioRunner:
         self.definition.settings.chain_id = self.chain_id
 
         self.client = JSONRPCClient(
-            web3,
-            privkey=account.privkey,
-            gas_price_strategy=self.definition.settings.gas_price_strategy,
+            web3, privkey=account.privkey, gas_price_strategy=faster_gas_price_strategy
         )
 
         assert account.address

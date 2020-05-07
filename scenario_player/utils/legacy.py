@@ -177,9 +177,8 @@ def withdraw_from_udc(
     reclamation_candidates: List[ReclamationCandidate],
     contract_manager: ContractManager,
     account: Account,
-    eth_rpc_endpoint: URI,
+    web3: Web3,
 ):
-    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
     chain_id = ChainID(web3.eth.chainId)
     deploy = get_contracts_deployment_info(chain_id, RAIDEN_CONTRACT_VERSION)
     assert deploy
@@ -245,7 +244,7 @@ def withdraw_from_udc(
         userdeposit_proxy.token_address("latest"),
         contract_manager,
         account,
-        eth_rpc_endpoint,
+        web3,
     )
 
 
@@ -254,10 +253,8 @@ def reclaim_erc20(
     token_address: TokenAddress,
     contract_manager: ContractManager,
     account: Account,
-    eth_rpc_endpoint: URI,
+    web3: Web3,
 ):
-    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
-
     reclaim_amount = 0
 
     log.info("Checking chain")
@@ -299,11 +296,7 @@ def reclaim_erc20(
         )
 
 
-def reclaim_eth(
-    reclamation_candidates: List[ReclamationCandidate], account: Account, eth_rpc_endpoint: URI
-):
-    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
-
+def reclaim_eth(reclamation_candidates: List[ReclamationCandidate], account: Account, web3: Web3):
     txs = []
     reclaim_amount = 0
     gas_price = web3.eth.gasPrice
