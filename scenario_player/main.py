@@ -30,11 +30,14 @@ from raiden_contracts.contract_manager import (
     contracts_precompiled_path,
 )
 from urwid import ExitMainLoop
+from web3 import HTTPProvider, Web3
+from web3.middleware import simple_cache_middleware
 
 import scenario_player.utils
 from raiden.accounts import Account
 from raiden.constants import Environment, EthClient
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
+from raiden.network.rpc.middleware import faster_gas_price_strategy
 from raiden.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
 from raiden.utils.cli import AddressType, EnumChoiceType, get_matrix_servers, option
 from raiden.utils.typing import TYPE_CHECKING, Any, AnyStr, Dict, Optional, TokenAddress
@@ -468,12 +471,16 @@ def reclaim_eth(
     reclamation_candidates = get_reclamation_candidates(data_path, min_age)
     log.info("Reclaiming candidates", addresses=list(c.address for c in reclamation_candidates))
 
+    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
+    web3.middleware_onion.add(simple_cache_middleware)
+    web3.eth.setGasPriceStrategy(faster_gas_price_strategy)
+
     if withdraw_from_udc:
         scenario_player.utils.withdraw_from_udc(
             reclamation_candidates=reclamation_candidates,
             contract_manager=contract_manager,
-            eth_rpc_endpoint=eth_rpc_endpoint,
             account=account,
+            web3=web3,
         )
 
     for token_address in reclaim_tokens:
@@ -486,15 +493,13 @@ def reclaim_eth(
             reclamation_candidates=reclamation_candidates,
             token_address=token_address,
             contract_manager=contract_manager,
-            eth_rpc_endpoint=eth_rpc_endpoint,
             account=account,
+            web3=web3,
         )
 
     log.info("start eth reclaim", eth_rpc_endpoint=eth_rpc_endpoint)
     scenario_player.utils.reclaim_eth(
-        reclamation_candidates=reclamation_candidates,
-        eth_rpc_endpoint=eth_rpc_endpoint,
-        account=account,
+        reclamation_candidates=reclamation_candidates, account=account, web3=web3
     )
 
 
