@@ -1,16 +1,27 @@
 import pytest
+from eth_typing import URI
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
+from raiden.utils.typing import BlockTimeout, FeeAmount, TokenAddress, TokenAmount
 from scenario_player.utils.configuration.settings import (
+    EnvironmentConfig,
     PFSSettingsConfig,
-    ScenarioConfigurationError,
     ServiceSettingsConfig,
     SettingsConfig,
     UDCSettingsConfig,
     UDCTokenSettings,
 )
 
-dummy_env = {"pfs_fee": 100}
+dummy_env = EnvironmentConfig(
+    pfs_fee=FeeAmount(100),
+    environment_type="development",
+    matrix_servers=[],
+    transfer_token=TokenAddress(bytes([1] * 20)),
+    pfs_with_fee=URI("http://www.example.com"),
+    eth_rpc_endpoint=URI("http://www.example.com"),
+    ms_reward_with_margin=TokenAmount(1),
+    settlement_timeout_min=BlockTimeout(100),
+)
 
 
 class TestSettingsConfig:

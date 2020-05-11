@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, Dict
+from dataclasses import asdict
 
 import jinja2
 import structlog
@@ -7,7 +7,7 @@ import yaml
 
 from scenario_player.utils.configuration.nodes import NodesConfig
 from scenario_player.utils.configuration.scenario import ScenarioConfig
-from scenario_player.utils.configuration.settings import SettingsConfig
+from scenario_player.utils.configuration.settings import EnvironmentConfig, SettingsConfig
 from scenario_player.utils.configuration.token import TokenConfig
 
 log = structlog.get_logger(__name__)
@@ -21,13 +21,13 @@ class ScenarioDefinition:
     """
 
     def __init__(
-        self, yaml_path: pathlib.Path, data_path: pathlib.Path, environment: Dict[str, Any]
+        self, yaml_path: pathlib.Path, data_path: pathlib.Path, environment: EnvironmentConfig
     ) -> None:
         self.path = yaml_path
         # Use the scenario file as jinja template and only parse the yaml, afterwards.
         with yaml_path.open() as f:
             yaml_template = jinja2.Template(f.read(), undefined=jinja2.StrictUndefined)
-            rendered_yaml = yaml_template.render(**environment)
+            rendered_yaml = yaml_template.render(**asdict(environment))
             self._loaded = yaml.safe_load(rendered_yaml)
 
         self._scenario_dir = None
@@ -41,9 +41,8 @@ class ScenarioDefinition:
         # If the environment sets a list of matrix servers, the nodes must not
         # choose other servers, so let's set the first server from the list as
         # default.
-        if "matrix_server_list" in environment:
-            self.nodes.dict["default_options"]["matrix-server"] = environment["matrix_servers"][0]
-        self.nodes.dict["default_options"]["environment-type"] = environment["environment_type"]
+        self.nodes.dict["default_options"]["matrix-server"] = environment.matrix_servers[0]
+        self.nodes.dict["default_options"]["environment-type"] = environment.environment_type
 
     @property
     def name(self) -> str:

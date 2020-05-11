@@ -1,10 +1,19 @@
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Sequence, Union
 
 import structlog
 from eth_typing import URI
+from typing_extensions import Literal
 
-from raiden.utils.typing import ChainID, ChecksumAddress
+from raiden.utils.typing import (
+    BlockTimeout,
+    ChainID,
+    ChecksumAddress,
+    FeeAmount,
+    TokenAddress,
+    TokenAmount,
+)
 from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
 from scenario_player.exceptions.config import (
     ScenarioConfigurationError,
@@ -13,6 +22,18 @@ from scenario_player.exceptions.config import (
 )
 
 log = structlog.get_logger(__name__)
+
+
+@dataclass
+class EnvironmentConfig:
+    environment_type: Union[Literal["production"], Literal["development"]]
+    matrix_servers: Sequence[Union[URI, Literal["auto"]]]
+    pfs_with_fee: URI
+    eth_rpc_endpoint: URI
+    transfer_token: TokenAddress
+    pfs_fee: FeeAmount
+    ms_reward_with_margin: TokenAmount
+    settlement_timeout_min: BlockTimeout
 
 
 class PFSSettingsConfig:
@@ -61,7 +82,7 @@ class UDCTokenSettings:
 
     CONFIGURATION_ERROR = UDCTokenConfigError
 
-    def __init__(self, loaded_definition: dict, environment: dict):
+    def __init__(self, loaded_definition: dict, environment: EnvironmentConfig):
         settings = loaded_definition.get("settings", {})
         services = settings.get("services", {})
         udc_settings = services.get("udc", {})
@@ -94,7 +115,7 @@ class UDCTokenSettings:
     @property
     def balance_per_node(self) -> int:
         """The required amount of UDC/RDN tokens required by each node."""
-        return int(self.dict.get("balance_per_node", 50 * self.environment["pfs_fee"]))
+        return int(self.dict.get("balance_per_node", 50 * self.environment.pfs_fee))
 
     @property
     def max_funding(self) -> int:
@@ -124,7 +145,7 @@ class UDCSettingsConfig:
             ...
     """
 
-    def __init__(self, loaded_definition: dict, environment: dict):
+    def __init__(self, loaded_definition: dict, environment: EnvironmentConfig):
         settings = loaded_definition.get("settings", {})
         services = settings.get("services", {})
         self.dict = services.get("udc", {})
@@ -155,7 +176,7 @@ class ServiceSettingsConfig:
 
     CONFIGURATION_ERROR = ServiceConfigurationError
 
-    def __init__(self, loaded_definition: dict, environment: dict):
+    def __init__(self, loaded_definition: dict, environment: EnvironmentConfig):
         settings = loaded_definition.get("settings", {})
         services = settings.get("services", {})
         self.dict = services
@@ -188,7 +209,7 @@ class SettingsConfig:
 
     CONFIGURATION_ERROR = ScenarioConfigurationError
 
-    def __init__(self, loaded_definition: dict, environment: dict) -> None:
+    def __init__(self, loaded_definition: dict, environment: EnvironmentConfig) -> None:
         settings = loaded_definition.get("settings", {})
         self.dict = settings
         self.services = ServiceSettingsConfig(loaded_definition, environment)
