@@ -30,6 +30,7 @@ from raiden_contracts.contract_manager import (
     contracts_precompiled_path,
 )
 from urwid import ExitMainLoop
+from web3 import HTTPProvider, Web3
 
 import scenario_player.utils
 from raiden.accounts import Account
@@ -458,6 +459,7 @@ def reclaim_eth(
 ):
     eth_rpc_endpoint = environment["eth_rpc_endpoint"]
     log.info("start cmd", eth_rpc_endpoint=eth_rpc_endpoint)
+    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
 
     data_path = Path(data_path)
     password = get_password(password, password_file)
@@ -476,36 +478,30 @@ def reclaim_eth(
         scenario_player.utils.reclaim.withdraw_from_udc(
             reclamation_candidates=reclamation_candidates,
             contract_manager=contract_manager,
-            eth_rpc_endpoint=eth_rpc_endpoint,
+            web3=web3,
             account=account,
         )
 
     for token_address in reclaim_tokens:
-        log.info(
-            "start ERC20 token reclaim",
-            token=to_checksum_address(token_address),
-            eth_rpc_endpoint=eth_rpc_endpoint,
-        )
+        log.info("start ERC20 token reclaim", token=to_checksum_address(token_address))
         scenario_player.utils.reclaim.withdraw_all(
             address_to_candidate=address_to_candidate,
             token_address=token_address,
             contract_manager=contract_manager,
-            eth_rpc_endpoint=eth_rpc_endpoint,
+            web3=web3,
             account=account,
         )
         scenario_player.utils.reclaim.reclaim_erc20(
             reclamation_candidates=reclamation_candidates,
             token_address=token_address,
             contract_manager=contract_manager,
-            eth_rpc_endpoint=eth_rpc_endpoint,
+            web3=web3,
             account=account,
         )
 
-    log.info("start eth reclaim", eth_rpc_endpoint=eth_rpc_endpoint)
+    log.info("start eth reclaim")
     scenario_player.utils.reclaim.reclaim_eth(
-        reclamation_candidates=reclamation_candidates,
-        eth_rpc_endpoint=eth_rpc_endpoint,
-        account=account,
+        reclamation_candidates=reclamation_candidates, web3=web3, account=account
     )
 
 

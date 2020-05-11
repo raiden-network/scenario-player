@@ -8,7 +8,6 @@ from typing import Dict, Iterable, List, Tuple
 
 import structlog
 from eth_keyfile import decode_keyfile_json
-from eth_typing import URI
 from eth_utils import to_canonical_address, to_checksum_address
 from gevent.pool import Pool
 from raiden_contracts.constants import CONTRACT_TOKEN_NETWORK_REGISTRY, ChannelEvent
@@ -17,7 +16,7 @@ from raiden_contracts.contract_manager import (
     DeployedContracts,
     get_contracts_deployment_info,
 )
-from web3 import HTTPProvider, Web3
+from web3 import Web3
 
 from raiden.accounts import Account
 from raiden.blockchain.events import BlockchainEvents, token_network_events
@@ -25,7 +24,7 @@ from raiden.constants import BLOCK_ID_LATEST
 from raiden.exceptions import InsufficientEth
 from raiden.messages.abstract import cached_property
 from raiden.network.proxies.custom_token import CustomToken
-from raiden.network.proxies.proxy_manager import ProxyManager, ProxyManagerMetadata
+from raiden.network.proxies.proxy_manager import ProxyManager
 from raiden.network.proxies.token_network import TokenNetwork
 from raiden.network.rpc.client import EthTransfer, JSONRPCClient
 from raiden.settings import (
@@ -70,6 +69,22 @@ class ReclamationCandidate:
     @cached_property
     def privkey(self):
         return decode_keyfile_json(self.keyfile_content, b"")
+
+    def get_client(self, web3: Web3) -> JSONRPCClient:
+        if not hasattr(self, "_client"):
+            self._web3 = web3
+            self._client = JSONRPCClient(web3, self.privkey)
+        else:
+            assert web3 == self._web3
+        return self._client
+
+    def get_proxy_manager(self, web3: Web3, deploy: DeployedContracts) -> ProxyManager:
+        if not hasattr(self, "_proxy_manager"):
+            self._deploy = deploy
+            self._proxy_manager = get_proxy_manager(self.get_client(web3), deploy)
+        else:
+            assert deploy == self._deploy
+        return self._proxy_manager
 
 
 def get_reclamation_candidates(
@@ -120,24 +135,18 @@ def withdraw_from_udc(
     reclamation_candidates: List[ReclamationCandidate],
     contract_manager: ContractManager,
     account: Account,
-    eth_rpc_endpoint: URI,
+    web3: Web3,
 ):
-    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
     chain_id = ChainID(web3.eth.chainId)
     deploy = get_contracts_deployment_info(chain_id, RAIDEN_CONTRACT_VERSION)
     assert deploy
 
-    address_to_proxy_manager: Dict[ChecksumAddress, ProxyManager] = dict()
     planned_withdraws: Dict[ChecksumAddress, Tuple[BlockNumber, TokenAmount]] = dict()
 
     log.info("Checking chain for deposits in UserDeposit contact")
     for node in reclamation_candidates:
-        if node.address not in address_to_proxy_manager:
-            client = JSONRPCClient(web3, node.privkey)
-            address_to_proxy_manager[node.address] = get_proxy_manager(client, deploy)
-        proxy_manager = address_to_proxy_manager[node.address]
         (userdeposit_proxy, user_token_proxy) = get_udc_and_corresponding_token_from_dependencies(
-            chain_id=chain_id, proxy_manager=proxy_manager
+            chain_id=chain_id, proxy_manager=node.get_proxy_manager(web3, deploy)
         )
 
         balance = userdeposit_proxy.get_total_deposit(to_canonical_address(node.address), "latest")
@@ -166,7 +175,8 @@ def withdraw_from_udc(
 
     reclaim_amount = 0
     for address, (ready_at_block, amount) in planned_withdraws.items():
-        proxy_manager = address_to_proxy_manager[address]
+        candidate = [c for c in reclamation_candidates if c.address == address][0]
+        proxy_manager = candidate.get_proxy_manager(web3, deploy)
         (userdeposit_proxy, user_token_proxy) = get_udc_and_corresponding_token_from_dependencies(
             chain_id=chain_id, proxy_manager=proxy_manager
         )
@@ -188,7 +198,7 @@ def withdraw_from_udc(
         userdeposit_proxy.token_address("latest"),
         contract_manager,
         account,
-        eth_rpc_endpoint,
+        web3,
     )
 
 
@@ -197,15 +207,13 @@ def reclaim_erc20(
     token_address: TokenAddress,
     contract_manager: ContractManager,
     account: Account,
-    eth_rpc_endpoint: URI,
+    web3: Web3,
 ):
-    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
-
     reclaim_amount = 0
 
     log.info("Checking chain for claimable tokens", token_address=token_address)
     for node in reclamation_candidates:
-        client = JSONRPCClient(web3, node.privkey)
+        client = node.get_client(web3)
         confirmed_block_hash = client.get_confirmed_blockhash()
         token = CustomToken(client, token_address, contract_manager, confirmed_block_hash)
 
@@ -243,11 +251,7 @@ def reclaim_erc20(
         )
 
 
-def reclaim_eth(
-    reclamation_candidates: List[ReclamationCandidate], account: Account, eth_rpc_endpoint: URI
-):
-    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
-
+def reclaim_eth(reclamation_candidates: List[ReclamationCandidate], account: Account, web3: Web3):
     txs = []
     reclaim_amount = 0
     gas_price = web3.eth.gasPrice
@@ -260,10 +264,9 @@ def reclaim_eth(
             drain_amount = balance - reclaim_tx_cost
             log.info("Reclaiming", from_address=node.address, amount=drain_amount.__format__(",d"))
             reclaim_amount += drain_amount
-            client = JSONRPCClient(web3, node.privkey)
             assert account.address
             txs.append(
-                client.transact(
+                node.get_client(web3).transact(
                     EthTransfer(
                         to_address=account.address, value=drain_amount, gas_price=gas_price
                     )
@@ -404,7 +407,7 @@ def _withdraw_participant_left_capacity_from_channel(
 def withdraw_all(
     address_to_candidate: Dict[Address, ReclamationCandidate],
     account: Account,
-    eth_rpc_endpoint: URI,
+    web3: Web3,
     contract_manager: ContractManager,
     token_address: TokenAddress,
 ) -> None:
@@ -413,7 +416,6 @@ def withdraw_all(
     For this to work, both channel participants have to be in ``reclamation_candidates``.
     All tokens will be withdrawn to participant1, ignoring all balance proofs.
     """
-    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
     chain_id = ChainID(web3.eth.chainId)
     deploy = get_contracts_deployment_info(chain_id, RAIDEN_CONTRACT_VERSION)
     assert deploy
@@ -472,32 +474,12 @@ def withdraw_all(
 
     log.debug("Channels found", channels=len(tracked_channels))
 
-    # There must be only one proxy per smart contract and and one JSONRPCClient
-    # per private key, this is necessary for transaction and nonce
-    # synchronization. This loops creates only the necessary instances. For
-    # this to work properly, this function cannot be executed concurrrently.
-    address_to_proxymanager: Dict[Address, ProxyManager] = dict()
-    for channel_open_event in tracked_channels.values():
-        for address in (channel_open_event["participant1"], channel_open_event["participant2"]):
-            if address not in address_to_proxymanager:
-                candidate = address_to_candidate[address]
-                client = JSONRPCClient(web3, candidate.privkey)
-                proxy_manager = ProxyManager(
-                    client,
-                    contract_manager,
-                    ProxyManagerMetadata(
-                        token_network_registry_deployed_at=None,
-                        filters_start_at=token_network_deployed_at,
-                    ),
-                )
-                address_to_proxymanager[address] = proxy_manager
-
     pool = Pool()
     greenlets = list()
     for channel_open_event in tracked_channels.values():
         for address in (channel_open_event["participant1"], channel_open_event["participant2"]):
             candidate = address_to_candidate[address]
-            proxy_manager = address_to_proxymanager[address]
+            proxy_manager = candidate.get_proxy_manager(web3, deploy)
             token_network = proxy_manager.token_network(
                 token_network_address, current_confirmed_head
             )
