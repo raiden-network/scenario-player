@@ -38,6 +38,7 @@ from raiden.utils.signer import LocalSigner
 from raiden.utils.typing import (
     Address,
     BlockExpiration,
+    BlockIdentifier,
     BlockNumber,
     ChainID,
     ChannelID,
@@ -332,7 +333,7 @@ def _withdraw_participant_left_capacity_from_channel(
     address_to_candidate: Dict[Address, ReclamationCandidate],
     channel: dict,
     token_network: TokenNetwork,
-    current_confirmed_head,
+    current_confirmed_head: BlockIdentifier,
 ) -> None:
     address = token_network.address
     privkey = token_network.client.privkey
@@ -488,6 +489,7 @@ def withdraw_all(
                 address_to_candidate=address_to_candidate,
                 channel=channel_open_event,
                 token_network=token_network,
+                current_confirmed_head=current_confirmed_head,
             )
 
     # Wait until all transactions are mined, at this point we are ignoring
