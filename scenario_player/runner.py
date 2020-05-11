@@ -265,11 +265,12 @@ class ScenarioRunner:
         self.definition.settings.eth_rpc_endpoint = environment["eth_rpc_endpoint"]
         self.definition.settings.chain_id = self.chain_id
 
+        assert account.privkey, "Account not unlockable"
         self.client = JSONRPCClient(
             web3, privkey=account.privkey, gas_price_strategy=faster_gas_price_strategy
         )
 
-        assert account.address
+        assert account.address, "Account not loaded"
         balance = self.client.balance(account.address)
         if balance < OWN_ACCOUNT_BALANCE_MIN:
             raise ScenarioError(

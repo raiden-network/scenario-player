@@ -11,11 +11,10 @@ import click
 import requests
 import structlog
 from eth_keyfile import decode_keyfile_json
-from eth_typing import URI
 from eth_utils import encode_hex, to_canonical_address, to_checksum_address
 from raiden_contracts.contract_manager import ContractManager, get_contracts_deployment_info
 from requests.adapters import HTTPAdapter  # ugly import, it'll be in py3.8
-from web3 import HTTPProvider, Web3
+from web3 import Web3
 from web3.exceptions import TransactionNotFound
 from web3.types import TxReceipt
 
