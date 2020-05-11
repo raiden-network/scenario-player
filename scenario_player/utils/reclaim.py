@@ -475,7 +475,6 @@ def withdraw_all(
     log.debug("Channels found", channels=len(tracked_channels))
 
     pool = Pool()
-    greenlets = list()
     for channel_open_event in tracked_channels.values():
         for address in (channel_open_event["participant1"], channel_open_event["participant2"]):
             candidate = address_to_candidate[address]
@@ -484,19 +483,13 @@ def withdraw_all(
                 token_network_address, current_confirmed_head
             )
 
-            greenlets.append(
-                pool.spawn(
-                    _withdraw_participant_left_capacity_from_channel,
-                    address_to_candidate=address_to_candidate,
-                    channel=channel_open_event,
-                    token_network=token_network,
-                )
+            pool.spawn(
+                _withdraw_participant_left_capacity_from_channel,
+                address_to_candidate=address_to_candidate,
+                channel=channel_open_event,
+                token_network=token_network,
             )
 
     # Wait until all transactions are mined, at this point we are ignoring
     # errors.
-    pool.join()
-
-    # Re-raise any errors that happened during operation.
-    for g in greenlets:
-        g.get()
+    pool.join(raise_error=True)
