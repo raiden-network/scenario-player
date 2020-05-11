@@ -335,20 +335,13 @@ def _withdraw_participant_left_capacity_from_channel(
     token_network: TokenNetwork,
     current_confirmed_head: BlockIdentifier,
 ) -> None:
-    address = token_network.address
-    privkey = token_network.client.privkey
-
-    if channel["participant1"] == address:
-        partner_address = channel["participant2"]
-    elif channel["participant2"] == address:
-        partner_address = channel["participant1"]
-    else:
-        raise RuntimeError("not a participant of the given channel")
+    """ Withdraw all tokens in channel to channel["participant1"] """
+    assert token_network.client.address == channel["participant1"]
 
     # Check if channel still has deposits
     details = token_network.detail_participants(
-        participant1=to_canonical_address(address),
-        participant2=to_canonical_address(partner_address),
+        participant1=to_canonical_address(channel["participant1"]),
+        participant2=to_canonical_address(channel["participant2"]),
         block_identifier=current_confirmed_head,
         channel_identifier=channel["channel_identifier"],
     )
@@ -383,19 +376,20 @@ def _withdraw_participant_left_capacity_from_channel(
             token_network_address=token_network.address,
             channel_identifier=channel["channel_identifier"],
         ),
-        participant=to_canonical_address(address),
+        participant=to_canonical_address(channel["participant1"]),
         total_withdraw=total_withdraw,
         expiration_block=expiration_block,
     )
 
+    privkey = token_network.client.privkey
     try:
         token_network.set_total_withdraw(
             given_block_identifier=current_confirmed_head,
             channel_identifier=channel["channel_identifier"],
             total_withdraw=total_withdraw,
             expiration_block=expiration_block,
-            participant=to_canonical_address(address),
-            partner=to_canonical_address(details.partner_details.address),
+            participant=to_canonical_address(channel["participant1"]),
+            partner=to_canonical_address(channel["participant2"]),
             participant_signature=LocalSigner(privkey).sign(packed_withdraw),
             partner_signature=LocalSigner(partner_candidate.privkey).sign(packed_withdraw),
         )
@@ -415,7 +409,10 @@ def withdraw_all(
     """ Withdraws all tokens from all channels
 
     For this to work, both channel participants have to be in ``reclamation_candidates``.
+
     All tokens will be withdrawn to participant1, ignoring all balance proofs.
+    By doing this, we can empty the channel in a single transaction without any
+    wait times.
     """
     chain_id = ChainID(web3.eth.chainId)
     deploy = get_contracts_deployment_info(chain_id, RAIDEN_CONTRACT_VERSION)
@@ -477,20 +474,17 @@ def withdraw_all(
 
     pool = Pool()
     for channel_open_event in tracked_channels.values():
-        for address in (channel_open_event["participant1"], channel_open_event["participant2"]):
-            candidate = address_to_candidate[address]
-            proxy_manager = candidate.get_proxy_manager(web3, deploy)
-            token_network = proxy_manager.token_network(
-                token_network_address, current_confirmed_head
-            )
+        candidate = address_to_candidate[channel_open_event["participant1"]]
+        proxy_manager = candidate.get_proxy_manager(web3, deploy)
+        token_network = proxy_manager.token_network(token_network_address, current_confirmed_head)
 
-            pool.spawn(
-                _withdraw_participant_left_capacity_from_channel,
-                address_to_candidate=address_to_candidate,
-                channel=channel_open_event,
-                token_network=token_network,
-                current_confirmed_head=current_confirmed_head,
-            )
+        pool.spawn(
+            _withdraw_participant_left_capacity_from_channel,
+            address_to_candidate=address_to_candidate,
+            channel=channel_open_event,
+            token_network=token_network,
+            current_confirmed_head=current_confirmed_head,
+        )
 
     # Wait until all transactions are mined, at this point we are ignoring
     # errors.
