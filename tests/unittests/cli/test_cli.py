@@ -111,7 +111,7 @@ class TestVersionInformation:
 
 
 class TestDataPathBehavior:
-    @patch("scenario_player.utils.reclaim.Web3")
+    @patch("scenario_player.main.Web3")
     def test_reclaim_eth_data_path(self, web3_mock, runner, tmpdir):
         """Regression test, to make sure '--data-path' is respected for
         'reclaim-eth' subcommand."""

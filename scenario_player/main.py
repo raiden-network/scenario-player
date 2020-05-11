@@ -31,11 +31,13 @@ from raiden_contracts.contract_manager import (
 )
 from urwid import ExitMainLoop
 from web3 import HTTPProvider, Web3
+from web3.middleware import simple_cache_middleware
 
 import scenario_player.utils
 from raiden.accounts import Account
 from raiden.constants import Environment, EthClient
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
+from raiden.network.rpc.middleware import faster_gas_price_strategy
 from raiden.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
 from raiden.utils.cli import AddressType, EnumChoiceType, get_matrix_servers, option
 from raiden.utils.typing import TYPE_CHECKING, Address, Any, AnyStr, Dict, Optional, TokenAddress
@@ -473,6 +475,10 @@ def reclaim_eth(
         to_canonical_address(c.address): c for c in reclamation_candidates
     }
     log.info("Reclaiming candidates", addresses=list(c.address for c in reclamation_candidates))
+
+    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
+    web3.middleware_onion.add(simple_cache_middleware)
+    web3.eth.setGasPriceStrategy(faster_gas_price_strategy)
 
     if withdraw_from_udc:
         scenario_player.utils.reclaim.withdraw_from_udc(
