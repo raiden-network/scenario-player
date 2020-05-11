@@ -460,17 +460,17 @@ def withdraw_all(
     for event in all_network_events:
         is_useful_channel_open = (
             event["event"] == ChannelEvent.OPENED
-            and event["participant1"] in address_to_candidate
-            and event["participant2"] in address_to_candidate
+            and event["args"]["participant1"] in address_to_candidate
+            and event["args"]["participant2"] in address_to_candidate
         )
         if is_useful_channel_open:
-            tracked_channels[event["channel_identifier"]] = event
+            tracked_channels[event["args"]["channel_identifier"]] = event["args"]
 
         is_useful_channel_close = event["event"] == ChannelEvent.CLOSED and (
-            event["channel_identifier"] in tracked_channels
+            event["args"]["channel_identifier"] in tracked_channels
         )
         if is_useful_channel_close:
-            del tracked_channels[event["channel_identifier"]]
+            del tracked_channels[event["args"]["channel_identifier"]]
 
     log.debug("Channels found", channels=len(tracked_channels))
 
