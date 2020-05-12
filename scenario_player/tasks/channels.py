@@ -142,6 +142,7 @@ class StoreChannelInfoTask(ChannelActionTask):
 class AssertTask(ChannelActionTask):
     _name = "assert"
     _method = "get"
+    SYNCHRONIZATION_TIME_SECONDS = 0
 
     def _process_response(self, response_dict: dict):
         response_dict = super()._process_response(response_dict)

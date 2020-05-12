@@ -14,6 +14,7 @@ log = structlog.get_logger(__name__)
 
 class SerialTask(Task):
     _name = "serial"
+    SYNCHRONIZATION_TIME_SECONDS = 0
 
     def __init__(
         self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
@@ -50,6 +51,7 @@ class SerialTask(Task):
 
 
 class ParallelTask(SerialTask):
+    SYNCHRONIZATION_TIME_SECONDS = 0
     _name = "parallel"
 
     def _run(self, *args, **kwargs):
@@ -61,6 +63,7 @@ class ParallelTask(SerialTask):
 
 class WaitTask(Task):
     _name = "wait"
+    SYNCHRONIZATION_TIME_SECONDS = 0
 
     def _run(self, *args, **kwargs):  # pylint: disable=unused-argument
         gevent.sleep(self._config)
@@ -68,6 +71,7 @@ class WaitTask(Task):
 
 class WaitBlocksTask(Task):
     _name = "wait_blocks"
+    SYNCHRONIZATION_TIME_SECONDS = 0
 
     def _run(self, *args, **kwargs):  # pylint: disable=unused-argument
         web3 = self._runner.client.web3

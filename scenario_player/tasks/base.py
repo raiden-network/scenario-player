@@ -39,6 +39,50 @@ _TASK_ID = 0
 class Task:
     _name: str
 
+    # The tasks in a scenario are written with the assumption of global
+    # consistency, which is wrong. Consider the following scenario:
+    #
+    #    - open_channel: {from: 0, to: 1, total_deposit: 1_000}
+    #    - open_channel: {from: 1, to: 2, total_deposit: 1_000}
+    #    - transfer: {from: 0, to: 2, amount: 1}
+    #
+    # There are multiple system runnning concurrently that must be synchronized for
+    # the `transfer` above to work:
+    #
+    # 1. The initiator (node 0) has to see the open event for the channel `1-2`.
+    # This is necessary since the initiator will verify that at least one route to
+    # the target exists, this is done to avoid sending unecessary IOUs to the PFS,
+    # without the route the payment fails (In general the initiator has to see all
+    # channel open events for every channel used in the path).
+    # 2. The node receiving a lock must see the deposit of the sender. In the case
+    # above node 1 has to see the deposit from node 0, and node 2 from node 1. If
+    # this is not satisfied a locked transfer message will be rejected. Note:
+    # Retries at the transport layer *do* fix this particular problem (In general,
+    # every payee (mediator or target) have to see the deposit of the payer).
+    # 3. The PFS used by the initiator (node 0), has to see the all channel opens
+    # used by the transfer. This is necessary because the PFS has to find a viable
+    # route in the network, and edges are added to the network graph based on these
+    # events. (as of 0.9.0 deposits are not important).
+    # 4. Every node in the path has to update the PFS with a capacity update. This
+    # is necessary to determine the available off-chain balances (specially since
+    # on-chain deposits are ignored by the PFS). And a fee update is necessary for
+    # the sender.
+    #
+    # None of the above consistency checks are currently performed. Other
+    # actions, like assert on the state of a channel after a close or settle,
+    # checking monitoring requests, etc. also require additional
+    # synchronization. Eventually the synchronization will have to be
+    # implemented, since that is the only reliable way of preventing flakiness
+    # of the scenarios. But until the proper synchronization is performed we
+    # have to add enough time for every agent in the network to synchronize.
+    # This is what the value below is used for, it determines the number of
+    # seconds  available for the agents in the system to synchronize. The value
+    # is applied after every task to cover for any unforseen side effects,
+    # tasks that are side-effect free can overwrite the value to 0.
+    #
+    # Ref.: https://github.com/raiden-network/raiden/issues/6149#issuecomment-627387624
+    SYNCHRONIZATION_TIME_SECONDS = 30
+
     def __init__(
         self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
     ) -> None:
@@ -65,6 +109,7 @@ class Task:
         self._start_time = time.monotonic()
         try:
             return_val = self._run(*args, **kwargs)
+            gevent.sleep(self.SYNCHRONIZATION_TIME_SECONDS)
         except BaseException as ex:
             self.state = TaskState.ERRORED
             log.exception("Task errored", task=self)
