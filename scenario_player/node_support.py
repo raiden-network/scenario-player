@@ -18,6 +18,7 @@ import requests
 import structlog
 from cachetools.func import ttl_cache
 from eth_keyfile import create_keyfile_json
+from eth_typing import URI
 from eth_utils import to_checksum_address
 from eth_utils.typing import ChecksumAddress
 from gevent import Greenlet
@@ -184,6 +185,9 @@ class NodeRunner:
             shutil.rmtree(self._datadir)
         self._datadir.mkdir(parents=True, exist_ok=True)
         self._validate_options(options)
+        self._eth_rpc_endpoint: URI = next(
+            self._runner.definition.settings.eth_rpc_endpoint_iterator
+        )
 
     def initialize(self):
         # Access properties to ensure they're initialized
@@ -243,7 +247,7 @@ class NodeRunner:
             "--gas-price",
             self._options.get("gas-price", "normal"),
             "--eth-rpc-endpoint",
-            self._runner.definition.settings.eth_rpc_endpoint,
+            self._eth_rpc_endpoint,
             "--log-config",
             ":info,raiden:debug,raiden_contracts:debug,raiden.api.rest.pywsgi:warning",
             "--log-json",

@@ -18,7 +18,7 @@ dummy_env = EnvironmentConfig(
     matrix_servers=[],
     transfer_token=TokenAddress(bytes([1] * 20)),
     pfs_with_fee=URI("http://www.example.com"),
-    eth_rpc_endpoint=URI("http://www.example.com"),
+    eth_rpc_endpoints=[URI("http://www.example.com")],
     ms_reward_with_margin=TokenAmount(1),
     settlement_timeout_min=BlockTimeout(100),
 )

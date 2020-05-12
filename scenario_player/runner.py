@@ -264,9 +264,9 @@ class ScenarioRunner:
         log.info("Run number", run_number=self.run_number)
 
         self.protocol = "http"
-        web3 = Web3(HTTPProvider(environment.eth_rpc_endpoint))
+        web3 = Web3(HTTPProvider(environment.eth_rpc_endpoints[0]))
         self.chain_id = ChainID(web3.eth.chainId)
-        self.definition.settings.eth_rpc_endpoint = environment.eth_rpc_endpoint
+        self.definition.settings.eth_rpc_endpoint_iterator = environment.eth_rpc_endpoint_iterator
         self.definition.settings.chain_id = self.chain_id
 
         assert account.privkey, "Account not unlockable"

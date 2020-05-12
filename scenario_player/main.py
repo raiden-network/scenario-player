@@ -470,9 +470,8 @@ def reclaim_eth(
     environment: EnvironmentConfig,
     data_path,
 ):
-    eth_rpc_endpoint = environment.eth_rpc_endpoint
+    eth_rpc_endpoint = environment.eth_rpc_endpoints[0]
     log.info("start cmd", eth_rpc_endpoint=eth_rpc_endpoint)
-    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
 
     data_path = Path(data_path)
     password = get_password(password, password_file)
@@ -593,7 +592,7 @@ def smoketest(ctx: Context, eth_client: EthClient):
                     matrix_servers=["auto"],
                     transfer_token=TokenAddress(bytes([1] * 20)),
                     pfs_with_fee=URI("http://www.example.com"),
-                    eth_rpc_endpoint=URI(setup.args["eth_rpc_endpoint"]),
+                    eth_rpc_endpoints=[URI(setup.args["eth_rpc_endpoint"])],
                     ms_reward_with_margin=TokenAmount(1),
                     settlement_timeout_min=BlockTimeout(100),
                 )

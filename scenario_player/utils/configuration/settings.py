@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+import itertools
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Iterator, List, Optional, Sequence, Union
 
 import structlog
 from eth_typing import URI
@@ -29,11 +30,15 @@ class EnvironmentConfig:
     environment_type: Union[Literal["production"], Literal["development"]]
     matrix_servers: Sequence[Union[URI, Literal["auto"]]]
     pfs_with_fee: URI
-    eth_rpc_endpoint: URI
+    eth_rpc_endpoints: List[URI]
+    eth_rpc_endpoint_iterator: Iterator[URI] = field(init=False)
     transfer_token: TokenAddress
     pfs_fee: FeeAmount
     ms_reward_with_margin: TokenAmount
     settlement_timeout_min: BlockTimeout
+
+    def __post_init__(self):
+        self.eth_rpc_endpoint_iterator = itertools.cycle(self.eth_rpc_endpoints)
 
 
 class PFSSettingsConfig:
@@ -214,7 +219,7 @@ class SettingsConfig:
         self.dict = settings
         self.services = ServiceSettingsConfig(loaded_definition, environment)
         self.validate()
-        self.eth_rpc_endpoint: URI
+        self.eth_rpc_endpoint_iterator: Iterator[URI]
         self.chain_id: ChainID
         self.sp_root_dir: Optional[Path] = None
         self._sp_scenario_root_dir: Optional[Path] = None
