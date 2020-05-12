@@ -68,7 +68,7 @@ if TYPE_CHECKING:
     from raiden.tests.utils.smoketest import RaidenTestSetup
 
 log = structlog.get_logger(__name__)
-DEFAULT_ENV_FILE = Path(__file__).parent.parent / "environment" / "development.json"
+DEFAULT_ENV_FILE = Path(__file__).parent / "environment" / "development.json"
 
 
 class TaskNotifyType(Enum):
