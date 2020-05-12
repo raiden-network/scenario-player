@@ -32,11 +32,12 @@ ARG SP_VERSION
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Pull the Git repository for the scenario-player, and install it to the venv
+# Pull the Git repository for the scenario-player, and install it to the venv.
+# Add a file describing the repo state to avoid false caching of this step
+ADD https://api.github.com/repos/raiden-network/scenario-player/git/refs/heads/master github_state.json
 RUN git clone https://github.com/raiden-network/scenario-player.git /sp
 WORKDIR /sp
-RUN git checkout ${SP_VERSION}
-RUN pip install .
+RUN git checkout ${SP_VERSION} && pip install .
 
 ################################################################################
 # COMPILE & INSTALL RAIDEN (raiden-image)                                                #
