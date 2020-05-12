@@ -1,10 +1,12 @@
 {
-	"environment_type": "development",
-	"pfs_with_fee": "https://pfs-goerli-with-fee.services-dev.raiden.network",
-	"pfs_without_fee": "https://pfs-goerli.services-dev.raiden.network",
-	"eth_rpc_endpoint": "http://parity.goerli.ethnodes.brainbot.com:8545",
-	"transfer_token": "0x59105441977ecD9d805A4f5b060E34676F50F806",
-	"pfs_fee": 100,
-	"ms_reward_with_margin": 5500000000000000000,
-	"settlement_timeout_min": 40
+    "environment_type": "development",
+    "pfs_with_fee": "https://pfs-goerli-with-fee.services-dev.raiden.network",
+    "eth_rpc_endpoints": [
+        "http://geth.goerli.ethnodes.brainbot.com:8545",
+        "http://parity.goerli.ethnodes.brainbot.com:8545"
+    ],
+    "transfer_token": "0x59105441977ecD9d805A4f5b060E34676F50F806",
+    "pfs_fee": 100,
+    "ms_reward_with_margin": 5500000000000000000,
+    "settlement_timeout_min": 40
 }

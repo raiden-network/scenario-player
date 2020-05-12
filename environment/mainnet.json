@@ -1,10 +1,26 @@
 {
-	"environment_type": "production",
-	"matrix_server_list": "https://raw.githubusercontent.com/raiden-network/raiden-service-bundle/master/known_servers.main.test.yaml",
-	"pfs_with_fee": "https://pfs.rsb01.test.raiden.network",
-	"eth_rpc_endpoint": "http://geth.mainnet.ethnodes.brainbot.com:8545",
-	"transfer_token": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-	"pfs_fee": 50000000000000000,
-	"ms_reward_with_margin": 5500000000000000000,
-	"settlement_timeout_min": 100
+    "environment_type": "production",
+    "matrix_server_list": "https://raw.githubusercontent.com/raiden-network/raiden-service-bundle/master/known_servers.main.test.yaml",
+    "pfs_with_fee": "https://pfs.rsb01.test.raiden.network",
+    "eth_rpc_endpoints": [
+        "http://1.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://2.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://3.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://4.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://5.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://6.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://7.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://8.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://9.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://10.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://11.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://12.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://13.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://14.geth.mainnet.ethnodes.brainbot.com:8545",
+        "http://15.geth.mainnet.ethnodes.brainbot.com:8545"
+    ],
+    "transfer_token": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    "pfs_fee": 50000000000000000,
+    "ms_reward_with_margin": 5500000000000000000,
+    "settlement_timeout_min": 100
 }

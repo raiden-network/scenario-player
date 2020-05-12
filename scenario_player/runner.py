@@ -2,7 +2,7 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Callable, Dict, Optional, Set, Tuple, cast
 
 import gevent
 import requests
@@ -52,7 +52,11 @@ from scenario_player.exceptions import ScenarioError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
 from scenario_player.node_support import NodeController, RaidenReleaseKeeper
 from scenario_player.utils import TimeOutHTTPAdapter
-from scenario_player.utils.configuration.settings import SettingsConfig, UDCSettingsConfig
+from scenario_player.utils.configuration.settings import (
+    EnvironmentConfig,
+    SettingsConfig,
+    UDCSettingsConfig,
+)
 from scenario_player.utils.contracts import (
     get_proxy_manager,
     get_udc_and_corresponding_token_from_dependencies,
@@ -232,7 +236,7 @@ class ScenarioRunner:
         auth: str,
         data_path: Path,
         scenario_file: Path,
-        environment: Dict[str, Any],
+        environment: EnvironmentConfig,
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
@@ -260,9 +264,9 @@ class ScenarioRunner:
         log.info("Run number", run_number=self.run_number)
 
         self.protocol = "http"
-        web3 = Web3(HTTPProvider(environment["eth_rpc_endpoint"]))
+        web3 = Web3(HTTPProvider(environment.eth_rpc_endpoints[0]))
         self.chain_id = ChainID(web3.eth.chainId)
-        self.definition.settings.eth_rpc_endpoint = environment["eth_rpc_endpoint"]
+        self.definition.settings.eth_rpc_endpoint_iterator = environment.eth_rpc_endpoint_iterator
         self.definition.settings.chain_id = self.chain_id
 
         assert account.privkey, "Account not unlockable"

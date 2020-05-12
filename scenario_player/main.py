@@ -12,14 +12,14 @@ from io import StringIO
 from itertools import cycle, islice
 from pathlib import Path
 from tempfile import mkdtemp
-from typing import IO, List
+from typing import IO, List, Sequence
 
 import click
 import gevent
 import structlog
 import yaml
 from click import Context
-from eth_typing import HexStr
+from eth_typing import URI, HexStr
 from eth_utils import to_canonical_address, to_checksum_address
 from gevent.event import Event
 from raiden_contracts.constants import CHAINNAME_TO_ID
@@ -40,7 +40,18 @@ from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.network.rpc.middleware import faster_gas_price_strategy
 from raiden.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
 from raiden.utils.cli import AddressType, EnumChoiceType, get_matrix_servers, option
-from raiden.utils.typing import TYPE_CHECKING, Address, Any, AnyStr, Dict, Optional, TokenAddress
+from raiden.utils.typing import (
+    TYPE_CHECKING,
+    Address,
+    Any,
+    AnyStr,
+    BlockTimeout,
+    Dict,
+    FeeAmount,
+    Optional,
+    TokenAddress,
+    TokenAmount,
+)
 from scenario_player import __version__, tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
@@ -48,6 +59,7 @@ from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import DummyStream, post_task_state_to_rc
+from scenario_player.utils.configuration.settings import EnvironmentConfig
 from scenario_player.utils.legacy import MutuallyExclusiveOption
 from scenario_player.utils.reclaim import ReclamationCandidate, get_reclamation_candidates
 from scenario_player.utils.version import get_complete_spec
@@ -206,7 +218,7 @@ def run(
     notify_tasks,
     enable_ui,
     password_file,
-    environment: Dict[str, Any],
+    environment: EnvironmentConfig,
 ):
     """Execute a scenario as defined in scenario definition file.
     click entrypoint, this dispatches to `run_`.
@@ -229,7 +241,7 @@ def run(
     )
 
 
-def _load_environment(environment_file: IO) -> Dict[str, Any]:
+def _load_environment(environment_file: IO) -> EnvironmentConfig:
     """ Load the environment JSON file and process matrix server list
 
     Nodes can be assigned to fixed matrix servers. To allow this, we must
@@ -238,16 +250,15 @@ def _load_environment(environment_file: IO) -> Dict[str, Any]:
     environment = json.load(environment_file)
     assert isinstance(environment, dict)
 
-    matrix_server_list = environment.get(
+    matrix_server_list = environment.pop(
         "matrix_server_list",
         DEFAULT_MATRIX_KNOWN_SERVERS[Environment(environment["environment_type"])],
     )
-    matrix_servers = get_matrix_servers(matrix_server_list)
+    matrix_servers: Sequence[URI] = get_matrix_servers(matrix_server_list)  # type: ignore
     if len(matrix_servers) < 4:
         matrix_servers = list(islice(cycle(matrix_servers), 4))
-    environment["matrix_servers"] = matrix_servers
 
-    return environment
+    return EnvironmentConfig(matrix_servers=matrix_servers, **environment)
 
 
 def run_(
@@ -260,7 +271,7 @@ def run_(
     enable_ui,
     password_file,
     log_file_name,
-    environment: Dict[str, Any],
+    environment: EnvironmentConfig,
     smoketest_deployment_data=None,
 ) -> None:
     """Execute a scenario as defined in scenario definition file.
@@ -373,7 +384,7 @@ class ScenarioRunnerArgs:
     scenario_file: Any
     notify_tasks_callable: Any
     smoketest_deployment_data: Any
-    environment: Dict[str, Any]
+    environment: EnvironmentConfig
 
 
 def orchestrate(
@@ -456,12 +467,11 @@ def reclaim_eth(
     password,
     password_file,
     keystore_file,
-    environment,
+    environment: EnvironmentConfig,
     data_path,
 ):
-    eth_rpc_endpoint = environment["eth_rpc_endpoint"]
+    eth_rpc_endpoint = environment.eth_rpc_endpoints[0]
     log.info("start cmd", eth_rpc_endpoint=eth_rpc_endpoint)
-    web3 = Web3(HTTPProvider(eth_rpc_endpoint))
 
     data_path = Path(data_path)
     password = get_password(password, password_file)
@@ -576,12 +586,16 @@ def smoketest(ctx: Context, eth_client: EthClient):
                 password_file = setup.args["password_file"].name
                 print_step("Running scenario player")
                 append_report("Scenario Player Log", captured_stdout.getvalue())
-                env = {
-                    "eth_rpc_endpoint": setup.args["eth_rpc_endpoint"],
-                    "environment_type": "development",
-                    "transport_servers": [],
-                    "pfs_fee": 100,
-                }
+                env = EnvironmentConfig(
+                    pfs_fee=FeeAmount(100),
+                    environment_type="development",
+                    matrix_servers=["auto"],
+                    transfer_token=TokenAddress(bytes([1] * 20)),
+                    pfs_with_fee=URI("http://www.example.com"),
+                    eth_rpc_endpoints=[URI(setup.args["eth_rpc_endpoint"])],
+                    ms_reward_with_margin=TokenAmount(1),
+                    settlement_timeout_min=BlockTimeout(100),
+                )
                 try:
                     run_(
                         data_path=Path(datadir),
