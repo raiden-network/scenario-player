@@ -291,9 +291,9 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
         return response_dict
 
 
-class AssertPFSIoUTask(RESTAPIActionTask):
+class AssertPFSIOUTask(RESTAPIActionTask):
     """
-    Assert PFS IoU task
+    Assert PFS IOU task
 
     Example usages:
 
