@@ -589,7 +589,7 @@ def smoketest(ctx: Context, eth_client: EthClient):
                 env = EnvironmentConfig(
                     pfs_fee=FeeAmount(100),
                     environment_type="development",
-                    matrix_servers=["auto"],
+                    matrix_servers=[setup.args["matrix_server"]],
                     transfer_token=TokenAddress(bytes([1] * 20)),
                     pfs_with_fee=URI("http://www.example.com"),
                     eth_rpc_endpoints=[URI(setup.args["eth_rpc_endpoint"])],
