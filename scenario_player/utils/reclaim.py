@@ -27,6 +27,7 @@ from raiden.network.proxies.custom_token import CustomToken
 from raiden.network.proxies.proxy_manager import ProxyManager
 from raiden.network.proxies.token_network import TokenNetwork
 from raiden.network.rpc.client import EthTransfer, JSONRPCClient
+from raiden.network.rpc.middleware import faster_gas_price_strategy
 from raiden.settings import (
     DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS,
     RAIDEN_CONTRACT_VERSION,
@@ -74,7 +75,9 @@ class ReclamationCandidate:
     def get_client(self, web3: Web3) -> JSONRPCClient:
         if not hasattr(self, "_client"):
             self._web3 = web3
-            self._client = JSONRPCClient(web3, self.privkey)
+            self._client = JSONRPCClient(
+                web3=web3, privkey=self.privkey, gas_price_strategy=faster_gas_price_strategy
+            )
         else:
             assert web3 == self._web3
         return self._client
@@ -248,7 +251,7 @@ def reclaim_erc20(
         log.info(
             "Reclaimed",
             reclaim_amount=reclaim_amount.__format__(",d"),
-            token_address=token.address,
+            token_address=to_checksum_address(token.address),
         )
 
 
@@ -313,7 +316,7 @@ def _get_token_network_address(
     token_address: TokenAddress, web3: Web3, privkey: PrivateKey, deploy: DeployedContracts
 ) -> TokenNetworkAddress:
 
-    client = JSONRPCClient(web3, privkey)
+    client = JSONRPCClient(web3, privkey, faster_gas_price_strategy)
     proxy_manager = get_proxy_manager(client, deploy)
     token_network_registry_address = TokenNetworkRegistryAddress(
         to_canonical_address(deploy["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]["address"])

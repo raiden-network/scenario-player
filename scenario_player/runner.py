@@ -271,7 +271,7 @@ class ScenarioRunner:
 
         assert account.privkey, "Account not unlockable"
         self.client = JSONRPCClient(
-            web3, privkey=account.privkey, gas_price_strategy=faster_gas_price_strategy
+            web3=web3, privkey=account.privkey, gas_price_strategy=faster_gas_price_strategy
         )
 
         assert account.address, "Account not loaded"
