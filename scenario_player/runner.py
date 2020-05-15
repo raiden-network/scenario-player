@@ -2,7 +2,7 @@ import random
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, cast
 
 import gevent
 import requests
@@ -50,7 +50,7 @@ from scenario_player.constants import (
 from scenario_player.definition import ScenarioDefinition
 from scenario_player.exceptions import ScenarioError
 from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
-from scenario_player.node_support import NodeController, RaidenReleaseKeeper
+from scenario_player.node_support import NodeController, NodeRunner, RaidenReleaseKeeper
 from scenario_player.utils import TimeOutHTTPAdapter
 from scenario_player.utils.configuration.settings import (
     EnvironmentConfig,
@@ -89,17 +89,17 @@ def is_udc_enabled(udc_settings: UDCSettingsConfig):
     return udc_settings.enable and should_deposit_ud_token
 
 
-def wait_for_nodes_to_be_ready(node_runners, session):
+def wait_for_nodes_to_be_ready(node_runners: List[NodeRunner], session: Session):
     with gevent.Timeout(MAX_RAIDEN_STARTUP_TIME):
         for node_runner in node_runners:
-            url = f"http://{node_runner.base_url}/api/v1/address"
+            url = f"http://{node_runner.base_url}/api/v1/status"
             while True:
                 try:
-                    if session.get(url).ok:
+                    if session.get(url).json()["status"] == "ready":
                         break
-                except requests.exceptions.RequestException:
+                except (requests.exceptions.RequestException, ValueError, KeyError):
                     pass
-                gevent.sleep(0.5)
+                gevent.sleep(1.0)
 
 
 def get_token_network_registry_from_dependencies(
@@ -441,7 +441,10 @@ class ScenarioRunner:
         log.info("Making sure all nodes have the same token network")
         self.ensure_token_network_discovery(token_proxy, token_network_address)
 
-        log.info("Setup done, running scenario", token_network_address=token_network_address)
+        log.info(
+            "Setup done, running scenario",
+            token_network_address=to_checksum_address(token_network_address),
+        )
 
         task_config = self.definition.scenario.root_config
         task_class = self.definition.scenario.root_class
