@@ -441,7 +441,10 @@ class ScenarioRunner:
         log.info("Making sure all nodes have the same token network")
         self.ensure_token_network_discovery(token_proxy, token_network_address)
 
-        log.info("Setup done, running scenario", token_network_address=token_network_address)
+        log.info(
+            "Setup done, running scenario",
+            token_network_address=to_checksum_address(token_network_address),
+        )
 
         task_config = self.definition.scenario.root_config
         task_class = self.definition.scenario.root_class
