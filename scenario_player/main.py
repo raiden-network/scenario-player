@@ -187,6 +187,15 @@ def environment_option(func):
 @click.group(invoke_without_command=True, context_settings={"max_content_width": 120})
 @click.pass_context
 def main(ctx):
+    # Disable printing stack traces by the hub, which breaks the TUI and
+    # duplicates the traces.
+    #
+    # The code must be written with proper error handling, which requires
+    # linking the result of every greenlet to its parent. Linking results in
+    # error propagation, the behavior is that if a child greenlet dies because
+    # of an exception, the exception is re-raised in the parent. If the
+    # exception ends up reaching top-level (killing main) the full stacktrace
+    # will be printed.
     gevent.get_hub().exception_stream = DummyStream()
 
 
@@ -570,7 +579,7 @@ def smoketest(ctx: Context, eth_client: EthClient):
 
     captured_stdout = StringIO()
 
-    with report(capture=captured_stdout) as (report_file, append_report):
+    with report() as (report_file, append_report):
         append_report("Setting up Smoketest")
         with step_printer(step_count=6, stdout=sys.stdout) as print_step:
             with setup_smoketest(
@@ -622,7 +631,7 @@ def smoketest(ctx: Context, eth_client: EthClient):
 
 
 @contextmanager
-def report(capture, report_path=None, disable_debug_logfile=True):
+def report(report_path=None, disable_debug_logfile=True):
     if report_path is None:
         report_file = tempfile.mktemp(suffix=".log")
     else:
