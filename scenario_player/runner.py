@@ -28,7 +28,7 @@ from raiden.network.proxies.token_network_registry import TokenNetworkRegistry
 from raiden.network.proxies.user_deposit import UserDeposit
 from raiden.network.rpc.client import JSONRPCClient
 from raiden.network.rpc.middleware import faster_gas_price_strategy
-from raiden.settings import RAIDEN_CONTRACT_VERSION
+from raiden.settings import DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS, RAIDEN_CONTRACT_VERSION
 from raiden.utils.formatting import to_canonical_address
 from raiden.utils.nursery import Janitor
 from raiden.utils.typing import (
@@ -271,7 +271,10 @@ class ScenarioRunner:
 
         assert account.privkey, "Account not unlockable"
         self.client = JSONRPCClient(
-            web3=web3, privkey=account.privkey, gas_price_strategy=faster_gas_price_strategy
+            web3=web3,
+            privkey=account.privkey,
+            gas_price_strategy=faster_gas_price_strategy,
+            block_num_confirmations=DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS,
         )
 
         assert account.address, "Account not loaded"
