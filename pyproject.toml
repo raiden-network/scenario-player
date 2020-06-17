@@ -64,7 +64,7 @@ dev = [
     "isort==4.3.16",
     "matrix-synapse==1.10.1",
     "mypy==0.761",
-    "pytest==4.5.0",
+    "pytest",
     "pytest-cov",
     "pytest-dependency==0.4.0",
     "responses==0.10.6",

@@ -37,6 +37,7 @@ import scenario_player.utils
 from raiden.accounts import Account
 from raiden.constants import Environment, EthClient
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
+from raiden.network.rpc.client import make_sane_poa_middleware
 from raiden.network.rpc.middleware import faster_gas_price_strategy
 from raiden.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
 from raiden.utils.cli import AddressType, EnumChoiceType, get_matrix_servers, option
@@ -496,6 +497,7 @@ def reclaim_eth(
     log.info("Reclaiming candidates", addresses=list(c.address for c in reclamation_candidates))
 
     web3 = Web3(HTTPProvider(eth_rpc_endpoint))
+    web3.middleware_onion.add(make_sane_poa_middleware)
     web3.middleware_onion.add(simple_cache_middleware)
     web3.eth.setGasPriceStrategy(faster_gas_price_strategy)
 
