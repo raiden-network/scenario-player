@@ -289,7 +289,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
         pytest.param(
             "assert_all",
             {"from": 0, "balances": [100, 50]},
-            ScenarioAssertionError,
+            ScenarioError,
             'Field "balance" is missing in at least one channel',
             "GET",
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
@@ -301,7 +301,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
         pytest.param(
             "assert_all",
             {"from": 0, "balances": [100, 50, 30]},
-            ScenarioAssertionError,
+            ScenarioError,
             'Assertion field "balance" has too many values.',
             "GET",
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
@@ -502,7 +502,7 @@ def test_channel_task(
         pytest.param(
             "assert",
             {"from": 0, "to": 1, "balance": 100, "timeout": 0.1},
-            ScenarioAssertionError,
+            ScenarioError,
             'Field "balance" is missing in channel',
             "GET",
             f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}/{NODE_ADDRESS_1}",

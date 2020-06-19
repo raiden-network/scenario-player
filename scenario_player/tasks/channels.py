@@ -150,9 +150,7 @@ class AssertTask(ChannelActionTask):
             if field not in self._config:
                 continue
             if field not in response_dict:
-                raise ScenarioAssertionError(
-                    f'Field "{field}" is missing in channel: {response_dict}'
-                )
+                raise ScenarioError(f'Field "{field}" is missing in channel: {response_dict}')
             allow_error = self._config.get("allow_" + field + "_error")
             if allow_error:
                 success = (
@@ -195,13 +193,13 @@ class AssertAllTask(ChannelActionTask):
             try:
                 channel_field_values = [channel[field] for channel in response_dict]
             except KeyError:
-                raise ScenarioAssertionError(
+                raise ScenarioError(
                     f'Field "{field}" is missing in at least one channel: {response_dict}'
                 )
             assert_field_value_count = len(self._config[assert_field])
             if assert_field_value_count != channel_count:
                 direction = ["many", "few"][assert_field_value_count < channel_count]
-                raise ScenarioAssertionError(
+                raise ScenarioError(
                     f'Assertion field "{field}" has too {direction} values. '
                     f"Have {channel_count} channels but {assert_field_value_count} values."
                 )

@@ -13,7 +13,7 @@ import structlog
 from gevent import Timeout, sleep
 
 from scenario_player import runner as scenario_runner
-from scenario_player.exceptions import ScenarioError, UnknownTaskTypeError
+from scenario_player.exceptions import ScenarioAssertionError, UnknownTaskTypeError
 
 log = structlog.get_logger(__name__)
 
@@ -120,13 +120,13 @@ class Task:
                         while True:
                             try:
                                 return_val = self._run(*args, **kwargs)
-                            except ScenarioError as ex:
+                            except ScenarioAssertionError as ex:
                                 exception = ex
 
                             if return_val:
                                 return return_val
 
-                            sleep(timeout_s / 10)
+                            sleep(1)
                 except Timeout:
                     if exception:
                         raise exception
