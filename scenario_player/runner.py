@@ -48,8 +48,7 @@ from scenario_player.constants import (
     RUN_NUMBER_FILENAME,
 )
 from scenario_player.definition import ScenarioDefinition
-from scenario_player.exceptions import ScenarioError
-from scenario_player.exceptions.legacy import TokenNetworkDiscoveryTimeout
+from scenario_player.exceptions import ScenarioError, TokenNetworkDiscoveryTimeout
 from scenario_player.node_support import NodeController, NodeRunner, RaidenReleaseKeeper
 from scenario_player.utils import TimeOutHTTPAdapter
 from scenario_player.utils.configuration.settings import (
