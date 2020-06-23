@@ -165,19 +165,17 @@ class RaidenReleaseKeeper:
 
 
 class NodeRunner:
-    def __init__(
-        self, runner: "ScenarioRunner", index: int, raiden_version, options: dict, nursery
-    ):
+    def __init__(self, runner: "ScenarioRunner", index: int, raiden_version, options: dict):
         self._runner = runner
         self._index = index
         self._raiden_version = raiden_version
         self._options = options
-        self._nursery = nursery
+        self._nursery: Optional[Nursery] = None
         if runner.definition.nodes.reuse_accounts:
             datadir_name = f"node_{index:03d}"
         else:
             datadir_name = f"node_{self._runner.run_number:04d}_{index:03d}"
-        self._datadir = runner.definition.scenario_dir.joinpath(datadir_name)
+        self.datadir = runner.definition.scenario_dir.joinpath(datadir_name)
 
         self._address: Optional[ChecksumAddress] = None
         self._api_address: Optional[str] = None
@@ -185,8 +183,8 @@ class NodeRunner:
         self._output_files: Dict[str, IO] = {}
 
         if options.pop("_clean", False):
-            shutil.rmtree(self._datadir)
-        self._datadir.mkdir(parents=True, exist_ok=True)
+            shutil.rmtree(self.datadir)
+        self.datadir.mkdir(parents=True, exist_ok=True)
         self._validate_options(options)
         self._eth_rpc_endpoint: URI = next(
             self._runner.definition.settings.eth_rpc_endpoint_iterator
@@ -212,7 +210,7 @@ class NodeRunner:
             file.write("--------- Starting ---------\n")
         self._output_files["stdout"].write(f"Command line: {' '.join(self._command)}\n")
 
-        self._process = self._nursery.exec_under_watch(self._command, **self._output_files)
+        self._process = self.nursery.exec_under_watch(self._command, **self._output_files)
 
     # FIXME: Make node stop configurable?
     def stop(self, timeout=600):  # 10 mins
@@ -399,6 +397,15 @@ class NodeRunner:
             if option_name not in KNOWN_OPTIONS:
                 raise ScenarioError(f'Unknown option "{option_name}" supplied.')
 
+    @property
+    def nursery(self):
+        assert self._nursery is not None, "Nursery needs to be set before nodes can be started."
+        return self._nursery
+
+    @nursery.setter
+    def nursery(self, value: Nursery):
+        self._nursery = value
+
 
 class SnapshotManager:
     def __init__(self, scenario_runner: "ScenarioRunner", node_runners: List[NodeRunner]) -> None:
@@ -488,11 +495,7 @@ class SnapshotManager:
 
 class NodeController:
     def __init__(
-        self,
-        runner: "ScenarioRunner",
-        config: NodesConfig,
-        nursery: Nursery,
-        delete_snapshots: bool = False,
+        self, runner: "ScenarioRunner", config: NodesConfig, delete_snapshots: bool = False
     ):
         self._runner = runner
         self._global_options = config.default_options
@@ -503,7 +506,6 @@ class NodeController:
                 index,
                 config.raiden_version,
                 options={**self._global_options, **self._node_options.get(index, {})},
-                nursery=nursery,
             )
             for index in range(config.count)
         ]
@@ -558,3 +560,7 @@ class NodeController:
     @property
     def address_to_index(self) -> Dict[ChecksumAddress, int]:
         return {runner.address: i for i, runner in enumerate(self._node_runners)}
+
+    def set_nursery(self, nursery: Nursery):
+        for node_runner in self._node_runners:
+            node_runner.nursery = nursery
