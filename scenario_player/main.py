@@ -18,7 +18,6 @@ import click
 import gevent
 import structlog
 import yaml
-from click import Context
 from eth_typing import URI, HexStr
 from eth_utils import to_canonical_address, to_checksum_address
 from gevent.event import Event
@@ -185,8 +184,7 @@ def environment_option(func):
 
 
 @click.group(invoke_without_command=True, context_settings={"max_content_width": 120})
-@click.pass_context
-def main(ctx):
+def main():
     # Disable printing stack traces by the hub, which breaks the TUI and
     # duplicates the traces.
     #
@@ -217,9 +215,7 @@ def main(ctx):
 @environment_option
 @key_password_options
 @data_path_option
-@click.pass_context
 def run(
-    ctx,
     data_path,
     auth,
     password,
@@ -468,9 +464,7 @@ class ScenarioUIManager:
 @key_password_options
 @environment_option
 @data_path_option
-@click.pass_context
 def reclaim_eth(
-    ctx,
     min_age,
     reclaim_tokens: List[TokenAddress],
     withdraw_from_udc: bool,
@@ -569,8 +563,7 @@ def smoketest_deployed_contracts(contracts: Dict[str, Any]) -> DeployedContracts
     show_default=True,
     help="Which Ethereum client to run for the smoketests",
 )
-@click.pass_context
-def smoketest(ctx: Context, eth_client: EthClient):
+def smoketest(eth_client: EthClient):
     from raiden.tests.utils.smoketest import setup_smoketest, step_printer
     from raiden.network.utils import get_free_port
 
