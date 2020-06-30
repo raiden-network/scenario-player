@@ -110,9 +110,12 @@ class Task:
         self._runner.running_task_count += 1
         self._start_time = time.monotonic()
         try:
+            timeout_s = None
+            # Config can be something else than a dictionary
+            if isinstance(self._config, dict):
+                timeout_s = self._config.get("timeout", self.DEFAULT_TIMEOUT)
             # Zero means no timeout is desired
-            timeout_s = self._config.get("timeout", self.DEFAULT_TIMEOUT)
-            if timeout_s > 0:
+            if timeout_s and timeout_s > 0:
                 log.debug("Running task with timeout", timeout=timeout_s)
                 exception: Optional[Exception] = None
                 try:
