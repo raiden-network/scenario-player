@@ -82,8 +82,8 @@ class Task:
     # tasks that are side-effect free can overwrite the value to 0.
     #
     # Ref.: https://github.com/raiden-network/raiden/issues/6149#issuecomment-627387624
-    SYNCHRONIZATION_TIME_SECONDS = 30
-    DEFAULT_TIMEOUT = 0  # 5 * 60  # 5 minutes
+    SYNCHRONIZATION_TIME_SECONDS = 0  # keep the code for now, can be removed in the future
+    DEFAULT_TIMEOUT = 0  # Tasks that need retries need to overwrite this
 
     def __init__(
         self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
@@ -113,6 +113,7 @@ class Task:
             # Zero means no timeout is desired
             timeout_s = self._config.get("timeout", self.DEFAULT_TIMEOUT)
             if timeout_s > 0:
+                log.debug("Running task with timeout", timeout=timeout_s)
                 exception: Optional[Exception] = None
                 try:
                     with Timeout(self._config.get("timeout", self.DEFAULT_TIMEOUT)):
@@ -124,10 +125,12 @@ class Task:
                                 exception = ex
 
                             if return_val:
-                                return return_val
+                                break
 
+                            log.debug("Assertion failed, retrying...", ex=str(exception))
                             sleep(1)
                 except Timeout:
+                    log.debug("Timeout reached", ex=str(exception))
                     if exception:
                         raise exception
             else:
