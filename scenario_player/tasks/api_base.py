@@ -47,7 +47,9 @@ class RESTAPIActionTask(Task):
         except (ReadTimeout, ConnectTimeout) as ex:
             self._handle_timeout(ex)
         except RequestException as ex:
-            raise RESTAPIError(f"Error performing REST-API call: {self._name}") from ex
+            raise RESTAPIError(
+                f"Error performing REST-API call: {self._name}"  # pylint: disable=no-member
+            ) from ex
         if not self._http_status_re.match(str(resp.status_code)):
             raise RESTAPIStatusMismatchError(
                 f'HTTP status code "{resp.status_code}" while fetching {url}. '

@@ -14,6 +14,7 @@ from scenario_player.utils.configuration.settings import (
 
 dummy_env = EnvironmentConfig(
     pfs_fee=FeeAmount(100),
+    environment_file_name="tests",
     environment_type="development",
     matrix_servers=[],
     transfer_token=TokenAddress(bytes([1] * 20)),

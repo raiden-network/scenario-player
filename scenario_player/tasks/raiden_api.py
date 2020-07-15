@@ -9,8 +9,8 @@ log = structlog.get_logger(__name__)
 class RaidenAPIActionTask(RESTAPIActionTask):
     def _handle_timeout(self, ex: Exception):
         raise TransferFailed(
-            f"{self._name.replace('_', ' ').title()} didn't complete within "
-            f"timeout of {self._timeout}"
+            f"{self._name.replace('_', ' ').title()} didn't complete "  # pylint: disable=no-member
+            f"within timeout of {self._timeout}"
         ) from ex
 
     @property

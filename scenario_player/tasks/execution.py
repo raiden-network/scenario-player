@@ -4,10 +4,10 @@ import click
 import gevent
 import structlog
 from gevent import Greenlet
-from gevent.pool import Group
+from gevent.pool import Pool
 
 from scenario_player import runner as scenario_runner
-from scenario_player.tasks.base import Task, get_task_class_for_type
+from scenario_player.tasks.base import Task, TaskState, get_task_class_for_type
 
 log = structlog.get_logger(__name__)
 
@@ -55,10 +55,48 @@ class ParallelTask(SerialTask):
     _name = "parallel"
 
     def _run(self, *args, **kwargs):
-        group = Group()
+        pool = Pool(size=self._config.get("concurrency", None))
         for task in self._tasks:
-            group.start(Greenlet(task))
-        group.join(raise_error=True)
+            pool.start(Greenlet(task))
+        pool.join(raise_error=True)
+
+
+class SnapshotTask(SerialTask):
+    _name = "snapshot"
+
+    def __init__(
+        self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
+    ) -> None:
+        super().__init__(runner, config, parent)
+
+        self._runner.node_controller.snapshot_manager.check_scenario_config()
+        if not self._runner.definition.nodes.restore_snapshot:
+            log.warning("Snapshot task without 'nodes.restore_snapshot' configuration!")
+
+        self._restored = self._runner.node_controller.snapshot_restored
+        log.info("Snapshot task", was_restored=self._restored, config=self._config)
+
+    def _run(self, *args, **kwargs):
+        if not self._restored:
+            super()._run(*args, **kwargs)
+            self._runner.node_controller.stop()
+            self._runner.node_controller.snapshot_manager.take()
+            self._runner.node_controller.start()
+        else:
+            log.info("Skipping tasks, restored from snapshot")
+
+    @property
+    def _urwid_details(self):
+        if self._restored:
+            state = "Skipping, snapshot restored"
+        else:
+            if self.state is TaskState.INITIALIZED:
+                state = "Will take snapshot"
+            elif self.state is TaskState.RUNNING:
+                state = "Taking snapshot"
+            else:
+                state = "Snapshot taken"
+        return [" - ", ("task_name", state)]
 
 
 class WaitTask(Task):

@@ -21,14 +21,14 @@ requires = [
     'click',
     'eth-utils',
     'gevent',
-    'pyyaml',
-    'requests',
-    'raiden',
-    'structlog',
-    'simplejson',
-    'urwid!=2.1.0',
-    'waitress',
     'jinja2',
+    'prometheus_client<0.8.0',
+    'pyyaml',
+    'raiden',
+    'requests',
+    'simplejson',
+    'structlog',
+    'urwid!=2.1.0',
 ]
 
 # Classifiers, Licensing, keywords for pypi.
@@ -53,7 +53,7 @@ keywords = "raiden, raiden-network"
 [tool.flit.metadata.requires-extra]
 # Extended dependencies required for development and testing. Flit installs
 # these automatically.
-test = ["pytest==4.5.0"]
+test = ["pytest"]
 dev = [
     "black==19.3b0",
     "coverage",
@@ -64,7 +64,7 @@ dev = [
     "isort==4.3.16",
     "matrix-synapse==1.10.1",
     "mypy==0.761",
-    "pytest",
+    "pylint",
     "pytest-cov",
     "pytest-dependency==0.4.0",
     "responses==0.10.6",

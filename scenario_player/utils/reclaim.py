@@ -149,7 +149,7 @@ def withdraw_from_udc(
 
     log.info("Checking chain for deposits in UserDeposit contact")
     for node in reclamation_candidates:
-        (userdeposit_proxy, user_token_proxy) = get_udc_and_corresponding_token_from_dependencies(
+        (userdeposit_proxy, _) = get_udc_and_corresponding_token_from_dependencies(
             chain_id=chain_id, proxy_manager=node.get_proxy_manager(web3, deploy)
         )
 
@@ -181,7 +181,7 @@ def withdraw_from_udc(
     for address, (ready_at_block, amount) in planned_withdraws.items():
         candidate = [c for c in reclamation_candidates if c.address == address][0]
         proxy_manager = candidate.get_proxy_manager(web3, deploy)
-        (userdeposit_proxy, user_token_proxy) = get_udc_and_corresponding_token_from_dependencies(
+        (userdeposit_proxy, _) = get_udc_and_corresponding_token_from_dependencies(
             chain_id=chain_id, proxy_manager=proxy_manager
         )
         # FIXME: Something is off with the block numbers, adding 20 to work around.

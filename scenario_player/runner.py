@@ -17,6 +17,7 @@ from raiden_contracts.constants import (
     CONTRACT_TOKEN_NETWORK_REGISTRY,
 )
 from raiden_contracts.contract_manager import DeployedContracts, get_contracts_deployment_info
+from raiden_contracts.utils.type_aliases import TokenAmount
 from requests import HTTPError, Session
 from web3 import HTTPProvider, Web3
 
@@ -35,7 +36,6 @@ from raiden.utils.typing import (
     Address,
     ChainID,
     TokenAddress,
-    TokenAmount,
     TokenNetworkAddress,
     TokenNetworkRegistryAddress,
 )
@@ -49,7 +49,7 @@ from scenario_player.constants import (
 )
 from scenario_player.definition import ScenarioDefinition
 from scenario_player.exceptions import ScenarioError, TokenNetworkDiscoveryTimeout
-from scenario_player.node_support import NodeController, NodeRunner, RaidenReleaseKeeper
+from scenario_player.node_support import NodeController, NodeRunner
 from scenario_player.utils import TimeOutHTTPAdapter
 from scenario_player.utils.configuration.settings import (
     EnvironmentConfig,
@@ -240,9 +240,15 @@ class ScenarioRunner:
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
         smoketest_deployment_data: DeployedContracts = None,
+        delete_snapshots: bool = False,
     ) -> None:
+        from scenario_player.node_support import RaidenReleaseKeeper
+
+        self.auth = auth
 
         self.smoketest_deployment_data = smoketest_deployment_data
+        self.delete_snapshots = delete_snapshots
+
         self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
         self.data_path = data_path
         self.environment = environment
@@ -289,6 +295,13 @@ class ScenarioRunner:
 
         self.session = make_session(auth, self.definition.settings)
 
+        self.node_controller = NodeController(
+            self, self.definition.nodes, delete_snapshots=self.delete_snapshots
+        )
+        task_config = self.definition.scenario.root_config
+        task_class = self.definition.scenario.root_class
+        self.root_task = task_class(runner=self, config=task_config)
+
     @property
     def local_seed(self) -> str:
         """Return a persistent random seed value.
@@ -330,7 +343,7 @@ class ScenarioRunner:
 
     def run_scenario(self) -> None:
         with Janitor() as nursery:
-            self.node_controller = NodeController(self, self.definition.nodes, nursery)
+            self.node_controller.set_nursery(nursery)
             self.node_controller.initialize_nodes()
 
             try:
@@ -448,19 +461,13 @@ class ScenarioRunner:
             token_network_address=to_checksum_address(token_network_address),
         )
 
-        task_config = self.definition.scenario.root_config
-        task_class = self.definition.scenario.root_class
-
-        root_task = task_class(runner=self, config=task_config)
-
         # Expose attributes used by the tasks
         self.token = token_proxy
-        self.root_task = root_task
         self.contract_manager = proxy_manager.contract_manager
         self.token_network_address = to_checksum_address(token_network_address)
         self.block_execution_started = block_execution_started
 
-        root_task()
+        self.root_task()
 
     def setup_raiden_nodes_ether_balances(
         self, pool: Pool, node_addresses: Set[ChecksumAddress]
@@ -591,13 +598,12 @@ class ScenarioRunner:
         - Deploy a new token if neither of the above options is used.
         """
         token_definition = self.definition.token
-        reuse_token_from_file = token_definition.reuse_token
-        token_info_path = self.data_path.joinpath("token.info")
+        reuse_token_from_file = token_definition.can_reuse_token
 
         if token_definition.address:
             token_address = to_canonical_address(token_definition.address)
-        elif reuse_token_from_file and token_info_path.exists():
-            token_details = load_token_configuration_from_file(str(token_info_path))
+        elif reuse_token_from_file:
+            token_details = load_token_configuration_from_file(token_definition.token_file)
             token_address = to_canonical_address(token_details["address"])
         else:
             contract_data = proxy_manager.contract_manager.get_contract(CONTRACT_CUSTOM_TOKEN)
@@ -613,7 +619,7 @@ class ScenarioRunner:
             )
             token_address = to_canonical_address(contract.address)
 
-            if reuse_token_from_file:
+            if token_definition.should_reuse_token:
                 details = TokenDetails(
                     {
                         "name": token_definition.name,
@@ -621,7 +627,7 @@ class ScenarioRunner:
                         "block": receipt["blockNumber"],
                     }
                 )
-                save_token_configuration_to_file(str(token_info_path), details)
+                save_token_configuration_to_file(token_definition.token_file, details)
 
         return proxy_manager.custom_token(TokenAddress(token_address), "latest")
 

@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import cast
 
 import gevent
@@ -127,7 +128,7 @@ def userdeposit_maybe_deposit(
         )
 
 
-def load_token_configuration_from_file(token_file: str) -> TokenDetails:
+def load_token_configuration_from_file(token_file: Path) -> TokenDetails:
     """Load token configuration from disk.
 
     The file contents should be at least::
@@ -147,8 +148,7 @@ def load_token_configuration_from_file(token_file: str) -> TokenDetails:
         exists for it in the data-path.
     """
     try:
-        with open(token_file) as handler:
-            token_data = json.load(handler)
+        token_data = json.loads(token_file.read_text())
     except json.JSONDecodeError as e:
         raise TokenFileError("Token data file corrupted!") from e
     except FileNotFoundError as e:
@@ -160,7 +160,7 @@ def load_token_configuration_from_file(token_file: str) -> TokenDetails:
     return cast(TokenDetails, token_data)
 
 
-def save_token_configuration_to_file(token_file: str, token_data: TokenDetails) -> None:
+def save_token_configuration_to_file(token_file: Path, token_data: TokenDetails) -> None:
     """Save information of the token deployment to a file.
 
     The file will be JSON encoded and have the following format::
@@ -169,5 +169,4 @@ def save_token_configuration_to_file(token_file: str, token_data: TokenDetails) 
 
 
     """
-    with open(token_file) as handler:
-        json.dump(token_data, handler)
+    token_file.write_text(json.dumps(token_data))

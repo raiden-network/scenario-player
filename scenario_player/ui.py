@@ -33,6 +33,7 @@ PALETTE = [
     ("task_state_errored", "dark red", "default"),
     ("task_duration", "dark magenta", "default"),
     ("task_name", "dark blue", "default"),
+    ("task_info", "light blue", "default"),
 ]
 log = structlog.get_logger(__name__)
 
