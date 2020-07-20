@@ -42,6 +42,7 @@ RAIDEN_RELEASES_VERSIONED_NAME_TEMPLATE = "raiden-v{version}-{platform}-{arch}.z
 MANAGED_CONFIG_OPTIONS = {
     "accept-disclaimer",
     "address",
+    "claims-file-path",
     "config-file",
     "datadir",
     "disable-debug-logfile",
@@ -180,6 +181,8 @@ class NodeRunner:
         self._address: Optional[ChecksumAddress] = None
         self._api_address: Optional[str] = None
 
+        self.claims_file: Optional[Path] = None
+
         self._output_files: Dict[str, IO] = {}
 
         if options.pop("_clean", False):
@@ -272,6 +275,9 @@ class NodeRunner:
         pfs_address = self._pfs_address
         if pfs_address:
             cmd.extend(["--pathfinding-service-address", pfs_address])
+
+        if self.claims_file is not None and self.claims_file.exists():
+            cmd.extend(["--claims-file-path", str(self.claims_file.absolute())])
 
         for option_name in MANAGED_CONFIG_OPTIONS_OVERRIDABLE:
             if option_name in ("api-address", "pathfinding-service-address", "matrix-server"):

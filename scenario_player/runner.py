@@ -1,3 +1,4 @@
+import os
 import random
 import time
 from collections import defaultdict
@@ -31,8 +32,10 @@ from raiden.network.proxies.user_deposit import UserDeposit
 from raiden.network.rpc.client import JSONRPCClient
 from raiden.network.rpc.middleware import faster_gas_price_strategy
 from raiden.settings import DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS, RAIDEN_CONTRACT_VERSION
+from raiden.utils.claim import create_hub_jsonl
 from raiden.utils.formatting import to_canonical_address
 from raiden.utils.nursery import Janitor
+from raiden.utils.signer import LocalSigner
 from raiden.utils.typing import (
     Address,
     ChainID,
@@ -208,7 +211,7 @@ def wait_for_token_network_discovery(
 
 
 def maybe_create_token_network(
-    token_network_proxy: TokenNetworkRegistry, token_proxy: CustomToken
+    token_network_proxy: TokenNetworkRegistry, token_proxy: CustomToken, operator_address: Address
 ) -> TokenNetworkAddress:
     """ Make sure the token is registered with the node's network registry. """
     block_identifier = token_network_proxy.rpc_client.get_confirmed_blockhash()
@@ -220,6 +223,7 @@ def maybe_create_token_network(
 
     if token_network_address is None:
         return token_network_proxy.add_token(
+            operator_address=operator_address,
             token_address=token_address,
             channel_participant_deposit_limit=TokenAmount(UINT256_MAX),
             token_network_deposit_limit=TokenAmount(UINT256_MAX),
@@ -349,12 +353,10 @@ class ScenarioRunner:
             self.node_controller.set_nursery(nursery)
             self.node_controller.initialize_nodes()
 
-            try:
-                for node_runner in self.node_controller._node_runners:
-                    node_runner.start()
-            except Exception:
-                log.error("failed to start", exc_info=True)
-                raise
+            if not self.definition.settings.claims.enabled:
+                # Claims need the token network address which isn't known here.
+                # Defer node start.
+                self.node_controller.start(wait=False)
 
             node_addresses = self.node_controller.addresses
 
@@ -451,8 +453,15 @@ class ScenarioRunner:
 
         log.debug("Registering token to create the network")
         token_network_address = maybe_create_token_network(
-            token_network_registry_proxy, token_proxy
+            token_network_registry_proxy, token_proxy, self.client.address
         )
+
+        self.setup_claims(token_network_address)
+
+        if self.definition.settings.claims.enabled:
+            # With claims enabled we need to defer the node start until after the claims file has
+            # been generated.
+            self.node_controller.start(wait=True)
 
         log.debug("Waiting for the REST APIs")
         wait_for_nodes_to_be_ready(self.node_controller._node_runners, self.session)
@@ -634,6 +643,41 @@ class ScenarioRunner:
                 save_token_configuration_to_file(token_definition.token_file, details)
 
         return proxy_manager.custom_token(TokenAddress(token_address), "latest")
+
+    def setup_claims(self, token_network_address: TokenNetworkAddress) -> None:
+        claims_config = self.definition.settings.claims
+        if not claims_config.enabled:
+            return
+
+        # Todo: Make aware of reuse etc.
+        claims_file = self.definition.scenario_dir.joinpath("claims.jsonl")
+        additional_addresses = [
+            Address(os.urandom(20))
+            for _ in range(claims_config.additional_address_count - len(self.node_controller))
+        ]
+        node_addresses = {
+            to_canonical_address(address) for address in self.node_controller.addresses
+        }
+
+        hub_address = to_canonical_address(
+            self.node_controller._node_runners[claims_config.hub_node_index].address
+        )
+
+        # The hub address gets added as a peer for every given address
+        node_addresses.remove(hub_address)
+
+        log.info("Generating claims", config=claims_config)
+        create_hub_jsonl(
+            operator_signer=LocalSigner(self.client.privkey),
+            token_network_address=token_network_address,
+            chain_id=self.client.chain_id,
+            hub_address=hub_address,
+            addresses=list(node_addresses) + additional_addresses,
+            output_file=claims_file,
+        )
+        log.debug("Claims generated")
+        for node_runner in self.node_controller:  # type: ignore
+            node_runner.claims_file = claims_file
 
     def task_state_changed(self, task: "Task", state: "TaskState"):
         if self.task_state_callback:
