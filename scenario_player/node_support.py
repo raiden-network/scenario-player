@@ -525,6 +525,8 @@ class NodeController:
         return self._node_runners.__len__()
 
     def start(self, wait=True):
+        from scenario_player.runner import wait_for_nodes_to_be_ready
+
         log.info("Starting nodes")
 
         # Start nodes in <number of cpus> batches
@@ -534,6 +536,7 @@ class NodeController:
             for runner in self._node_runners:
                 pool.spawn(runner.start)
             pool.join(raise_error=True)
+            wait_for_nodes_to_be_ready(self._node_runners, self._runner.session)
             log.info("All nodes started")
 
         starter = gevent.spawn(_start)

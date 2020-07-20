@@ -270,8 +270,6 @@ class ScenarioUI:
             self._root_widget.body.focus.original_widget.original_widget.keypress(
                 self._loop.screen_size, key
             )
-        else:
-            log.info("key", key=key)
 
     def _update_log_box_title(self):
         if self._log_walker.at_end:

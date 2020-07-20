@@ -10,6 +10,7 @@ import structlog
 from eth_typing import ChecksumAddress
 from eth_utils import encode_hex, is_checksum_address, to_checksum_address, to_hex
 from gevent import Greenlet
+from gevent.event import Event
 from gevent.pool import Pool
 from raiden_contracts.constants import (
     CHAINNAME_TO_ID,
@@ -236,6 +237,7 @@ class ScenarioRunner:
         data_path: Path,
         scenario_file: Path,
         environment: EnvironmentConfig,
+        success: Event,
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
@@ -245,6 +247,7 @@ class ScenarioRunner:
         from scenario_player.node_support import RaidenReleaseKeeper
 
         self.auth = auth
+        self.success = success
 
         self.smoketest_deployment_data = smoketest_deployment_data
         self.delete_snapshots = delete_snapshots
@@ -364,6 +367,7 @@ class ScenarioRunner:
             # scenario to exit (successfully or not).
             greenlets = {scenario}
             gevent.joinall(greenlets, raise_error=True, count=1)
+        self.success.set()
 
     def setup_environment_and_run_main_task(self, node_addresses: Set[ChecksumAddress]) -> None:
         """ This will first make sure the on-chain state is setup properly, and
