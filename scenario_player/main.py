@@ -12,7 +12,7 @@ from io import StringIO
 from itertools import cycle, islice
 from pathlib import Path
 from tempfile import mkdtemp
-from typing import IO, List, Sequence
+from typing import IO, List, Sequence, Union
 
 import click
 import gevent
@@ -29,17 +29,18 @@ from raiden_contracts.contract_manager import (
     DeployedContracts,
     contracts_precompiled_path,
 )
+from typing_extensions import Literal
 from urwid import ExitMainLoop
 from web3 import HTTPProvider, Web3
 from web3.middleware import simple_cache_middleware
 
 import scenario_player.utils
 from raiden.accounts import Account
-from raiden.constants import Environment, EthClient
+from raiden.constants import EthClient
 from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
 from raiden.network.rpc.client import make_sane_poa_middleware
 from raiden.network.rpc.middleware import faster_gas_price_strategy
-from raiden.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
+from raiden.settings import RAIDEN_CONTRACT_VERSION
 from raiden.utils.cli import AddressType, EnumChoiceType, get_matrix_servers, option
 from raiden.utils.typing import (
     TYPE_CHECKING,
@@ -264,13 +265,12 @@ def _load_environment(environment_file: IO) -> EnvironmentConfig:
     environment = json.load(environment_file)
     assert isinstance(environment, dict)
 
-    matrix_server_list = environment.pop(
-        "matrix_server_list",
-        DEFAULT_MATRIX_KNOWN_SERVERS[Environment(environment["environment_type"])],
-    )
-    matrix_servers: Sequence[URI] = get_matrix_servers(matrix_server_list)  # type: ignore
-    if len(matrix_servers) < 4:
-        matrix_servers = list(islice(cycle(matrix_servers), 4))
+    matrix_server_list = environment.pop("matrix_server_list", None)
+    matrix_servers: Sequence[Union[URI, Literal["auto"]]] = ["auto"]
+    if matrix_server_list is not None:
+        matrix_servers = [URI(uri) for uri in get_matrix_servers(matrix_server_list)]
+        if len(matrix_servers) < 4:
+            matrix_servers = list(islice(cycle(matrix_servers), 4))
 
     return EnvironmentConfig(
         matrix_servers=matrix_servers, environment_file_name=environment_file.name, **environment
@@ -385,7 +385,6 @@ def run_(
         )
         exit(exit_code)
     else:
-        success.set()
         exit_code = 0
         log.info("Run finished", result="success")
         report.update(dict(subject=f"Scenario successful {scenario_file.name}", message="Success"))
@@ -416,13 +415,13 @@ def orchestrate(
         data_path=scenario_runner_args.data_path,
         scenario_file=scenario_runner_args.scenario_file,
         environment=scenario_runner_args.environment,
+        success=success,
         smoketest_deployment_data=scenario_runner_args.smoketest_deployment_data,
         delete_snapshots=scenario_runner_args.delete_snapshots,
     )
+    ui: AbstractContextManager
     if enable_ui:
-        ui: AbstractContextManager = ScenarioUIManager(
-            scenario_runner, log_buffer, log_file_name, success
-        )
+        ui = ScenarioUIManager(scenario_runner, log_buffer, log_file_name, success)
     else:
         ui = nullcontext()
     log.info("Startup complete")
@@ -430,7 +429,7 @@ def orchestrate(
         scenario_runner.run_scenario()
 
 
-class ScenarioUIManager:
+class ScenarioUIManager(AbstractContextManager):
     def __init__(self, runner, log_buffer, log_file_name, success):
         self.ui = ScenarioUI(runner, log_buffer, log_file_name)
         self.success = success
