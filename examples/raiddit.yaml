@@ -1,0 +1,54 @@
+version: 2
+
+settings:
+  gas_price: "fast"
+  chain: any
+  claims:
+    enabled: true
+    hub-node: 1
+    additional-address-count: 100
+
+token:
+  balance_fund: 10_000_000_000_000_000_000
+  balance_min:   5_000_000_000_000_000_000
+  reuse: true
+
+nodes:
+  count: 3
+  raiden_version: local
+  reuse_accounts: true
+  restore_snapshot: true
+
+  default_options:
+    gas-price: fast
+    environment-type: development
+    routing-mode: private
+    enable-monitoring: false
+    default-settle-timeout: 40
+    default-reveal-timeout: 20
+
+scenario:
+  serial:
+    tasks:
+      - snapshot:
+          # We use the snapshot feature to ensure clean node state on every run.
+          # But since the channels are implicitly opened via the claims we don't actually need a
+          # task in here which is the reason for the "dummy" wait task.
+          tasks:
+            - wait: 0
+      - parallel:
+          name: "Assert after channel openings"
+          tasks:
+            - assert: {from: 0, to: 1, total_deposit: 100, balance: 100, state: "opened"}
+            - assert: {from: 2, to: 1, total_deposit: 100, balance: 100, state: "opened"}
+      - parallel:
+          name: "Make a transfer"
+          tasks:
+            - transfer: {from: 0, to: 1, amount: 42}
+            - transfer: {from: 2, to: 1, amount: 42}
+            - transfer: {from: 0, to: 2, amount: 42}
+      - parallel:
+          name: "Assert after transfer"
+          tasks:
+            - assert: {from: 0, to: 1, total_deposit: 100, balance: 14, state: "opened"}
+            - assert: {from: 2, to: 1, total_deposit: 100, balance: 102, state: "opened"}

@@ -1,7 +1,7 @@
 import itertools
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Union
 
 import structlog
 from eth_typing import URI
@@ -190,6 +190,23 @@ class ServiceSettingsConfig:
         self.udc = UDCSettingsConfig(loaded_definition, environment)
 
 
+class ClaimsConfig:
+    def __init__(self, settings: Dict[str, Any]) -> None:
+        config = settings.get("claims", {})
+
+        self.enabled = config.get("enabled", False)
+        self.hub_node_index = int(config.get("hub-node", -1))
+        self.additional_address_count = int(config.get("additional-address-count", 0))
+
+    def __repr__(self) -> str:
+        return (
+            f"<ClaimsConfig "
+            f"enabled={self.enabled} "
+            f"hub-node={self.hub_node_index} "
+            f"additional-address-count={self.additional_address_count}>"
+        )
+
+
 class SettingsConfig:
     """Settings Configuration Setting interface and validator.
 
@@ -219,6 +236,7 @@ class SettingsConfig:
         settings = loaded_definition.get("settings", {})
         self.dict = settings
         self.services = ServiceSettingsConfig(loaded_definition, environment)
+        self.claims = ClaimsConfig(settings)
         self.validate()
         self.eth_rpc_endpoint_iterator: Iterator[URI]
         self.chain_id: ChainID
