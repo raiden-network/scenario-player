@@ -88,6 +88,23 @@ class WithdrawTask(ChannelActionTask):
         return dict(total_withdraw=self._config["total_withdraw"])
 
 
+class BurnTask(ChannelActionTask):
+    """ Perform a burn on the given channel.
+
+    Example usage::
+
+        # Burn ``100`` tokens from channel ``[Node 0] -> [Node 1]``
+        burn: {from: 0, to: 1, total_burn: 100}
+    """
+
+    _name = "burn"
+
+    @property
+    def _request_params(self):
+        return dict(total_burn=self._config["total_burn"])
+
+
+
 class TransferTask(ChannelActionTask):
     _name = "transfer"
     _url_template = "{protocol}://{target_host}/api/v1/payments/{token_address}/{partner_address}"
