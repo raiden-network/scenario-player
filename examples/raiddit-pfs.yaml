@@ -2,6 +2,9 @@ version: 2
 
 settings:
   gas_price: "fast"
+  services:
+      pfs:
+          url: "http://localhost:6000"
   chain: any
   claims:
     enabled: true
@@ -22,7 +25,7 @@ nodes:
   default_options:
     gas-price: fast
     environment-type: development
-    routing-mode: private
+    routing-mode: pfs
     enable-monitoring: false
     default-settle-timeout: 40
     default-reveal-timeout: 10
@@ -36,6 +39,7 @@ scenario:
           # task in here which is the reason for the "dummy" wait task.
           tasks:
             - wait: 0
+      - wait: 1
       - parallel:
           name: "Assert after channel openings"
           tasks:
@@ -50,5 +54,5 @@ scenario:
       - parallel:
           name: "Assert after transfer"
           tasks:
-            - assert: {from: 0, to: 1, total_deposit: 100, balance: 14, state: "opened"}
-            - assert: {from: 2, to: 1, total_deposit: 100, balance: 102, state: "opened"}
+            - assert: {from: 0, to: 1, total_deposit: 100, balance: 16, state: "opened"}
+            - assert: {from: 2, to: 1, total_deposit: 100, balance: 100, state: "opened"}
