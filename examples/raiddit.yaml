@@ -48,7 +48,11 @@ scenario:
             - transfer: {from: 2, to: 1, amount: 42}
             - transfer: {from: 0, to: 2, amount: 42}
       - parallel:
+          name: "Burn something"
+          tasks:
+            - burn: {from: 0, to: 1, total_burn: 10, expected_http_status: 200}
+      - parallel:
           name: "Assert after transfer"
           tasks:
-            - assert: {from: 0, to: 1, total_deposit: 100, balance: 14, state: "opened"}
+            - assert: {from: 0, to: 1, total_deposit: 100, balance: 4, state: "opened"}
             - assert: {from: 2, to: 1, total_deposit: 100, balance: 102, state: "opened"}
