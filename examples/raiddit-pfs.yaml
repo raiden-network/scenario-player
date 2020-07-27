@@ -2,12 +2,14 @@ version: 2
 
 settings:
   gas_price: "fast"
+  services:
+      pfs:
+          url: "http://localhost:6000"
   chain: any
   claims:
     enabled: true
-    hub-node: 0
+    hub-node: 1
     additional-address-count: 100
-    token_amount: 100_000
 
 token:
   balance_fund: 10_000_000_000_000_000_000
@@ -23,7 +25,7 @@ nodes:
   default_options:
     gas-price: fast
     environment-type: development
-    routing-mode: private
+    routing-mode: pfs
     enable-monitoring: false
     default-settle-timeout: 40
     default-reveal-timeout: 10
@@ -37,25 +39,20 @@ scenario:
           # task in here which is the reason for the "dummy" wait task.
           tasks:
             - wait: 0
+      - wait: 1
       - parallel:
           name: "Assert after channel openings"
           tasks:
-            - assert: {from: 0, to: 1, total_deposit: 100_000, balance: 100_000, state: "opened"}
-            - assert: {from: 1, to: 0, total_deposit: 100_000, balance: 100_000, state: "opened"}
-            - assert: {from: 0, to: 2, total_deposit: 100_000, balance: 100_000, state: "opened"}
-            - assert: {from: 2, to: 0, total_deposit: 100_000, balance: 100_000, state: "opened"}
+            - assert: {from: 0, to: 1, total_deposit: 100, balance: 100, state: "opened"}
+            - assert: {from: 2, to: 1, total_deposit: 100, balance: 100, state: "opened"}
       - parallel:
-          name: "Make transfers"
-          repeat: 500
+          name: "Make a transfer"
           tasks:
-            - transfer: {from: 1, to: 2, amount: 1}
-            - transfer: {from: 2, to: 1, amount: 1}
-      - parallel:
-          name: "Burn something"
-          tasks:
-            - burn: {from: 0, to: 1, total_burn: 10, expected_http_status: 200}
+            - transfer: {from: 0, to: 1, amount: 42}
+            - transfer: {from: 2, to: 1, amount: 42}
+            - transfer: {from: 0, to: 2, amount: 42}
       - parallel:
           name: "Assert after transfer"
           tasks:
-            - assert: {from: 0, to: 1, total_deposit: 100, balance: 4, state: "opened"}
-            - assert: {from: 2, to: 1, total_deposit: 100, balance: 102, state: "opened"}
+            - assert: {from: 0, to: 1, total_deposit: 100, balance: 16, state: "opened"}
+            - assert: {from: 2, to: 1, total_deposit: 100, balance: 100, state: "opened"}
