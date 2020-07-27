@@ -650,33 +650,38 @@ class ScenarioRunner:
             return
 
         # Todo: Make aware of reuse etc.
-        claims_file = self.definition.scenario_dir.joinpath("claims.jsonl")
-        additional_addresses = [
-            Address(os.urandom(20))
-            for _ in range(claims_config.additional_address_count - len(self.node_controller))
-        ]
-        node_addresses = {
-            to_canonical_address(address) for address in self.node_controller.addresses
-        }
-
-        hub_address = to_canonical_address(
-            self.node_controller._node_runners[claims_config.hub_node_index].address
+        claims_file = self.definition.scenario_dir.joinpath(
+            f"claims-{self.definition.scenario_hash}.jsonl"
         )
+        if not claims_file.exists():
+            additional_addresses = [
+                Address(os.urandom(20))
+                for _ in range(claims_config.additional_address_count - len(self.node_controller))
+            ]
+            node_addresses = {
+                to_canonical_address(address) for address in self.node_controller.addresses
+            }
 
-        # The hub address gets added as a peer for every given address
-        node_addresses.remove(hub_address)
+            hub_address = to_canonical_address(
+                self.node_controller._node_runners[claims_config.hub_node_index].address
+            )
 
-        log.info("Generating claims", config=claims_config)
-        create_hub_jsonl(
-            operator_signer=LocalSigner(self.client.privkey),
-            token_network_address=token_network_address,
-            chain_id=self.client.chain_id,
-            hub_address=hub_address,
-            addresses=list(node_addresses) + additional_addresses,
-            output_file=claims_file,
-            token_amount=claims_config.token_amount,
-        )
-        log.debug("Claims generated")
+            # The hub address gets added as a peer for every given address
+            node_addresses.remove(hub_address)
+
+            log.info("Generating claims", config=claims_config)
+            create_hub_jsonl(
+                operator_signer=LocalSigner(self.client.privkey),
+                token_network_address=token_network_address,
+                chain_id=self.client.chain_id,
+                hub_address=hub_address,
+                addresses=list(node_addresses) + additional_addresses,
+                output_file=claims_file,
+                token_amount=claims_config.token_amount,
+            )
+            log.debug("Claims generated")
+        else:
+            log.info("Reusing claims", claims_file=claims_file)
         for node_runner in self.node_controller:  # type: ignore
             node_runner.claims_file = claims_file
 
