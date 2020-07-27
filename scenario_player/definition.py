@@ -1,3 +1,4 @@
+import hashlib
 import pathlib
 from dataclasses import asdict
 
@@ -31,6 +32,7 @@ class ScenarioDefinition:
             rendered_yaml = yaml_template.render(**asdict(environment))
             self._loaded = yaml.safe_load(rendered_yaml)
 
+        self.scenario_hash = hashlib.sha256(rendered_yaml.encode()).hexdigest()
         self.settings = SettingsConfig(self._loaded, environment)
         self.settings.sp_root_dir = data_path
         self.token = TokenConfig(self._loaded, self.scenario_dir.joinpath("token.info"))
