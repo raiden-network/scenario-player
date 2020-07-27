@@ -674,6 +674,7 @@ class ScenarioRunner:
             hub_address=hub_address,
             addresses=list(node_addresses) + additional_addresses,
             output_file=claims_file,
+            token_amount=claims_config.token_amount,
         )
         log.debug("Claims generated")
         for node_runner in self.node_controller:  # type: ignore
