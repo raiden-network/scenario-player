@@ -5,8 +5,9 @@ settings:
   chain: any
   claims:
     enabled: true
-    hub-node: 1
+    hub-node: 0
     additional-address-count: 100
+    token_amount: 100_000
 
 token:
   balance_fund: 10_000_000_000_000_000_000
@@ -39,14 +40,16 @@ scenario:
       - parallel:
           name: "Assert after channel openings"
           tasks:
-            - assert: {from: 0, to: 1, total_deposit: 100, balance: 100, state: "opened"}
-            - assert: {from: 2, to: 1, total_deposit: 100, balance: 100, state: "opened"}
+            - assert: {from: 0, to: 1, total_deposit: 100_000, balance: 100_000, state: "opened"}
+            - assert: {from: 1, to: 0, total_deposit: 100_000, balance: 100_000, state: "opened"}
+            - assert: {from: 0, to: 2, total_deposit: 100_000, balance: 100_000, state: "opened"}
+            - assert: {from: 2, to: 0, total_deposit: 100_000, balance: 100_000, state: "opened"}
       - parallel:
-          name: "Make a transfer"
+          name: "Make transfers"
+          repeat: 500
           tasks:
-            - transfer: {from: 0, to: 1, amount: 42}
-            - transfer: {from: 2, to: 1, amount: 42}
-            - transfer: {from: 0, to: 2, amount: 42}
+            - transfer: {from: 1, to: 2, amount: 1}
+            - transfer: {from: 2, to: 1, amount: 1}
       - parallel:
           name: "Burn something"
           tasks:

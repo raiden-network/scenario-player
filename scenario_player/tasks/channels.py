@@ -104,7 +104,6 @@ class BurnTask(ChannelActionTask):
         return dict(total_burn=self._config["total_burn"])
 
 
-
 class TransferTask(ChannelActionTask):
     _name = "transfer"
     _url_template = "{protocol}://{target_host}/api/v1/payments/{token_address}/{partner_address}"
