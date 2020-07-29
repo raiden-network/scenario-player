@@ -1,7 +1,10 @@
+import gzip
 import os
 import random
+import shutil
 import time
 from collections import defaultdict
+from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, cast
 
@@ -682,6 +685,24 @@ class ScenarioRunner:
             log.debug("Claims generated")
         else:
             log.info("Reusing claims", claims_file=claims_file)
+
+        pfs_url = self.definition.settings.services.pfs.url
+        if pfs_url is not None:
+            log.debug("Uploading claims to PFS")
+            compressed_claims = BytesIO()
+            with claims_file.open("rt") as claims_fd, gzip.open(
+                compressed_claims, "wt"
+            ) as compressed_claims_fd:
+                shutil.copyfileobj(claims_fd, compressed_claims_fd)
+
+            compressed_claims.seek(0)
+            resp = requests.post(
+                f"{pfs_url}/api/v1/_debug/reload_claims",
+                files={"file": ("claims.jsonl.gz", compressed_claims, "application/gzip")},
+            )
+            resp.raise_for_status()
+            log.info("Uploaded claims to PFS")
+
         for node_runner in self.node_controller:  # type: ignore
             node_runner.claims_file = claims_file
 
