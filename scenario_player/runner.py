@@ -658,9 +658,10 @@ class ScenarioRunner:
                 Address(os.urandom(20))
                 for _ in range(claims_config.additional_address_count - len(self.node_controller))
             ]
-            node_addresses = {
-                to_canonical_address(address) for address in self.node_controller.addresses
-            }
+            node_addresses = [
+                to_canonical_address(runner.address)
+                for runner in self.node_controller._node_runners
+            ]
 
             hub_address = to_canonical_address(
                 self.node_controller._node_runners[claims_config.hub_node_index].address
@@ -675,9 +676,10 @@ class ScenarioRunner:
                 token_network_address=token_network_address,
                 chain_id=self.client.chain_id,
                 hub_address=hub_address,
-                addresses=list(node_addresses) + additional_addresses,
+                addresses=node_addresses + additional_addresses,
                 output_file=claims_file,
                 token_amount=claims_config.token_amount,
+                num_direct_channels=claims_config.num_direct_channels,
             )
             log.debug("Claims generated")
         else:
