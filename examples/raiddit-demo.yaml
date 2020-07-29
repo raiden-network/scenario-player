@@ -1,0 +1,75 @@
+version: 2
+
+settings:
+  gas_price: "fast"
+  services:
+      pfs:
+          url: "http://localhost:6000"
+  chain: any
+  claims:
+    enabled: true
+    hub-node: 0
+    additional-address-count: 100
+    token_amount: 100_000
+    num_direct_channels: 7  # direct channels: (0, 1), (1, 2), (2, 3)
+
+token:
+  balance_fund: 10_000_000_000_000_000_000
+  balance_min:   5_000_000_000_000_000_000
+  reuse: true
+
+nodes:
+  count: 8
+  raiden_version: local
+  reuse_accounts: true
+  restore_snapshot: true
+
+  default_options:
+    gas-price: fast
+    environment-type: development
+    routing-mode: pfs
+    enable-monitoring: false
+    default-settle-timeout: 40
+    default-reveal-timeout: 10
+
+scenario:
+  serial:
+    tasks:
+      - snapshot:
+          # We use the snapshot feature to ensure clean node state on every run.
+          # But since the channels are implicitly opened via the claims we don't actually need a
+          # task in here which is the reason for the "dummy" wait task.
+          tasks:
+            - wait: 0
+      - parallel:
+          name: "Assert after channel openings"
+          tasks:
+            {% for i in [0, 1, 2, 3, 4, 5, 6] %}
+            - assert: {from: {{i+1}}, to: {{i}}, total_deposit: 100_000, balance: 100_000, state: "opened"}
+            - assert: {from: {{i}}, to: {{i+1}}, total_deposit: 100_000, balance: 100_000, state: "opened"}
+            {% endfor %}
+            {% for i in [1, 2, 3, 4, 5, 6] %}
+            - assert: {from: {{i}}, to: {{0}}, total_deposit: 100_000, balance: 100_000, state: "opened"}
+            - assert: {from: {{0}}, to: {{i}}, total_deposit: 100_000, balance: 100_000, state: "opened"}
+            {% endfor %}
+      - serial:
+          name: "Tons of transfers"
+          repeat: 5
+          tasks:
+            - parallel:
+                name: "Transfer batch"
+                repeat: 10
+                tasks:
+                  {% for i in [1, 3, 5] %}
+                  - transfer: {from: {{i}}, to: {{i+1}}, amount: 1}
+                  - transfer: {from: {{i+1}}, to: {{i}}, amount: 1}
+                  {% endfor %}
+      - parallel:
+          name: "Burn something"
+          tasks:
+            - burn: {from: 0, to: 1, total_burn: 10, expected_http_status: 200}
+      - parallel:
+          name: "Assert after transfer"
+          tasks:
+            - assert: {from: 0, to: 1, total_deposit: 100_000, balance: 99_990, state: "opened"}
+            - assert: {from: 2, to: 1, total_deposit: 100_000, balance: 100_000, state: "opened"}

@@ -198,13 +198,16 @@ class ClaimsConfig:
         self.hub_node_index = int(config.get("hub-node", -1))
         self.additional_address_count = int(config.get("additional-address-count", 0))
         self.token_amount = TokenAmount(int(config.get("token_amount", 100_000)))
+        self.num_direct_channels = int(config.get("num_direct_channels", 0))
 
     def __repr__(self) -> str:
         return (
             f"<ClaimsConfig "
             f"enabled={self.enabled} "
             f"hub-node={self.hub_node_index} "
-            f"additional-address-count={self.additional_address_count}>"
+            f"additional-address-count={self.additional_address_count} "
+            f"token_amount={self.token_amount} "
+            f"num_direct-channels={self.num_direct_channels}>"
         )
 
 
