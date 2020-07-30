@@ -1,3 +1,4 @@
+import errno
 import hashlib
 import json
 import os
@@ -7,6 +8,7 @@ import signal
 import socket
 import stat
 import sys
+from contextlib import closing
 from pathlib import Path
 from subprocess import Popen
 from tarfile import TarFile
@@ -346,11 +348,26 @@ class NodeRunner:
         if not self._api_address:
             self._api_address = self._options.get("api-address")
             if self._api_address is None:
-                # Find a random free port
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.bind(("127.0.0.1", 0))
-                self._api_address = f"127.0.0.1:{sock.getsockname()[1]}"
-                sock.close()
+                with closing(sock):
+                    # Force the port into TIME_WAIT mode, ensuring that it will not
+                    # be considered 'free' by the OS for the next 60 seconds. This
+                    # does however require that the process using the port sets
+                    # SO_REUSEADDR on it's sockets. Most 'server' applications do.
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    sock.bind(("127.0.0.1", 0))
+
+                    sock_addr = sock.getsockname()
+                    port = sock_addr[1]
+
+                    # Connect to the socket to force it into TIME_WAIT state (see
+                    # above)
+                    sock.listen(1)
+                    sock2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    with closing(sock2):
+                        sock2.connect(sock_addr)
+                        sock.accept()
+                    self._api_address = f"127.0.0.1:{port}"
         return self._api_address
 
     @property
