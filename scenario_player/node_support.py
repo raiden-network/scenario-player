@@ -201,7 +201,9 @@ class NodeRunner:
         _ = self._keystore_file  # noqa: F841
         _ = self._raiden_bin  # noqa: F841
 
-    def start(self):
+    def start(self, wait: bool = False):
+        from scenario_player.runner import wait_for_nodes_to_be_ready
+
         log.info(
             "Starting node",
             node=self._index,
@@ -216,6 +218,8 @@ class NodeRunner:
         self._output_files["stdout"].write(f"Command line: {' '.join(self._command)}\n")
 
         self._process = self.nursery.exec_under_watch(self._command, **self._output_files)
+        if wait:
+            wait_for_nodes_to_be_ready([self], self._runner.session)
 
     # FIXME: Make node stop configurable?
     def stop(self, timeout=600):  # 10 mins
@@ -557,7 +561,7 @@ class NodeController:
 
         def _start():
             for runner in self._node_runners:
-                pool.spawn(runner.start)
+                pool.spawn(runner.start, wait=True)
             pool.join(raise_error=True)
             wait_for_nodes_to_be_ready(self._node_runners, self._runner.session)
             log.info("All nodes started")
