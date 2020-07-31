@@ -336,7 +336,7 @@ class NodeRunner:
                 f"-{self._index}"
             ).encode()
             privkey = hashlib.sha256(seed).digest()
-            keystore_file.write_text(json.dumps(create_keyfile_json(privkey, b"")))
+            keystore_file.write_text(json.dumps(create_keyfile_json(privkey, b"", iterations=100)))
         else:
             log.debug("Reusing keystore", node=self._index)
         return keystore_file
