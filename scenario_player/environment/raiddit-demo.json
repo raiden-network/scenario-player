@@ -1,0 +1,11 @@
+{
+    "environment_type": "development",
+    "pfs_with_fee": "http://localhost:6000",
+    "eth_rpc_endpoints": [
+        "http://url-to-ethnode-rpc"
+    ],
+    "transfer_token": "0x64249b026Cb2C20FdAe40c9d1D899F03f47105D4",
+    "pfs_fee": 0,
+    "ms_reward_with_margin": 0,
+    "settlement_timeout_min": 40
+}
