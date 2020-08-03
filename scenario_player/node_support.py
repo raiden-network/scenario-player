@@ -1,3 +1,4 @@
+import errno
 import hashlib
 import json
 import os
@@ -7,6 +8,7 @@ import signal
 import socket
 import stat
 import sys
+from contextlib import closing
 from pathlib import Path
 from subprocess import Popen
 from tarfile import TarFile
@@ -199,7 +201,9 @@ class NodeRunner:
         _ = self._keystore_file  # noqa: F841
         _ = self._raiden_bin  # noqa: F841
 
-    def start(self):
+    def start(self, wait: bool = False):
+        from scenario_player.runner import wait_for_nodes_to_be_ready
+
         log.info(
             "Starting node",
             node=self._index,
@@ -214,6 +218,8 @@ class NodeRunner:
         self._output_files["stdout"].write(f"Command line: {' '.join(self._command)}\n")
 
         self._process = self.nursery.exec_under_watch(self._command, **self._output_files)
+        if wait:
+            wait_for_nodes_to_be_ready([self], self._runner.session)
 
     # FIXME: Make node stop configurable?
     def stop(self, timeout=600):  # 10 mins
@@ -330,7 +336,7 @@ class NodeRunner:
                 f"-{self._index}"
             ).encode()
             privkey = hashlib.sha256(seed).digest()
-            keystore_file.write_text(json.dumps(create_keyfile_json(privkey, b"")))
+            keystore_file.write_text(json.dumps(create_keyfile_json(privkey, b"", iterations=100)))
         else:
             log.debug("Reusing keystore", node=self._index)
         return keystore_file
@@ -346,11 +352,26 @@ class NodeRunner:
         if not self._api_address:
             self._api_address = self._options.get("api-address")
             if self._api_address is None:
-                # Find a random free port
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.bind(("127.0.0.1", 0))
-                self._api_address = f"127.0.0.1:{sock.getsockname()[1]}"
-                sock.close()
+                with closing(sock):
+                    # Force the port into TIME_WAIT mode, ensuring that it will not
+                    # be considered 'free' by the OS for the next 60 seconds. This
+                    # does however require that the process using the port sets
+                    # SO_REUSEADDR on it's sockets. Most 'server' applications do.
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    sock.bind(("127.0.0.1", 0))
+
+                    sock_addr = sock.getsockname()
+                    port = sock_addr[1]
+
+                    # Connect to the socket to force it into TIME_WAIT state (see
+                    # above)
+                    sock.listen(1)
+                    sock2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    with closing(sock2):
+                        sock2.connect(sock_addr)
+                        sock.accept()
+                    self._api_address = f"127.0.0.1:{port}"
         return self._api_address
 
     @property
@@ -540,7 +561,7 @@ class NodeController:
 
         def _start():
             for runner in self._node_runners:
-                pool.spawn(runner.start)
+                pool.spawn(runner.start, wait=True)
             pool.join(raise_error=True)
             wait_for_nodes_to_be_ready(self._node_runners, self._runner.session)
             log.info("All nodes started")

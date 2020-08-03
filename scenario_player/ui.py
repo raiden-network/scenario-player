@@ -204,8 +204,8 @@ class ScenarioUI:
         self._root_widget = uwd.Frame(
             TabFocusSwitchingPile(
                 [
-                    uwd.AttrWrap(self._task_box, "default", focus_attr="focus"),
-                    uwd.AttrWrap(self._log_box, "default", focus_attr="focus"),
+                    ("weight", 2, uwd.AttrWrap(self._task_box, "default", focus_attr="focus")),
+                    ("weight", 1, uwd.AttrWrap(self._log_box, "default", focus_attr="focus")),
                 ],
                 focus_item=1,
             ),
