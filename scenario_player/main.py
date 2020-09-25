@@ -589,6 +589,7 @@ def smoketest(eth_client: EthClient):
     with report() as (report_file, append_report):
         append_report("Setting up Smoketest")
         with step_printer(step_count=6, stdout=sys.stdout) as print_step:
+            setup: RaidenTestSetup
             with setup_smoketest(
                 eth_client=eth_client,
                 print_step=print_step,
@@ -608,7 +609,7 @@ def smoketest(eth_client: EthClient):
                     pfs_fee=FeeAmount(100),
                     environment_type="development",
                     environment_file_name="smoketest",
-                    matrix_servers=["auto"],
+                    matrix_servers=[setup.args["matrix_server"]],
                     transfer_token=TokenAddress(bytes([1] * 20)),
                     pfs_with_fee=URI("http://www.example.com"),
                     eth_rpc_endpoints=[URI(setup.args["eth_rpc_endpoint"])],

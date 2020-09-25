@@ -66,15 +66,11 @@ commands:
     steps:
       - attach_workspace:
           at: "/home/circleci"
-      - export_env_vars
-
-  export_env_vars:
-    description: Export ENV variables used by our script.
-    steps:
       - run:
-          name: Add Environment variables to bash env.
+          name: Configure locale
           command: |
-            echo 'export PATH=/home/circleci/ci/venv/bin:~/.local/bin:$PATH' >> ${BASH_ENV}
+            echo "en_US.UTF-8 UTF-8" | sudo tee -a /etc/locale.gen
+            sudo locale-gen
 
   install_tools_for_ci:
     description: Install packages needed to run our scripts. These may not be included in SP's dependencies.
@@ -84,10 +80,11 @@ commands:
           command: |
             pip install bump2version flit tomlkit
             mkdir -p ~/.local/bin
-            curl -o geth.tar.gz https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.9.11-6a62fe39.tar.gz
+            curl -o geth.tar.gz https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.9.21-0287d548.tar.gz
             tar zxf geth.tar.gz
             cd geth*/
             install -m 755 geth ~/.local/bin/geth
+            echo 'export PATH=~/.local/bin:$PATH' >> ${BASH_ENV}
 
   prep_venv:
     description: Restore cache and virtualenv, and install dependencies.
@@ -106,6 +103,8 @@ commands:
           command: |
             if [ ! -x /home/circleci/ci/venv ]; then python3 -m venv /home/circleci/ci/venv; fi
             echo 'export PATH=/home/circleci/ci/venv/bin:$PATH' >> ${BASH_ENV}
+            echo 'export LANG=C.UTF-8' >> ${BASH_ENV}
+            echo 'export LC_ALL=C.UTF-8' >> ${BASH_ENV}
 
       - install_tools_for_ci
 
@@ -121,10 +120,6 @@ commands:
   lint_codebase:
     description: Run linters against our code base.
     steps:
-      - run:
-          name: Set PATH to venv.
-          command: |
-            echo 'export PATH=/home/circleci/ci/venv/bin:$PATH' >> ${BASH_ENV}
       - run:
           name: Run Linters
           command: |
@@ -179,7 +174,6 @@ jobs:
     steps:
       - checkout
       - prep_venv
-      - export_env_vars
       - setup-job
       - lint_codebase
       - run_test_harness
@@ -196,7 +190,6 @@ jobs:
     steps:
       - checkout
       - prep_venv
-      - export_env_vars
       - run:
           name: Publish to pypi using flit.
           command: |
