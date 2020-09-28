@@ -15,7 +15,7 @@ nodes:
   default_options:
     gas-price: fast
     environment-type: development
-    routing-mode: local
+    routing-mode: private
     pathfinding-max-paths: 5
     pathfinding-max-fee: 100
     enable-monitoring: false
