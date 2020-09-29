@@ -236,12 +236,12 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                         f"at index {i}"
                     )
 
-        actual_routes: List[tuple] = list(
+        actual_routes: List[tuple] = [
             tuple(route["path"])
             for response in response_dict["responses"]
             for route in response["routes"]
             if response["routes"]
-        )
+        ]
 
         if self._config.get("distinct_routes_only", False):
             # We only want distinct routes
@@ -263,7 +263,7 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
                 )
             for exp_route in exp_routes:
                 exp_route_addr: tuple = tuple(
-                    [self._runner.get_node_address(node) for node in exp_route]
+                    self._runner.get_node_address(node) for node in exp_route
                 )
                 try:
                     actual_routes.remove(exp_route_addr)
