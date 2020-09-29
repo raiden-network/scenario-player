@@ -41,24 +41,3 @@ steps need to be taken:
 5. Push your commits (`git push -u origin ${NEW_BRANCH_NAME}`
 6. Open a PR, requesting to merge into **`master`** .
 7. Wait for feedback or approval.
-
-Then, for **Maintainers only**:
-
-8.After approving a PR, merge it using the following REGEX pattern for the commit title:
-
-    ^\[(?P<type>(FEAT|FIX))-(?P<issue>#\d+)\]\w?(?P<description>.*)$
-    
-Examples::
-
-    [FEAT-#333] Allow assert_events to filter by event args by event args
-    [FIX-#319] Respect token.address scenario setting
-
-
-Releases
---------
-
-Releases are are tagged automatically, whenever a PR is merged that fits the above
-mentioned commit regex.
-
-It is completely automated and does not requirer user action. Newly tagged versions
-are also published to pypi via CI.
