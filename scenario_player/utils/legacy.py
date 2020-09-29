@@ -63,7 +63,7 @@ class MutuallyExclusiveOption(click.Option):
 def wait_for_txs(web3: Web3, transactions: Iterable[TransactionSent], timeout: int = 360):
     start = time.monotonic()
     outstanding = None
-    txhashes = set(transaction_sent.transaction_hash for transaction_sent in transactions)
+    txhashes = {transaction_sent.transaction_hash for transaction_sent in transactions}
 
     while txhashes and time.monotonic() - start < timeout:
         remaining_timeout = timeout - (time.monotonic() - start)

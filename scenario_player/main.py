@@ -501,7 +501,7 @@ def reclaim_eth(
     address_to_candidate: Dict[Address, ReclamationCandidate] = {
         to_canonical_address(c.address): c for c in reclamation_candidates
     }
-    log.info("Reclaiming candidates", addresses=list(c.address for c in reclamation_candidates))
+    log.info("Reclaiming candidates", addresses=[c.address for c in reclamation_candidates])
 
     web3 = Web3(HTTPProvider(eth_rpc_endpoint))
     web3.middleware_onion.add(make_sane_poa_middleware)

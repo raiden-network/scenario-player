@@ -101,11 +101,7 @@ def get_reclamation_candidates(
 
         last_run = next(
             iter(
-                sorted(
-                    list(node_dir.glob("run-*.log*")),
-                    key=lambda p: p.stat().st_mtime,
-                    reverse=True,
-                )
+                sorted(node_dir.glob("run-*.log*"), key=lambda p: p.stat().st_mtime, reverse=True)
             ),
             None,
         )
@@ -145,7 +141,7 @@ def withdraw_from_udc(
     deploy = get_contracts_deployment_info(chain_id, RAIDEN_CONTRACT_VERSION)
     assert deploy
 
-    planned_withdraws: Dict[ChecksumAddress, Tuple[BlockNumber, TokenAmount]] = dict()
+    planned_withdraws: Dict[ChecksumAddress, Tuple[BlockNumber, TokenAmount]] = {}
 
     log.info("Checking chain for deposits in UserDeposit contact")
     for node in reclamation_candidates:
@@ -453,7 +449,7 @@ def withdraw_all(
         target_block=current_confirmed_head,
     )
 
-    tracked_channels: Dict[ChannelID, Dict] = dict()
+    tracked_channels: Dict[ChannelID, Dict] = {}
 
     # Ignore closed channels and if an address is not under our control. since
     # The withdraw will only work properly on open channel if performed by both
