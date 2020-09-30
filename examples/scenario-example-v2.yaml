@@ -69,7 +69,6 @@ nodes:
   #node_options:
   #  0:
   #    matrix-server: https://transport01.raiden.network
-  #    raiden-client: light-client
   #  1:
   #    matrix-server: https://transport03.raiden.network
 
