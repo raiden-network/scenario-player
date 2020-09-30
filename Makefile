@@ -4,10 +4,10 @@ black:
 	black scenario_player
 
 isort:
-	isort --recursive scenario_player
+	isort scenario_player
 
 isort-check:
-	isort --recursive --diff --check-only scenario_player
+	isort --diff --check-only scenario_player
 
 black-check:
 	black --check --diff scenario_player

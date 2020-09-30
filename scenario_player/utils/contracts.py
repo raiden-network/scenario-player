@@ -39,7 +39,7 @@ def get_proxy_manager(client: JSONRPCClient, deploy: DeployedContracts) -> Proxy
 def get_udc_and_corresponding_token_from_dependencies(
     chain_id: ChainID, proxy_manager: ProxyManager, udc_address: ChecksumAddress = None
 ) -> Tuple[UserDeposit, CustomToken]:
-    """ Return contract proxies for the UserDepositContract and associated token.
+    """Return contract proxies for the UserDepositContract and associated token.
 
     This will return a proxy to the `UserDeposit` contract as determined by the
     **local** Raiden depedency.

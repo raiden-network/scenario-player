@@ -50,7 +50,7 @@ class ScenarioConfig:
         The scenario runner takes care of recursively accessing all sub-tasks
         of the roo task.
         """
-        root_task_tuple, = self.dict.items()
+        (root_task_tuple,) = self.dict.items()
         return root_task_tuple
 
     @property
