@@ -45,7 +45,7 @@ class TestPasswordHandling:
             main.run, CLI_ARGS.format(pw_option=f"--password-file /does/not/exist").split(" ")
         )
         assert result.exit_code == 2
-        assert '"--password-file": File "/does/not/exist" does not exist.' in result.output
+        assert "File '/does/not/exist' does not exist." in result.output
 
     def test_mutually_exclusive(self, runner):
         result = runner.invoke(
