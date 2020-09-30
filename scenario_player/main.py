@@ -5,7 +5,6 @@ import sys
 import tempfile
 import traceback
 from contextlib import AbstractContextManager, contextmanager, nullcontext
-from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import StringIO
@@ -60,9 +59,9 @@ from scenario_player.exceptions.cli import WrongPassword
 from scenario_player.runner import ScenarioRunner
 from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
-from scenario_player.utils import DummyStream, post_task_state_to_rc
+from scenario_player.utils import DummyStream
 from scenario_player.utils.configuration.settings import EnvironmentConfig
-from scenario_player.utils.legacy import MutuallyExclusiveOption
+from scenario_player.utils.legacy import MutuallyExclusiveOption, post_task_state_to_rc
 from scenario_player.utils.reclaim import ReclamationCandidate, get_reclamation_candidates
 from scenario_player.utils.version import get_complete_spec
 
@@ -219,6 +218,9 @@ def main():
     is_flag=True,
     help="Delete node snapshots for the given scenario if any are present.",
 )
+@click.option(
+    "--raiden-client", default="raiden", help="The client executable to use [default: 'raiden']"
+)
 @environment_option
 @key_password_options
 @data_path_option
@@ -233,6 +235,7 @@ def run(
     password_file: str,
     environment: EnvironmentConfig,
     delete_snapshots: bool,
+    raiden_client: str,
 ):
     """Execute a scenario as defined in scenario definition file.
     click entrypoint, this dispatches to `run_`.
@@ -253,6 +256,7 @@ def run(
         log_file_name=log_file_name,
         environment=environment,
         delete_snapshots=delete_snapshots,
+        raiden_client=raiden_client,
     )
 
 
@@ -289,6 +293,7 @@ def run_(
     log_file_name: str,
     environment: EnvironmentConfig,
     delete_snapshots: bool,
+    raiden_client: str,
     smoketest_deployment_data=None,
 ) -> None:
     """Execute a scenario as defined in scenario definition file.
@@ -323,6 +328,9 @@ def run_(
             )
         notify_tasks_callable = post_task_state_to_rc
 
+    # TODO: make this used
+    print(notify_tasks_callable)
+
     log_buffer = None
     if enable_ui:
         log_buffer = attach_urwid_logbuffer()
@@ -331,27 +339,24 @@ def run_(
     collect_tasks(tasks)
 
     # Start our Services
-
-    report: Dict[str, str] = dict()
+    report: Dict[str, str] = {}
     success = Event()
     success.clear()
     try:
         assert isinstance(data_path, Path), type(data_path)
         orchestrate(
-            success,
-            enable_ui,
-            log_buffer,
-            log_file_name,
-            ScenarioRunnerArgs(
-                account=account,
-                auth=auth,
-                data_path=data_path,
-                scenario_file=scenario_file,
-                notify_tasks_callable=notify_tasks_callable,
-                smoketest_deployment_data=smoketest_deployment_data,
-                environment=environment,
-                delete_snapshots=delete_snapshots,
-            ),
+            success=success,
+            enable_ui=enable_ui,
+            log_buffer=log_buffer,
+            log_file_name=log_file_name,
+            account=account,
+            auth=auth,
+            data_path=data_path,
+            scenario_file=scenario_file,
+            smoketest_deployment_data=smoketest_deployment_data,
+            environment=environment,
+            delete_snapshots=delete_snapshots,
+            raiden_client=raiden_client,
         )
     except ScenarioAssertionError as ex:
         log.error("Run finished", result="assertion errors")
@@ -392,32 +397,31 @@ def run_(
         exit(exit_code)
 
 
-@dataclass
-class ScenarioRunnerArgs:
-    # TODO: improve typing
-    account: Any
-    auth: Any
-    data_path: Any
-    scenario_file: Any
-    notify_tasks_callable: Any
-    smoketest_deployment_data: Any
-    environment: EnvironmentConfig
-    delete_snapshots: bool
-
-
 def orchestrate(
-    success, enable_ui, log_buffer, log_file_name, scenario_runner_args: ScenarioRunnerArgs
+    success: Event,
+    enable_ui: bool,
+    log_buffer: Any,
+    log_file_name: str,
+    account,
+    auth,
+    data_path,
+    scenario_file,
+    environment,
+    smoketest_deployment_data,
+    delete_snapshots,
+    raiden_client: str,
 ) -> None:
     # We need to fix the log stream early in case the UI is active
     scenario_runner = ScenarioRunner(
-        account=scenario_runner_args.account,
-        auth=scenario_runner_args.auth,
-        data_path=scenario_runner_args.data_path,
-        scenario_file=scenario_runner_args.scenario_file,
-        environment=scenario_runner_args.environment,
+        account=account,
+        auth=auth,
+        data_path=data_path,
+        scenario_file=scenario_file,
+        environment=environment,
         success=success,
-        smoketest_deployment_data=scenario_runner_args.smoketest_deployment_data,
-        delete_snapshots=scenario_runner_args.delete_snapshots,
+        smoketest_deployment_data=smoketest_deployment_data,
+        delete_snapshots=delete_snapshots,
+        raiden_client=raiden_client,
     )
     ui: AbstractContextManager
     if enable_ui:
@@ -517,7 +521,7 @@ def reclaim_eth(
         )
 
     for token_address in reclaim_tokens:
-        log.info("start ERC20 token reclaim", token=to_checksum_address(token_address))
+        log.info("Starting ERC20 token reclaim", token=to_checksum_address(token_address))
         scenario_player.utils.reclaim.withdraw_all(
             address_to_candidate=address_to_candidate,
             token_address=token_address,
@@ -533,7 +537,7 @@ def reclaim_eth(
             account=account,
         )
 
-    log.info("start eth reclaim")
+    log.info("Starting ETH reclaim")
     scenario_player.utils.reclaim.reclaim_eth(
         reclamation_candidates=reclamation_candidates, web3=web3, account=account
     )
@@ -629,6 +633,7 @@ def smoketest(eth_client: EthClient):
                         environment=env,
                         smoketest_deployment_data=deployment_data,
                         delete_snapshots=False,
+                        raiden_client="raiden",
                     )
                 except SystemExit as ex:
                     append_report("Captured", captured_stdout.getvalue())

@@ -1,23 +1,15 @@
 import hashlib
 import json
 import os
-import platform
 import shutil
 import signal
 import socket
-import stat
-import sys
 from pathlib import Path
 from subprocess import Popen
-from tarfile import TarFile
-from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
-from urllib.parse import urljoin
-from zipfile import ZipFile
+from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 import gevent
-import requests
 import structlog
-from cachetools.func import ttl_cache
 from eth_keyfile import create_keyfile_json
 from eth_typing import URI
 from eth_utils import to_checksum_address
@@ -33,10 +25,6 @@ if TYPE_CHECKING:
     from scenario_player.runner import ScenarioRunner
 
 log = structlog.get_logger(__name__)
-
-RAIDEN_RELEASES_URL = "https://raiden-nightlies.ams3.digitaloceanspaces.com/"
-RAIDEN_RELEASES_LATEST_FILE_TEMPLATE = "_LATEST-NIGHTLY-{platform}-{arch}.txt"
-RAIDEN_RELEASES_VERSIONED_NAME_TEMPLATE = "raiden-v{version}-{platform}-{arch}.zip"
 
 
 MANAGED_CONFIG_OPTIONS = {
@@ -68,109 +56,16 @@ MANAGED_CONFIG_OPTIONS_OVERRIDABLE = {
 }
 
 
-class RaidenReleaseKeeper:
-    def __init__(self, release_cache_dir: Path):
-        self._downloads_path = release_cache_dir.joinpath("downloads")
-        self._bin_path = release_cache_dir.joinpath("bin")
-
-        self._downloads_path.mkdir(exist_ok=True, parents=True)
-        self._bin_path.mkdir(exist_ok=True, parents=True)
-
-    def get_release(self, version: str = "LATEST"):
-        # `version` can also be a path
-        bin_path = Path(version)
-        if bin_path.exists() and bin_path.stat().st_mode & stat.S_IXUSR == stat.S_IXUSR:
-            # File exists and is executable
-            return bin_path
-
-        if version.lower() == "latest":
-            release_file_name = self._latest_release_name
-        else:
-            if version.startswith("v"):
-                version = version.lstrip("v")
-            release_file_name = self._expand_release_template(
-                RAIDEN_RELEASES_VERSIONED_NAME_TEMPLATE, version=version
-            )
-
-        release_file_path = self._get_release_file(release_file_name)
-        return self._get_bin_for_release(release_file_path)
-
-    def _get_bin_for_release(self, release_file_path: Path):
-        if not release_file_path.exists():
-            raise ValueError(f"Release file {release_file_path} not found")
-
-        archive: Union[TarFile, ZipFile]
-        if release_file_path.suffix == ".gz":
-            tar_opener = TarFile.open(release_file_path, "r:*")
-            with tar_opener as tar_archive:
-                contents = tar_archive.getnames()
-            archive = tar_archive
-        else:
-            zip_opener = ZipFile(release_file_path, "r")
-            with zip_opener as zip_archive:
-                contents = zip_archive.namelist()
-            archive = zip_archive
-
-        if len(contents) != 1:
-            raise ValueError(
-                f"Release archive has unexpected content. "
-                f'Expected 1 file, found {len(contents)}: {", ".join(contents)}'
-            )
-
-        bin_file_path = self._bin_path.joinpath(contents[0])
-        if not bin_file_path.exists():
-            log.debug(
-                "Extracting Raiden binary",
-                release_file_name=release_file_path.name,
-                bin_file_name=bin_file_path.name,
-            )
-            archive.extract(contents[0], str(self._bin_path))
-            bin_file_path.chmod(0o770)
-        return bin_file_path
-
-    def _get_release_file(self, release_file_name: str):
-        release_file_path = self._downloads_path.joinpath(release_file_name)
-        if release_file_path.exists():
-            return release_file_path
-
-        url = RAIDEN_RELEASES_URL + release_file_name
-        release_file_path.parent.mkdir(exist_ok=True, parents=True)
-        with requests.get(url, stream=True) as resp, release_file_path.open("wb+") as release_file:
-            log.debug("Downloading Raiden release", release_file_name=release_file_name)
-            if not 199 < resp.status_code < 300:
-                raise ValueError(
-                    f"Can't download release file {release_file_name}: "
-                    f"{resp.status_code} {resp.text}"
-                )
-            shutil.copyfileobj(resp.raw, release_file)
-        return release_file_path
-
-    @property  # type: ignore
-    @ttl_cache(maxsize=1, ttl=600)
-    def _latest_release_name(self):
-        latest_release_file_name = self._expand_release_template(
-            RAIDEN_RELEASES_LATEST_FILE_TEMPLATE
-        )
-        url = urljoin(RAIDEN_RELEASES_URL, latest_release_file_name)
-        log.debug("Fetching latest Raiden release", lookup_url=url)
-        return requests.get(url).text.strip()
-
-    @staticmethod
-    def _expand_release_template(template, **kwargs):
-        return template.format(
-            platform="macOS" if sys.platform == "darwin" else sys.platform,
-            arch=platform.machine(),
-            **kwargs,
-        )
-
-
 class NodeRunner:
-    def __init__(self, runner: "ScenarioRunner", index: int, raiden_version, options: dict):
+    def __init__(self, runner: "ScenarioRunner", index: int, raiden_client: str, options: dict):
         self._runner = runner
         self._index = index
-        self._raiden_version = raiden_version
         self._options = options
         self._nursery: Optional[Nursery] = None
+
+        # Overwrite raiden client to use, if given in options
+        self._raiden_client = options.pop("raiden-client", raiden_client)
+
         if runner.definition.nodes.reuse_accounts:
             datadir_name = f"node_{index:03d}"
         else:
@@ -301,13 +196,13 @@ class NodeRunner:
         return cmd
 
     @property
-    def _raiden_bin(self):
-        if self._raiden_version.lower() == "local":
-            binary = shutil.which("raiden")
-            if not binary:
-                raise FileNotFoundError("Could not use local binary! No Binary found in env!")
-            return binary
-        return self._runner.release_keeper.get_release(self._raiden_version)
+    def _raiden_bin(self) -> str:
+        binary = shutil.which(self._raiden_client)
+        if not binary:
+            raise FileNotFoundError(
+                f"Could not use local binary '{self._raiden_client}'! No Binary found in env!"
+            )
+        return binary
 
     @property
     def _keystore_file(self):
@@ -495,16 +390,22 @@ class SnapshotManager:
 
 class NodeController:
     def __init__(
-        self, runner: "ScenarioRunner", config: NodesConfig, delete_snapshots: bool = False
+        self,
+        runner: "ScenarioRunner",
+        config: NodesConfig,
+        raiden_client: str,
+        delete_snapshots: bool = False,
     ):
         self._runner = runner
         self._global_options = config.default_options
         self._node_options = config.node_options
+
+        log.info("Using default Raiden version", version=raiden_client)
         self._node_runners = [
             NodeRunner(
-                runner,
-                index,
-                config.raiden_version,
+                runner=runner,
+                index=index,
+                raiden_client=raiden_client,
                 options={**self._global_options, **self._node_options.get(index, {})},
             )
             for index in range(config.count)
@@ -516,7 +417,6 @@ class NodeController:
         if config.restore_snapshot:
             if self.snapshot_manager.restore():
                 self.snapshot_restored = True
-        log.info("Using Raiden version", version=config.raiden_version)
 
     def __getitem__(self, item):
         return self._node_runners[item]

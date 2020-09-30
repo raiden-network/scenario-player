@@ -64,7 +64,7 @@ class RESTAPIActionTask(Task):
 
             log.debug("Received response", json=response_dict)
             return self._process_response(response_dict)
-        except (ValueError, UnicodeDecodeError) as ex:
+        except ValueError as ex:
             raise RESTAPIError(
                 f"Error decoding response for url {url}: {resp.status_code} {resp.text}"
             ) from ex

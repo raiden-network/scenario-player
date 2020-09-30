@@ -19,7 +19,6 @@ class NodesConfig:
         version: 2
         ...
         nodes:
-          raiden_version:
           default_options:
             gas_price: fast
           reuse_accounts:
@@ -41,10 +40,6 @@ class NodesConfig:
                 default_options["environment-type"] = environment
             self.dict["default_options"] = default_options
         self.validate()
-
-    @property
-    def raiden_version(self) -> str:
-        return self.dict.get("raiden_version", "LATEST")
 
     @property
     def count(self):

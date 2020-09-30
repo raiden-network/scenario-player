@@ -327,7 +327,7 @@ class AssertPFSIOUTask(RESTAPIActionTask):
             raise ScenarioError("Not all required keys provided. Required: source ")
 
         if not any(k in config for k in ["iou_exists", "amount"]):
-            raise ScenarioError(f"Expected either iou_exists or amount.")
+            raise ScenarioError("Expected either iou_exists or amount.")
 
     @property
     def _url_params(self):
@@ -350,7 +350,7 @@ class AssertPFSIOUTask(RESTAPIActionTask):
             if response_dict:
                 raise ScenarioAssertionError(f"Expected no IOU but got {response_dict}.")
         elif not response_dict:
-            raise ScenarioAssertionError(f"Expected IOU, but no IOU exists.")
+            raise ScenarioAssertionError("Expected IOU, but no IOU exists.")
         else:
             exp_iou_amount = int(self._config["amount"])
             actual_iou_amount = int(response_dict["amount"])
