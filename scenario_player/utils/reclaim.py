@@ -405,7 +405,7 @@ def withdraw_all(
     contract_manager: ContractManager,
     token_address: TokenAddress,
 ) -> None:
-    """ Withdraws all tokens from all channels
+    """Withdraws all tokens from all channels
 
     For this to work, both channel participants have to be in ``reclamation_candidates``.
 

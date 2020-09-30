@@ -25,7 +25,7 @@ log = structlog.get_logger(__name__)
 
 
 def decode_event(abi_codec: ABICodec, abi: ABI, log_: LogReceipt) -> Dict:
-    """ Helper function to unpack event data using a provided ABI
+    """Helper function to unpack event data using a provided ABI
 
     Args:
         abi_codec: The ABI codec
@@ -87,7 +87,7 @@ def query_blockchain_events(
 
 
 class AssertBlockchainEventsTask(Task):
-    """ Assert on blockchain events.
+    """Assert on blockchain events.
 
     Required parameters:
       - ``contract_name``

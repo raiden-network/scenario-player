@@ -260,7 +260,7 @@ def run(
 
 
 def _load_environment(environment_file: IO) -> EnvironmentConfig:
-    """ Load the environment JSON file and process matrix server list
+    """Load the environment JSON file and process matrix server list
 
     Nodes can be assigned to fixed matrix servers. To allow this, we must
     download the list of matrix severs.
@@ -551,8 +551,8 @@ def smoketest_deployed_contracts(contracts: Dict[str, Any]) -> DeployedContracts
     help="Which Ethereum client to run for the smoketests",
 )
 def smoketest(eth_client: EthClient):
-    from raiden.tests.utils.smoketest import setup_smoketest, step_printer
     from raiden.network.utils import get_free_port
+    from raiden.tests.utils.smoketest import setup_smoketest, step_printer
 
     free_port_generator = get_free_port()
     datadir = mkdtemp()

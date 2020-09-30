@@ -73,7 +73,7 @@ class DepositTask(ChannelActionTask):
 
 
 class WithdrawTask(ChannelActionTask):
-    """ Perform a withdraw on the given channel.
+    """Perform a withdraw on the given channel.
 
     Example usage::
 

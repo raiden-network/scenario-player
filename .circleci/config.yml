@@ -78,7 +78,7 @@ commands:
       - run:
           name: Install additional packages for CI tools
           command: |
-            pip install bump2version flit tomlkit
+            pip install -U pip bump2version flit
             mkdir -p ~/.local/bin
             curl -o geth.tar.gz https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.9.21-0287d548.tar.gz
             tar zxf geth.tar.gz

@@ -107,7 +107,7 @@ def get_token_network_registry_from_dependencies(
     proxy_manager: ProxyManager,
     smoketest_deployment_data: DeployedContracts = None,
 ) -> TokenNetworkRegistry:
-    """ Return contract proxies for the UserDepositContract and associated token.
+    """Return contract proxies for the UserDepositContract and associated token.
 
     This will return a proxy to the `UserDeposit` contract as determined by the
     **local** Raiden dependency.
@@ -132,7 +132,7 @@ def get_token_network_registry_from_dependencies(
 
 
 def determine_run_number(scenario_dir: Path) -> int:
-    """ Determine the current run number.
+    """Determine the current run number.
 
     We check for a run number file, and use any number that is logged there
     after incrementing it.
@@ -374,7 +374,7 @@ class ScenarioRunner:
         self.success.set()
 
     def setup_environment_and_run_main_task(self, node_addresses: Set[ChecksumAddress]) -> None:
-        """ This will first make sure the on-chain state is setup properly, and
+        """This will first make sure the on-chain state is setup properly, and
         then execute the scenario.
 
         The on-chain state consists of:
@@ -502,7 +502,7 @@ class ScenarioRunner:
         token_proxy: CustomToken,
         node_addresses: Set[ChecksumAddress],
     ) -> Set[Greenlet]:
-        """ Ensures the scenario player account has enough tokens and allowance
+        """Ensures the scenario player account has enough tokens and allowance
         to fund the Raiden nodes.
         """
         settings = self.definition.settings
@@ -565,7 +565,7 @@ class ScenarioRunner:
         node_addresses: Set[ChecksumAddress],
         mint_greenlets: Set[Greenlet],
     ) -> Set[Greenlet]:
-        """ Makes sure every Raiden node's account has enough tokens in the
+        """Makes sure every Raiden node's account has enough tokens in the
         user deposit contract.
 
         For these transfers to work, the approve and mint transacations have to
@@ -594,7 +594,7 @@ class ScenarioRunner:
         return greenlets
 
     def setup_token_contract_for_token_network(self, proxy_manager: ProxyManager) -> CustomToken:
-        """ Ensure there is a deployed token contract and return a `CustomToken`
+        """Ensure there is a deployed token contract and return a `CustomToken`
         proxy to it. This token will be used for the scenario's token network.
 
         This will either:
