@@ -62,9 +62,7 @@ class NodeRunner:
         self._index = index
         self._options = options
         self._nursery: Optional[Nursery] = None
-
-        # Overwrite raiden client to use, if given in options
-        self._raiden_client = options.pop("raiden-client", raiden_client)
+        self._raiden_client = raiden_client
 
         if runner.definition.nodes.reuse_accounts:
             datadir_name = f"node_{index:03d}"
@@ -400,7 +398,6 @@ class NodeController:
         self._global_options = config.default_options
         self._node_options = config.node_options
 
-        log.info("Using default Raiden version", version=raiden_client)
         self._node_runners = [
             NodeRunner(
                 runner=runner,
@@ -417,6 +414,9 @@ class NodeController:
         if config.restore_snapshot:
             if self.snapshot_manager.restore():
                 self.snapshot_restored = True
+        log.info(
+            "Using Raiden version", client=raiden_client, full_path=shutil.which(raiden_client)
+        )
 
     def __getitem__(self, item):
         return self._node_runners[item]
