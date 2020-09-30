@@ -283,7 +283,7 @@ def _load_environment(environment_file: IO) -> EnvironmentConfig:
 
 def run_(
     data_path: Path,
-    auth: Optional[str],
+    auth: str,
     password: Optional[str],
     keystore_file: str,
     scenario_file: Path,
@@ -343,21 +343,27 @@ def run_(
     success = Event()
     success.clear()
     try:
-        assert isinstance(data_path, Path), type(data_path)
-        orchestrate(
-            success=success,
-            enable_ui=enable_ui,
-            log_buffer=log_buffer,
-            log_file_name=log_file_name,
+        # We need to fix the log stream early in case the UI is active
+        scenario_runner = ScenarioRunner(
             account=account,
             auth=auth,
             data_path=data_path,
             scenario_file=scenario_file,
-            smoketest_deployment_data=smoketest_deployment_data,
             environment=environment,
+            success=success,
+            smoketest_deployment_data=smoketest_deployment_data,
             delete_snapshots=delete_snapshots,
             raiden_client=raiden_client,
         )
+        if enable_ui:
+            ui: AbstractContextManager = ScenarioUIManager(
+                scenario_runner, log_buffer, log_file_name, success
+            )
+        else:
+            ui = nullcontext()
+        log.info("Startup complete")
+        with ui:
+            scenario_runner.run_scenario()
     except ScenarioAssertionError as ex:
         log.error("Run finished", result="assertion errors")
         if hasattr(ex, "exit_code"):
@@ -395,42 +401,6 @@ def run_(
         report.update(dict(subject=f"Scenario successful {scenario_file.name}", message="Success"))
         log.info("Scenario player unwind complete")
         exit(exit_code)
-
-
-def orchestrate(
-    success: Event,
-    enable_ui: bool,
-    log_buffer: Any,
-    log_file_name: str,
-    account,
-    auth,
-    data_path,
-    scenario_file,
-    environment,
-    smoketest_deployment_data,
-    delete_snapshots,
-    raiden_client: str,
-) -> None:
-    # We need to fix the log stream early in case the UI is active
-    scenario_runner = ScenarioRunner(
-        account=account,
-        auth=auth,
-        data_path=data_path,
-        scenario_file=scenario_file,
-        environment=environment,
-        success=success,
-        smoketest_deployment_data=smoketest_deployment_data,
-        delete_snapshots=delete_snapshots,
-        raiden_client=raiden_client,
-    )
-    ui: AbstractContextManager
-    if enable_ui:
-        ui = ScenarioUIManager(scenario_runner, log_buffer, log_file_name, success)
-    else:
-        ui = nullcontext()
-    log.info("Startup complete")
-    with ui:
-        scenario_runner.run_scenario()
 
 
 class ScenarioUIManager(AbstractContextManager):
@@ -622,7 +592,7 @@ def smoketest(eth_client: EthClient):
                 try:
                     run_(
                         data_path=Path(datadir),
-                        auth=None,
+                        auth="",
                         password=None,
                         keystore_file=keystore_file,
                         scenario_file=config_file,

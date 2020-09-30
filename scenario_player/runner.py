@@ -245,7 +245,6 @@ class ScenarioRunner:
         smoketest_deployment_data: DeployedContracts = None,
         delete_snapshots: bool = False,
     ) -> None:
-        self.auth = auth
         self.success = success
 
         self.smoketest_deployment_data = smoketest_deployment_data
