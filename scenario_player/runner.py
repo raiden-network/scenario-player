@@ -238,23 +238,25 @@ class ScenarioRunner:
         scenario_file: Path,
         environment: EnvironmentConfig,
         success: Event,
+        raiden_client: str,
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
         smoketest_deployment_data: DeployedContracts = None,
         delete_snapshots: bool = False,
     ) -> None:
-        from scenario_player.node_support import RaidenReleaseKeeper
-
         self.auth = auth
         self.success = success
 
         self.smoketest_deployment_data = smoketest_deployment_data
         self.delete_snapshots = delete_snapshots
 
-        self.release_keeper = RaidenReleaseKeeper(data_path.joinpath("raiden_releases"))
         self.data_path = data_path
         self.environment = environment
+
+        # Set the client executable to use
+        if self.environment.raiden_client is None:
+            self.environment.raiden_client = raiden_client
 
         self.task_count = 0
         self.running_task_count = 0
@@ -299,7 +301,10 @@ class ScenarioRunner:
         self.session = make_session(auth, self.definition.settings)
 
         self.node_controller = NodeController(
-            self, self.definition.nodes, delete_snapshots=self.delete_snapshots
+            runner=self,
+            config=self.definition.nodes,
+            raiden_client=self.environment.raiden_client,
+            delete_snapshots=self.delete_snapshots,
         )
         task_config = self.definition.scenario.root_config
         task_class = self.definition.scenario.root_class
