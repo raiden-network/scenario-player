@@ -126,11 +126,11 @@ class Task:
                                 return_val = self._run(*args, **kwargs)
                             except ScenarioAssertionError as ex:
                                 exception = ex
+                                log.debug("Assertion failed, retrying...", ex=str(exception))
 
                             if return_val:
                                 break
 
-                            log.debug("Assertion failed, retrying...", ex=str(exception))
                             sleep(1)
                 except Timeout:
                     log.debug("Timeout reached", ex=str(exception))

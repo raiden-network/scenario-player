@@ -341,8 +341,7 @@ class AssertPFSIOUTask(RESTAPIActionTask):
         else:
             source_address = self._runner.get_node_address(source)
 
-        params = dict(pfs_url=pfs_url, source_address=source_address)
-        return params
+        return dict(pfs_url=pfs_url, source_address=source_address)
 
     def _process_response(self, response_dict: dict):
 
@@ -358,3 +357,4 @@ class AssertPFSIOUTask(RESTAPIActionTask):
                 raise ScenarioAssertionError(
                     f"Expected amount of {exp_iou_amount} but got {actual_iou_amount}."
                 )
+        return response_dict

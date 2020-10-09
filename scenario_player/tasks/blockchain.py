@@ -152,7 +152,7 @@ class AssertBlockchainEventsTask(Task):
             except KeyError:
                 raise ScenarioError(f"Unknown contract name: {self.contract_name}")
 
-        assert self.contract_address
+        assert self.contract_address, "Contract address not set"
         events = query_blockchain_events(
             web3=self.web3,
             contract_manager=self._runner.contract_manager,
@@ -184,6 +184,8 @@ class AssertBlockchainEventsTask(Task):
                 f"Expected number of events ({self.num_events}) did not match the number "
                 f"of events found ({len(events)})"
             )
+
+        return {"events": events}
 
 
 class AssertMSClaimTask(Task):
