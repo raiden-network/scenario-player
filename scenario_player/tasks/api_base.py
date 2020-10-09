@@ -1,5 +1,5 @@
 import re
-from typing import Any, Union
+from typing import Any, Union, Dict
 
 import structlog
 from requests import ConnectTimeout, ReadTimeout, RequestException  # type: ignore
@@ -31,13 +31,13 @@ class RESTAPIActionTask(Task):
         return {}
 
     @property
-    def _url_params(self):
+    def _url_params(self) -> Dict[str, Any]:
         return {}
 
-    def _process_response(self, response_dict: dict):  # pylint: disable=no-self-use
+    def _process_response(self, response_dict: dict) -> Dict[str, Any]:  # pylint: disable=no-self-use
         return response_dict
 
-    def _run(self, *args, **kwargs):  # pylint: disable=unused-argument
+    def _run(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=unused-argument
         url = self._expand_url()
         log.debug("Requesting", url=url, method=self._method, json=self._request_params)
         try:

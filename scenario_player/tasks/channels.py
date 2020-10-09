@@ -1,5 +1,5 @@
 import hashlib
-from typing import Any
+from typing import Any, Dict, List
 
 import structlog
 from toolz import first
@@ -130,7 +130,7 @@ class StoreChannelInfoTask(ChannelActionTask):
         if "key" not in config:
             raise ScenarioError('Required config "key" not found')
 
-    def _process_response(self, response_dict: dict):
+    def _process_response(self, response_dict: Dict) -> Dict[str, Any]:
         response_dict = super()._process_response(response_dict)
         self._runner.task_storage[STORAGE_KEY_CHANNEL_INFO][self._config["key"]] = response_dict
         return response_dict
@@ -142,7 +142,7 @@ class AssertTask(ChannelActionTask):
     SYNCHRONIZATION_TIME_SECONDS = 0
     DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
 
-    def _process_response(self, response_dict: dict):
+    def _process_response(self, response_dict: Dict) -> Dict[str, Any]:
         response_dict = super()._process_response(response_dict)
         for field in ["balance", "total_deposit", "state"]:
             if field not in self._config:
@@ -180,7 +180,7 @@ class AssertAllTask(ChannelActionTask):
     def _url_params(self):
         return {"token_address": to_checksum_address(self._runner.token.address)}
 
-    def _process_response(self, response_dict: dict):
+    def _process_response(self, response_dict: Dict) -> Dict[str, Any]:
         response_dict = super()._process_response(response_dict)
         channel_count = len(response_dict)
         for field in ["balance", "total_deposit", "state"]:
@@ -229,7 +229,7 @@ class AssertAllTask(ChannelActionTask):
 class AssertSumTask(AssertAllTask):
     _name = "assert_sum"
 
-    def _process_response(self, response_dict: dict):
+    def _process_response(self, response_dict: Dict) -> Dict[str, Any]:
         for field in ["balance", "total_deposit", "state"]:
             # The task parameter field names are the channel field names with a `_sum` suffix
             assert_field = f"{field}_sum"
