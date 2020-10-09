@@ -37,7 +37,7 @@ class EnvironmentConfig:
     pfs_fee: FeeAmount
     ms_reward_with_margin: TokenAmount
     settlement_timeout_min: BlockTimeout
-    raiden_client: Optional[str] = field(default=None)
+    raiden_client: str
 
     def __post_init__(self):
         self.eth_rpc_endpoint_iterator = itertools.cycle(self.eth_rpc_endpoints)

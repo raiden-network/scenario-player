@@ -22,6 +22,7 @@ dummy_env = EnvironmentConfig(
     eth_rpc_endpoints=[URI("http://www.example.com")],
     ms_reward_with_margin=TokenAmount(1),
     settlement_timeout_min=BlockTimeout(100),
+    raiden_client="raiden",
 )
 
 
