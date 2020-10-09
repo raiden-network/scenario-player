@@ -218,7 +218,9 @@ def main():
     help="Delete node snapshots for the given scenario if any are present.",
 )
 @click.option(
-    "--raiden-client", default="raiden", help="The client executable to use [default: 'raiden']"
+    "--raiden-client",
+    default=None,
+    help="The client executable to use [default set by `env` file]",
 )
 @environment_option
 @key_password_options
@@ -234,7 +236,7 @@ def run(
     password_file: str,
     environment: EnvironmentConfig,
     delete_snapshots: bool,
-    raiden_client: str,
+    raiden_client: Optional[str],
 ):
     """Execute a scenario as defined in scenario definition file.
     click entrypoint, this dispatches to `run_`.
@@ -293,7 +295,7 @@ def run_(
     log_file_name: str,
     environment: EnvironmentConfig,
     delete_snapshots: bool,
-    raiden_client: str,
+    raiden_client: Optional[str],
     smoketest_deployment_data=None,
 ) -> None:
     """Execute a scenario as defined in scenario definition file.
@@ -588,6 +590,7 @@ def smoketest(eth_client: EthClient):
                     eth_rpc_endpoints=[URI(setup.args["eth_rpc_endpoint"])],
                     ms_reward_with_margin=TokenAmount(1),
                     settlement_timeout_min=BlockTimeout(100),
+                    raiden_client="raiden",
                 )
                 try:
                     run_(
