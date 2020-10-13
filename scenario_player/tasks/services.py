@@ -1,4 +1,4 @@
-from typing import Any, List, Union
+from typing import Any, List, Union, Dict
 
 import structlog
 from eth_typing import ChecksumAddress
@@ -65,7 +65,7 @@ class AssertPFSRoutesTask(RESTAPIActionTask):
         params = dict(pfs_url=pfs_url, token_network_address=self._runner.token_network_address)
         return params
 
-    def _process_response(self, response_dict: dict):
+    def _process_response(self, response_dict: Dict) -> Dict[str, Any]:
         paths = response_dict.get("result")
         if paths is None:
             raise ScenarioAssertionError("No 'result' key in result from PFS")
@@ -77,6 +77,8 @@ class AssertPFSRoutesTask(RESTAPIActionTask):
             raise ScenarioAssertionError(
                 f"Expected {exptected_paths} paths, but PFS returned {num_paths} paths."
             )
+
+        return response_dict
 
 
 class AssertPFSHistoryTask(RESTAPIActionTask):
@@ -206,7 +208,7 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
         )
         return params
 
-    def _process_response(self, response_dict: dict):
+    def _process_response(self, response_dict: Dict) -> Dict[str, Any]:
         exp_request_count = self._config.get("request_count")
         if exp_request_count:
             actual_request_count = response_dict["request_count"]
@@ -343,7 +345,7 @@ class AssertPFSIOUTask(RESTAPIActionTask):
 
         return dict(pfs_url=pfs_url, source_address=source_address)
 
-    def _process_response(self, response_dict: dict):
+    def _process_response(self, response_dict: Dict) -> Dict[str, Any]:
 
         if self._config.get("iou_exists", True) is False:
             if response_dict:
