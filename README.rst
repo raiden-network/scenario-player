@@ -56,14 +56,6 @@ You can also use `make`::
     make install
 
 
-Or docker::
-
-    docker pull raidennetwork/scenario-player:<tag>
-
-Where ``<tag>`` may be a specific version, git branch or ``latest`` for the last commit
-on ``dev``, or ``stable`` for the last release on ``master``.
-
-
 For Developers
 --------------
 
@@ -96,17 +88,6 @@ Reclaiming spent test ether::
     $ scenario-player reclaim --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
         --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW}
 
-
-If you're using docker, use the ``docker run`` command, like so::
-
-    docker run -i -t \
-       -v ${DATA_DIR}:/data \
-       -v ${WALLET_DIR}:${WALLET_DIR}:ro \
-       raidennetwork/scenario-player:${branch}
-
-As you can see, you'll have to mount some local directories to the container, otherwise
-the container will not run. ``DATA_DIR`` is the location of your blockchain data,
-and the ``WALLET_DIR`` should point to the location of your wallet file.
 
 Scenario Examples
 =================
