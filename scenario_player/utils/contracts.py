@@ -2,7 +2,10 @@ from typing import Tuple
 
 from eth_typing import ChecksumAddress
 from eth_utils import to_canonical_address
-from raiden_contracts.constants import CONTRACT_TOKEN_NETWORK_REGISTRY, CONTRACT_USER_DEPOSIT
+from raiden_contracts.constants import (
+    CONTRACT_TOKEN_NETWORK_REGISTRY,
+    CONTRACT_USER_DEPOSIT,
+)
 from raiden_contracts.contract_manager import (
     ContractManager,
     DeployedContracts,
@@ -49,7 +52,8 @@ def get_udc_and_corresponding_token_from_dependencies(
         contracts = get_contracts_deployment_info(chain_id, version=RAIDEN_CONTRACT_VERSION)
 
         msg = (
-            f"invalid chain_id, {chain_id} is not available for version {RAIDEN_CONTRACT_VERSION}"
+            f"invalid chain_id, {chain_id} is not available "
+            f"for version {RAIDEN_CONTRACT_VERSION}"
         )
         assert contracts, msg
 

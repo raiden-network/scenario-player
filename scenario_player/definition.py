@@ -7,7 +7,10 @@ import yaml
 
 from scenario_player.utils.configuration.nodes import NodesConfig
 from scenario_player.utils.configuration.scenario import ScenarioConfig
-from scenario_player.utils.configuration.settings import EnvironmentConfig, SettingsConfig
+from scenario_player.utils.configuration.settings import (
+    EnvironmentConfig,
+    SettingsConfig,
+)
 from scenario_player.utils.configuration.token import TokenConfig
 
 log = structlog.get_logger(__name__)
@@ -21,7 +24,10 @@ class ScenarioDefinition:
     """
 
     def __init__(
-        self, yaml_path: pathlib.Path, data_path: pathlib.Path, environment: EnvironmentConfig
+        self,
+        yaml_path: pathlib.Path,
+        data_path: pathlib.Path,
+        environment: EnvironmentConfig,
     ) -> None:
         self._scenario_dir = None
         self.path = yaml_path

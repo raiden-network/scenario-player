@@ -5,7 +5,11 @@ import structlog
 from requests import ConnectTimeout, ReadTimeout, RequestException  # type: ignore
 
 from scenario_player import runner as scenario_runner
-from scenario_player.exceptions import RESTAPIError, RESTAPIStatusMismatchError, RESTAPITimeout
+from scenario_player.exceptions import (
+    RESTAPIError,
+    RESTAPIStatusMismatchError,
+    RESTAPITimeout,
+)
 from scenario_player.tasks.base import Task
 
 log = structlog.get_logger(__name__)
@@ -42,7 +46,10 @@ class RESTAPIActionTask(Task):
         log.debug("Requesting", url=url, method=self._method, json=self._request_params)
         try:
             resp = self._runner.session.request(
-                method=self._method, url=url, json=self._request_params, timeout=self._timeout
+                method=self._method,
+                url=url,
+                json=self._request_params,
+                timeout=self._timeout,
             )
         except (ReadTimeout, ConnectTimeout) as ex:
             self._handle_timeout(ex)

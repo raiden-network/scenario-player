@@ -2,13 +2,21 @@ from typing import Any, Dict, List, cast
 
 import structlog
 from eth_abi.codec import ABICodec
-from eth_utils import encode_hex, event_abi_to_log_topic, to_canonical_address, to_checksum_address
+from eth_utils import (
+    encode_hex,
+    event_abi_to_log_topic,
+    to_canonical_address,
+    to_checksum_address,
+)
 from raiden_contracts.constants import (
     CONTRACT_MONITORING_SERVICE,
     CONTRACT_TOKEN_NETWORK,
     MonitoringServiceEvent,
 )
-from raiden_contracts.contract_manager import ContractManager, get_contracts_deployment_info
+from raiden_contracts.contract_manager import (
+    ContractManager,
+    get_contracts_deployment_info,
+)
 from web3 import Web3
 from web3._utils.abi import filter_by_type
 from web3._utils.events import get_event_data
@@ -140,7 +148,8 @@ class AssertBlockchainEventsTask(Task):
         # get the correct contract address
         # this has to be done in `_run`, otherwise `_runner` is not initialized yet
         contract_data = get_contracts_deployment_info(
-            chain_id=self._runner.definition.settings.chain_id, version=RAIDEN_CONTRACT_VERSION
+            chain_id=self._runner.definition.settings.chain_id,
+            version=RAIDEN_CONTRACT_VERSION,
         )
         if self.contract_name == CONTRACT_TOKEN_NETWORK:
             self.contract_address = self._runner.token_network_address
@@ -209,7 +218,8 @@ class AssertMSClaimTask(Task):
 
         # get the MS contract address
         contract_data = get_contracts_deployment_info(
-            chain_id=self._runner.definition.settings.chain_id, version=RAIDEN_CONTRACT_VERSION
+            chain_id=self._runner.definition.settings.chain_id,
+            version=RAIDEN_CONTRACT_VERSION,
         )
         assert contract_data
         try:
@@ -235,7 +245,10 @@ class AssertMSClaimTask(Task):
         reward_id = bytes(
             Web3.soliditySha3(  # pylint: disable=no-value-for-parameter
                 ["uint256", "address"],
-                [int(channel_infos["channel_identifier"]), channel_infos["token_network_address"]],
+                [
+                    int(channel_infos["channel_identifier"]),
+                    channel_infos["token_network_address"],
+                ],
             )
         )
 

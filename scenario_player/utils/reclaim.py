@@ -76,7 +76,9 @@ class ReclamationCandidate:
         if not hasattr(self, "_client"):
             self._web3 = web3
             self._client = JSONRPCClient(
-                web3=web3, privkey=self.privkey, gas_price_strategy=faster_gas_price_strategy
+                web3=web3,
+                privkey=self.privkey,
+                gas_price_strategy=faster_gas_price_strategy,
             )
         else:
             assert web3 == self._web3
@@ -101,7 +103,11 @@ def get_reclamation_candidates(
 
         last_run = next(
             iter(
-                sorted(node_dir.glob("run-*.log*"), key=lambda p: p.stat().st_mtime, reverse=True)
+                sorted(
+                    node_dir.glob("run-*.log*"),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True,
+                )
             ),
             None,
         )
@@ -161,7 +167,10 @@ def withdraw_from_udc(
             try:
                 ready_at_block = userdeposit_proxy.plan_withdraw(drain_amount, "latest")
             except InsufficientEth:
-                log.warning("Not sufficient eth in node wallet to withdraw", address=node.address)
+                log.warning(
+                    "Not sufficient eth in node wallet to withdraw",
+                    address=node.address,
+                )
                 continue
             planned_withdraws[node.address] = ready_at_block, drain_amount
 
@@ -262,13 +271,19 @@ def reclaim_eth(reclamation_candidates: List[ReclamationCandidate], account: Acc
         balance = web3.eth.getBalance(node.address)
         if balance > reclaim_tx_cost:
             drain_amount = balance - reclaim_tx_cost
-            log.info("Reclaiming", from_address=node.address, amount=drain_amount.__format__(",d"))
+            log.info(
+                "Reclaiming",
+                from_address=node.address,
+                amount=drain_amount.__format__(",d"),
+            )
             reclaim_amount += drain_amount
             assert account.address
             txs.append(
                 node.get_client(web3).transact(
                     EthTransfer(
-                        to_address=account.address, value=drain_amount, gas_price=gas_price
+                        to_address=account.address,
+                        value=drain_amount,
+                        gas_price=gas_price,
                     )
                 )
             )
@@ -309,7 +324,10 @@ def _get_all_token_network_events(
 
 
 def _get_token_network_address(
-    token_address: TokenAddress, web3: Web3, privkey: PrivateKey, deploy: DeployedContracts
+    token_address: TokenAddress,
+    web3: Web3,
+    privkey: PrivateKey,
+    deploy: DeployedContracts,
 ) -> TokenNetworkAddress:
 
     client = JSONRPCClient(web3, privkey, faster_gas_price_strategy)

@@ -5,7 +5,10 @@ import uuid
 
 import structlog
 
-from scenario_player.constants import DEFAULT_TOKEN_BALANCE_FUND, DEFAULT_TOKEN_BALANCE_MIN
+from scenario_player.constants import (
+    DEFAULT_TOKEN_BALANCE_FUND,
+    DEFAULT_TOKEN_BALANCE_MIN,
+)
 from scenario_player.exceptions.config import TokenConfigurationError
 
 log = structlog.get_logger(__name__)

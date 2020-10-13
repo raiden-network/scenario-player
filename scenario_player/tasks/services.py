@@ -174,9 +174,7 @@ class AssertPFSHistoryTask(RESTAPIActionTask):
     """
 
     _name = "assert_pfs_history"
-    _url_template = (
-        "{pfs_url}/api/v1/_debug/routes/{token_network_address}/{source_address}{extra_params}"
-    )
+    _url_template = "{pfs_url}/api/v1/_debug/routes/{token_network_address}/{source_address}{extra_params}"  # noqa
     DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
 
     @property

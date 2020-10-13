@@ -102,7 +102,11 @@ class UrwidLogRenderer:
         level = event_dict.pop("level", None)
         if level is not None:
             log_line.append(
-                [("default", "["), (f"log_lvl_{level}", f"{level:9.9s}"), ("default", "] ")]
+                [
+                    ("default", "["),
+                    (f"log_lvl_{level}", f"{level:9.9s}"),
+                    ("default", "] "),
+                ]
             )
 
         event = self._repr(event_dict.pop("event", "unnamed event"))

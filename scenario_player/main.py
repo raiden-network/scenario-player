@@ -61,7 +61,10 @@ from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import DummyStream
 from scenario_player.utils.configuration.settings import EnvironmentConfig
 from scenario_player.utils.legacy import MutuallyExclusiveOption, post_task_state_to_rc
-from scenario_player.utils.reclaim import ReclamationCandidate, get_reclamation_candidates
+from scenario_player.utils.reclaim import (
+    ReclamationCandidate,
+    get_reclamation_candidates,
+)
 from scenario_player.utils.version import get_complete_spec
 
 if TYPE_CHECKING:
@@ -279,7 +282,9 @@ def _load_environment(environment_file: IO) -> EnvironmentConfig:
         matrix_servers = list(islice(cycle(matrix_servers), 4))
 
     return EnvironmentConfig(
-        matrix_servers=matrix_servers, environment_file_name=environment_file.name, **environment
+        matrix_servers=matrix_servers,
+        environment_file_name=environment_file.name,
+        **environment,
     )
 
 
@@ -381,7 +386,10 @@ def run_(
         else:
             exit_code = 20
         report.update(
-            dict(subject=f"Invalid scenario {scenario_file.name}", message=traceback.format_exc())
+            dict(
+                subject=f"Invalid scenario {scenario_file.name}",
+                message=traceback.format_exc(),
+            )
         )
         exit(exit_code)
     except Exception as ex:
@@ -518,7 +526,10 @@ def reclaim_eth(
 
 @main.command(name="version", help="Show versions of scenario_player and raiden environment.")
 @click.option(
-    "--short", is_flag=True, help="Only display scenario_player version string.", default=False
+    "--short",
+    is_flag=True,
+    help="Only display scenario_player version string.",
+    default=False,
 )
 def version(short):
     if short:

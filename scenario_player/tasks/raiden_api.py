@@ -19,6 +19,8 @@ class RaidenAPIActionTask(RESTAPIActionTask):
 
     def _expand_url(self):
         url = self._url_template.format(
-            protocol=self._runner.protocol, target_host=self._target_host, **self._url_params
+            protocol=self._runner.protocol,
+            target_host=self._target_host,
+            **self._url_params,
         )
         return url
