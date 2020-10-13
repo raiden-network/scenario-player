@@ -136,7 +136,7 @@ class AssertBlockchainEventsTask(Task):
 
         self.web3 = self._runner.client.web3
 
-    def _run(self, *args, **kwargs):  # pylint: disable=unused-argument
+    def _run(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=unused-argument
         # get the correct contract address
         # this has to be done in `_run`, otherwise `_runner` is not initialized yet
         contract_data = get_contracts_deployment_info(
@@ -218,7 +218,7 @@ class AssertMSClaimTask(Task):
         except KeyError:
             raise ScenarioError(f"Unknown contract name: {self.contract_name}")
 
-    def _run(self, *args, **kwargs):  # pylint: disable=unused-argument
+    def _run(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=unused-argument
         channel_infos = self._runner.task_storage[STORAGE_KEY_CHANNEL_INFO].get(
             self._config["channel_info_key"]
         )
@@ -270,3 +270,5 @@ class AssertMSClaimTask(Task):
             raise ScenarioAssertionError("No RewardClaimed event found for this channel.")
         elif not must_claim and found_events:
             raise ScenarioAssertionError("Unexpected RewardClaimed event found for this channel.")
+
+        return {"events": events}

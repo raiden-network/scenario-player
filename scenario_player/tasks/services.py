@@ -78,6 +78,8 @@ class AssertPFSRoutesTask(RESTAPIActionTask):
                 f"Expected {exptected_paths} paths, but PFS returned {num_paths} paths."
             )
 
+        return response_dict
+
 
 class AssertPFSHistoryTask(RESTAPIActionTask):
     """
