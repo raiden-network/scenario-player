@@ -480,7 +480,8 @@ def reclaim_eth(
     log.info("Reclaiming candidates", addresses=[c.address for c in reclamation_candidates])
 
     web3 = Web3(HTTPProvider(eth_rpc_endpoint))
-    web3.middleware_onion.add(make_sane_poa_middleware)
+    # TODO: maybe use `monkey_patch_web3` here
+    web3.middleware_onion.inject(make_sane_poa_middleware, layer=0)
     web3.middleware_onion.add(simple_cache_middleware)
     web3.eth.setGasPriceStrategy(faster_gas_price_strategy)
 
