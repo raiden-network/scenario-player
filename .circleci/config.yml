@@ -1,68 +1,17 @@
 version: 2.1
 
-################################################################################
-#                                                                              #
-# YAML Aliases for our Circle-CI configuration.                                #
-#                                                                              #
-################################################################################
-
-# Define the cache key to save and restore our dependencies.
-python_deps_cache_key: &python_deps_cache_key
-  key: python-deps-{{ checksum "pyproject.toml" }}
-
-# Short-cut to define a tags-only filter.
-tags_only: &tags_only
-  filters:
-    branches:
-      ignore: /.*/
-    tags:
-      only: /^v\d+\.\d+.*/
-
-# Short-cut to define a PR-branches only filter.
-PR_branches_only: &PR_branches_only
-  filters:
-    branches:
-      ignore:
-        - master
-    tags:
-      ignore:
-        - /^\d+\.\d+.*/
-
-################################################################################
-#                                                                              #
-# Custom Executor definitions.                                                 #
-#                                                                              #
-################################################################################
-
 executors:
   default-executor:
     working_directory: /home/circleci/ci/scenario-player
     docker:
-      - image: circleci/python:3.7.3
+      - image: circleci/python:3.8
     environment:
       PROJECT_ROOT: /home/circleci/ci/scenario-player
       CI_CONFIG_DIR: /home/circleci/ci/scenario-player/.circleci
-      CI_SCRIPTS_DIR: /home/circleci/ci/scenario-player/.circleci/scripts
-      BUMPVERSION_CFG: /home/circleci/ci/scenario-player/.bumpversion.cfg
       PYPROJECT_TOML: /home/circleci/ci/scenario-player/pyproject.toml
 
-
-################################################################################
-#                                                                              #
-# Custom Command definitions.                                                  #
-#                                                                              #
-################################################################################
-
 commands:
-  # ================= #
-  # CI Setup Commands #
-  # ================= #
-
   setup-job:
-    description: |
-      Attach the workspace and load ENV variables.
-      Additionally skips the job this is used in, if the commit message is invalid
-      (unless the workflow executing the job is running on "master" or "dev").
     steps:
       - attach_workspace:
           at: "/home/circleci"
@@ -73,100 +22,63 @@ commands:
             sudo locale-gen
 
   install_tools_for_ci:
-    description: Install packages needed to run our scripts. These may not be included in SP's dependencies.
+    description: |
+      Install packages needed to run our scripts.
+      These may not be included in SP's dependencies.
     steps:
       - run:
           name: Install additional packages for CI tools
           command: |
-            pip install -U pip bump2version flit
             mkdir -p ~/.local/bin
             curl -o geth.tar.gz https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.9.21-0287d548.tar.gz
             tar zxf geth.tar.gz
             cd geth*/
             install -m 755 geth ~/.local/bin/geth
             echo 'export PATH=~/.local/bin:$PATH' >> ${BASH_ENV}
+            echo 'export LANG=C.UTF-8' >> ${BASH_ENV}
+            echo 'export LC_ALL=C.UTF-8' >> ${BASH_ENV}
 
   prep_venv:
     description: Restore cache and virtualenv, and install dependencies.
     steps:
       - restore_cache:
-          key: pip-cache
-
-      - restore_cache:
-          <<: *python_deps_cache_key
-
-      - restore_cache:
-          key: smoketest-cache
-
-      - run:
-          name: Create virtualenv
-          command: |
-            if [ ! -x /home/circleci/ci/venv ]; then python3 -m venv /home/circleci/ci/venv; fi
-            echo 'export PATH=/home/circleci/ci/venv/bin:$PATH' >> ${BASH_ENV}
-            echo 'export LANG=C.UTF-8' >> ${BASH_ENV}
-            echo 'export LC_ALL=C.UTF-8' >> ${BASH_ENV}
+          keys:
+            - deps-{{ checksum "poetry.lock" }}
 
       - install_tools_for_ci
 
       - run:
           name: Install the project.
-          command: |
-            make install-dev
-            make install-raiden-develop
+          command: poetry install
 
-  # ================================== #
-  # Linter and test execution commands #
-  # ================================== #
-  lint_codebase:
+  lint:
     description: Run linters against our code base.
     steps:
       - run:
           name: Run Linters
-          command: |
-            make lint
+          command: poetry run make lint
 
-  run_test_harness:
+  test:
     description: Run unit and integration tests of our package.
     steps:
       - run:
           name: Run test harness.
-          command: make test
+          command: poetry run make test
 
-  run_smoketests:
+  smoketest:
     description: Execute Smoketests to verify build.
     steps:
       - run:
           name: Run smoketests
-          command: |
-            scenario_player smoketest
-
-  # ===================== #
-  # CI Tear-down commands #
-  # ===================== #
+          command: poetry run scenario_player smoketest
 
   store_env:
     description: Store our dependencies in the cache.
     steps:
       - save_cache:
-          <<: *python_deps_cache_key
+          key: deps-{{ checksum "poetry.lock" }}
           paths:
-            - "/home/circleci/ci/venv"
-
-      - save_cache:
-          key: pip-cache
-          paths:
-            - "/home/circleci/.cache/pip"
-
-      - save_cache:
-          key: smoketest-cache
-          paths:
-            - "/tmp/smoketests"
-
-################################################################################
-#                                                                              #
-# Circle-CI Job definitions.                                                   #
-#                                                                              #
-################################################################################
+            - /home/circleci/.cache/pypoetry/virtualenvs
 
 jobs:
   lint-and-test:
@@ -175,51 +87,23 @@ jobs:
       - checkout
       - prep_venv
       - setup-job
-      - lint_codebase
-      - run_test_harness
-      - run_smoketests
+      - lint
+      - test
+      - smoketest
       - store_env
       - persist_to_workspace:
           paths:
             - ci
           root: "/home/circleci"
 
-  # Publish a wheel and tarball of the Scenario Player to pypi.
-  deploy-to-pypi:
-    executor: default-executor
-    steps:
-      - checkout
-      - prep_venv
-      - run:
-          name: Publish to pypi using flit.
-          command: |
-            export FLIT_USERNAME=${PYPI_USER}
-            export FLIT_PASSWORD=${PYPI_PASSWORD}
-            flit publish
-
   finalize:
     executor: default-executor
     steps:
       - run: echo "done".
-
-################################################################################
-#                                                                              #
-# Circle-CI Workflow definitions.                                              #
-#                                                                              #
-################################################################################
 
 workflows:
   version: 2
 
   PR-Review-Workflow:
     jobs:
-      - lint-and-test:
-          <<: *PR_branches_only
-          context: Raiden-SP-Context
-
-  Deploy-Release-Workflow:
-    jobs:
-      # Package a new release from the latest tag.
-      - deploy-to-pypi:
-          <<: *tags_only
-          context: "Raiden Context"
+      - lint-and-test

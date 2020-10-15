@@ -132,5 +132,6 @@ def send_rc_message(text: str, color: str, fields: List[Dict[str, str]]) -> None
         raise RuntimeError("Environment variable 'RC_WEBHOOK_URL' is missing")
 
     requests.post(
-        rc_webhook_url, json={"attachments": [{"title": text, "color": color, "fields": fields}]}
+        rc_webhook_url,
+        json={"attachments": [{"title": text, "color": color, "fields": fields}]},
     )

@@ -102,7 +102,8 @@ class TransferTask(ChannelActionTask):
         if id_scheme == "generate":
             transfer_count = self.__class__._transfer_count
             scenario_hash = int.from_bytes(
-                hashlib.sha256(self._runner.definition.name.encode()).digest()[:2], "little"
+                hashlib.sha256(self._runner.definition.name.encode()).digest()[:2],
+                "little",
             )
             self._config["identifier"] = int(
                 f"1{scenario_hash}1{self._runner.run_number:04d}1{transfer_count:06d}"

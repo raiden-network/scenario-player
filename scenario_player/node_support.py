@@ -167,7 +167,11 @@ class NodeRunner:
             cmd.extend(["--pathfinding-service-address", pfs_address])
 
         for option_name in MANAGED_CONFIG_OPTIONS_OVERRIDABLE:
-            if option_name in ("api-address", "pathfinding-service-address", "matrix-server"):
+            if option_name in (
+                "api-address",
+                "pathfinding-service-address",
+                "matrix-server",
+            ):
                 # already handled above
                 continue
             if option_name in self._options:
@@ -415,7 +419,9 @@ class NodeController:
             if self.snapshot_manager.restore():
                 self.snapshot_restored = True
         log.info(
-            "Using Raiden version", client=raiden_client, full_path=shutil.which(raiden_client)
+            "Using Raiden version",
+            client=raiden_client,
+            full_path=shutil.which(raiden_client),
         )
 
     def __getitem__(self, item):

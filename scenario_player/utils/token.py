@@ -24,7 +24,10 @@ TokenDetails = TypedDict("TokenDetails", {"name": str, "address": ChecksumAddres
 
 
 def token_maybe_mint(
-    token_proxy: CustomToken, target_address: Address, minimum_balance: int, maximum_balance: int
+    token_proxy: CustomToken,
+    target_address: Address,
+    minimum_balance: int,
+    maximum_balance: int,
 ) -> None:
     current_balance = token_proxy.balance_of(target_address)
 
@@ -124,7 +127,9 @@ def userdeposit_maybe_deposit(
         gevent.joinall(mint_greenlets, raise_error=True)
 
         userdeposit_proxy.deposit(
-            target_address, new_total_deposit, userdeposit_proxy.client.get_confirmed_blockhash()
+            target_address,
+            new_total_deposit,
+            userdeposit_proxy.client.get_confirmed_blockhash(),
         )
 
 
