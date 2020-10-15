@@ -28,22 +28,12 @@ mypy:
 	mypy scenario_player tests
 
 install:
-	pip install --force-reinstall -U .
-
-install-dev:
-	pip install ".[dev]"
-
-install-raiden-develop:
-	pip uninstall raiden -y
-	pip install git+https://github.com/raiden-network/raiden.git@develop
+	poetry install
 
 unit-tests:
 	pytest --cov=scenario_player
 
-integration-tests:
-	@echo Ran integration tests.
-
-test: unit-tests integration-tests
+test: unit-tests
 
 install-post-commit-hook:
 	cat .post-commit > .git/hooks/post-commit

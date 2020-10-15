@@ -36,13 +36,13 @@ Installation
 For Users
 ---------
 
-Using  ``git`` & ``pip``::
+Using  ``git`` & ``poetry``::
 
     # Clone the scenario-player repository
-    ~/ $git clone http://github.com/raiden-network/scenario-player
+    ~/ $git clone http://github.com/raiden-network/scenario-player && cd scenario-player
 
     # Install the scenario-player.
-    ~/ $pip install ./scenario-player
+    ~/ $poetry install
 
     # Show available commands:
     ~/ $scenario_player --help
@@ -59,33 +59,27 @@ You can also use `make`::
 For Developers
 --------------
 
-`make` is your friend::
+Note that ``poetry install`` installs the latest development version of ``raiden`` - if you'd like to run
+the SP against a local checkout of Raiden::
 
-    make install-dev
-
-Note that this installs a pypi version of `raiden` - if you'd like to run the SP against the latest
-commit on the `develop` branch of the `raiden` repository, addtionally run this command::
-
-    make install-raiden-develop
-
-For all other versions of `raiden`, you will have to manually install it.
+    poetry run pip install -Ue ../path/to/raiden
 
 
 Usage
 =====
 
-Invoking the `scenario-player` from the cli can be done in one of the following
+Invoking the `scenario_player` from the cli can be done in one of the following
 ways, depending on how you installed the tool.
 
 Invoke the command directly on the cli::
 
-    $ scenario-player run \
+    $ scenario_player run \
         --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW} \
         /path/to/scenario.yaml
 
 Reclaiming spent test ether::
 
-    $ scenario-player reclaim --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
+    $ scenario_player reclaim --chain=goerli:http://geth.goerli.ethnodes.brainbot.com:8545 \
         --keystore-file=/path/to/keystore.file --password=${KEYSTORE_PW}
 
 
