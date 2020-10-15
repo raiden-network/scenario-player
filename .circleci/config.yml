@@ -42,14 +42,8 @@ commands:
     description: Restore cache and virtualenv, and install dependencies.
     steps:
       - restore_cache:
-          key: pip-cache
-
-      - restore_cache:
           keys:
             - deps-{{ checksum "poetry.lock" }}
-
-      - restore_cache:
-          key: smoketest-cache
 
       - install_tools_for_ci
 
@@ -85,16 +79,6 @@ commands:
           key: deps-{{ checksum "poetry.lock" }}
           paths:
             - /home/circleci/.cache/pypoetry/virtualenvs
-
-      - save_cache:
-          key: pip-cache
-          paths:
-            - "/home/circleci/.cache/pip"
-
-      - save_cache:
-          key: smoketest-cache
-          paths:
-            - "/tmp/smoketests"
 
 jobs:
   lint-and-test:
