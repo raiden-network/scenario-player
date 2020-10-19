@@ -30,6 +30,8 @@ mypy:
 install:
 	poetry install
 
+install-dev: install
+
 unit-tests:
 	pytest --cov=scenario_player
 
