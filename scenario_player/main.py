@@ -6,7 +6,6 @@ import tempfile
 import traceback
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from datetime import datetime
-from enum import Enum
 from io import StringIO
 from itertools import cycle, islice
 from pathlib import Path
@@ -60,7 +59,7 @@ from scenario_player.tasks.base import collect_tasks
 from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import DummyStream
 from scenario_player.utils.configuration.settings import EnvironmentConfig
-from scenario_player.utils.legacy import MutuallyExclusiveOption, post_task_state_to_rc
+from scenario_player.utils.legacy import MutuallyExclusiveOption
 from scenario_player.utils.reclaim import (
     ReclamationCandidate,
     get_reclamation_candidates,
@@ -72,11 +71,6 @@ if TYPE_CHECKING:
 
 log = structlog.get_logger(__name__)
 DEFAULT_ENV_FILE = Path(__file__).parent / "environment" / "development.json"
-
-
-class TaskNotifyType(Enum):
-    NONE = "none"
-    ROCKETCHAT = "rocket-chat"
 
 
 def construct_log_file_name(sub_command, data_path, scenario_fpath: Path = None) -> str:
@@ -204,12 +198,6 @@ def main():
 @click.argument("scenario-file", type=click.File(), required=False)
 @click.option("--auth", default="")
 @click.option(
-    "--notify-tasks",
-    type=EnumChoiceType(TaskNotifyType),
-    default=TaskNotifyType.NONE.value,
-    help="Notify of task status via chosen method.",
-)
-@click.option(
     "--ui/--no-ui",
     "enable_ui",
     default=sys.stdout.isatty(),
@@ -234,7 +222,6 @@ def run(
     password: str,
     keystore_file: str,
     scenario_file: LazyFile,
-    notify_tasks: TaskNotifyType,
     enable_ui: bool,
     password_file: str,
     environment: EnvironmentConfig,
@@ -254,7 +241,6 @@ def run(
         password=password,
         keystore_file=keystore_file,
         scenario_file=scenario_file_path,
-        notify_tasks=notify_tasks,
         enable_ui=enable_ui,
         password_file=password_file,
         log_file_name=log_file_name,
@@ -294,7 +280,6 @@ def run_(
     password: Optional[str],
     keystore_file: str,
     scenario_file: Path,
-    notify_tasks: TaskNotifyType,
     enable_ui: bool,
     password_file: str,
     log_file_name: str,
@@ -325,18 +310,6 @@ def run_(
 
     password = get_password(password, password_file)
     account = get_account(keystore_file, password)
-
-    notify_tasks_callable = None
-    if notify_tasks is TaskNotifyType.ROCKETCHAT:
-        if "RC_WEBHOOK_URL" not in os.environ:
-            click.secho(
-                "'--notify-tasks rocket-chat' requires env variable 'RC_WEBHOOK_URL' to be set.",
-                fg="red",
-            )
-        notify_tasks_callable = post_task_state_to_rc
-
-    # TODO: make this used
-    print(notify_tasks_callable)
 
     log_buffer = None
     if enable_ui:
@@ -611,7 +584,6 @@ def smoketest(eth_client: EthClient):
                         password=None,
                         keystore_file=keystore_file,
                         scenario_file=config_file,
-                        notify_tasks=TaskNotifyType.NONE,
                         enable_ui=False,
                         password_file=password_file,
                         log_file_name=report_file,

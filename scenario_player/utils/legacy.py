@@ -1,9 +1,7 @@
-import os
 import time
-from typing import Dict, Iterable, List, Optional
+from typing import Iterable, Optional
 
 import click
-import requests
 import structlog
 from eth_utils import encode_hex
 from requests.adapters import HTTPAdapter  # ugly import, it'll be in py3.8
@@ -95,43 +93,3 @@ def wait_for_txs(web3: Web3, transactions: Iterable[TransactionSent], timeout: i
     if len(txhashes):
         txhashes_str = ", ".join(encode_hex(txhash) for txhash in txhashes)
         raise ScenarioTxError(f"Timeout waiting for txhashes: {txhashes_str}")
-
-
-def post_task_state_to_rc(scenario, task, state) -> None:
-    from scenario_player.tasks.base import TaskState
-    from scenario_player.tasks.execution import ParallelTask, SerialTask
-
-    color = "#c0c0c0"
-    if state is TaskState.RUNNING:
-        color = "#ffbb20"
-    elif state is TaskState.FINISHED:
-        color = "#20ff20"
-    elif state is TaskState.ERRORED:
-        color = "#ff2020"
-
-    fields = [
-        {"title": "Scenario", "value": scenario.scenario.name, "short": True},
-        {"title": "State", "value": state.name.title(), "short": True},
-        {"title": "Level", "value": task.level, "short": True},
-    ]
-    if state is TaskState.FINISHED:
-        fields.append({"title": "Duration", "value": task._duration, "short": True})
-    if not isinstance(task, (SerialTask, ParallelTask)):
-        fields.append({"title": "Details", "value": task._str_details, "short": False})
-    task_name = task._name
-    if task_name and isinstance(task_name, str):
-        task_name = task_name.title().replace("_", " ")
-    else:
-        task_name = task.__class__.__name__
-    send_rc_message(f"Task {task_name}", color, fields)
-
-
-def send_rc_message(text: str, color: str, fields: List[Dict[str, str]]) -> None:
-    rc_webhook_url = os.environ.get("RC_WEBHOOK_URL")
-    if not rc_webhook_url:
-        raise RuntimeError("Environment variable 'RC_WEBHOOK_URL' is missing")
-
-    requests.post(
-        rc_webhook_url,
-        json={"attachments": [{"title": text, "color": color, "fields": fields}]},
-    )
