@@ -27,7 +27,10 @@ format: isort black
 mypy:
 	mypy scenario_player tests
 
-install:
+have-poetry:
+	pip install poetry
+
+install: have-poetry
 	poetry install
 
 install-dev: install
