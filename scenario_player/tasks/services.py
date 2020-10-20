@@ -1,4 +1,4 @@
-from typing import Any, List, Union
+from typing import Any, List, Union, Dict
 
 import structlog
 from eth_typing import ChecksumAddress
@@ -343,18 +343,21 @@ class AssertPFSIOUTask(RESTAPIActionTask):
 
         return dict(pfs_url=pfs_url, source_address=source_address)
 
-    def _process_response(self, response_dict: dict):
-
+    def _process_response(self, response_dict: Dict[str, Any]):
         if self._config.get("iou_exists", True) is False:
             if response_dict:
                 raise ScenarioAssertionError(f"Expected no IOU but got {response_dict}.")
-        elif not response_dict:
-            raise ScenarioAssertionError("Expected IOU, but no IOU exists.")
+
+            # Returning an empty dict would lead to the base task retrying
+            return {"iou_exists": False}
         else:
+            if not response_dict:
+                raise ScenarioAssertionError("Expected IOU, but no IOU exists.")
+
             exp_iou_amount = int(self._config["amount"])
             actual_iou_amount = int(response_dict["amount"])
             if actual_iou_amount != exp_iou_amount:
                 raise ScenarioAssertionError(
                     f"Expected amount of {exp_iou_amount} but got {actual_iou_amount}."
                 )
-        return response_dict
+            return response_dict
