@@ -1,4 +1,4 @@
-from typing import Any, List, Union, Dict
+from typing import Any, Dict, List, Union
 
 import structlog
 from eth_typing import ChecksumAddress
