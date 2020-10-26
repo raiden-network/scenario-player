@@ -1,9 +1,6 @@
 from typing import Callable, Dict
 
-from web3.gas_strategies.time_based import (
-    fast_gas_price_strategy,
-    medium_gas_price_strategy,
-)
+from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
 DEFAULT_TOKEN_BALANCE_MIN = 5_000
 DEFAULT_TOKEN_BALANCE_FUND = 50_000

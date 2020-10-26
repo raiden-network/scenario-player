@@ -60,10 +60,7 @@ from scenario_player.ui import ScenarioUI, attach_urwid_logbuffer
 from scenario_player.utils import DummyStream
 from scenario_player.utils.configuration.settings import EnvironmentConfig
 from scenario_player.utils.legacy import MutuallyExclusiveOption
-from scenario_player.utils.reclaim import (
-    ReclamationCandidate,
-    get_reclamation_candidates,
-)
+from scenario_player.utils.reclaim import ReclamationCandidate, get_reclamation_candidates
 from scenario_player.utils.version import get_complete_spec
 
 if TYPE_CHECKING:

@@ -17,10 +17,7 @@ from raiden_contracts.constants import (
     CONTRACT_CUSTOM_TOKEN,
     CONTRACT_TOKEN_NETWORK_REGISTRY,
 )
-from raiden_contracts.contract_manager import (
-    DeployedContracts,
-    get_contracts_deployment_info,
-)
+from raiden_contracts.contract_manager import DeployedContracts, get_contracts_deployment_info
 from raiden_contracts.utils.type_aliases import TokenAmount
 from requests import HTTPError, Session
 from web3 import HTTPProvider, Web3
@@ -33,10 +30,7 @@ from raiden.network.proxies.token_network_registry import TokenNetworkRegistry
 from raiden.network.proxies.user_deposit import UserDeposit
 from raiden.network.rpc.client import JSONRPCClient
 from raiden.network.rpc.middleware import faster_gas_price_strategy
-from raiden.settings import (
-    DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS,
-    RAIDEN_CONTRACT_VERSION,
-)
+from raiden.settings import DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS, RAIDEN_CONTRACT_VERSION
 from raiden.utils.formatting import to_canonical_address
 from raiden.utils.nursery import Janitor
 from raiden.utils.typing import (

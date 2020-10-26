@@ -2,10 +2,7 @@ from typing import Tuple
 
 from eth_typing import ChecksumAddress
 from eth_utils import to_canonical_address
-from raiden_contracts.constants import (
-    CONTRACT_TOKEN_NETWORK_REGISTRY,
-    CONTRACT_USER_DEPOSIT,
-)
+from raiden_contracts.constants import CONTRACT_TOKEN_NETWORK_REGISTRY, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import (
     ContractManager,
     DeployedContracts,

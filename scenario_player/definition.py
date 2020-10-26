@@ -7,10 +7,7 @@ import yaml
 
 from scenario_player.utils.configuration.nodes import NodesConfig
 from scenario_player.utils.configuration.scenario import ScenarioConfig
-from scenario_player.utils.configuration.settings import (
-    EnvironmentConfig,
-    SettingsConfig,
-)
+from scenario_player.utils.configuration.settings import EnvironmentConfig, SettingsConfig
 from scenario_player.utils.configuration.token import TokenConfig
 
 log = structlog.get_logger(__name__)

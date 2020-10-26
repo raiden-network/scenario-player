@@ -5,11 +5,7 @@ import structlog
 from requests import ConnectTimeout, ReadTimeout, RequestException  # type: ignore
 
 from scenario_player import runner as scenario_runner
-from scenario_player.exceptions import (
-    RESTAPIError,
-    RESTAPIStatusMismatchError,
-    RESTAPITimeout,
-)
+from scenario_player.exceptions import RESTAPIError, RESTAPIStatusMismatchError, RESTAPITimeout
 from scenario_player.tasks.base import Task
 
 log = structlog.get_logger(__name__)
