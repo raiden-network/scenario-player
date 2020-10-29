@@ -870,7 +870,7 @@ test = ["pytest", "responses"]
 
 [[package]]
 name = "matrix-synapse"
-version = "1.19.1"
+version = "1.21.0"
 description = "Reference homeserver for the Matrix decentralised comms protocol"
 category = "dev"
 optional = false
@@ -880,7 +880,7 @@ python-versions = "~=3.5"
 attrs = ">=19.1.0"
 bcrypt = ">=3.1.0"
 bleach = ">=1.4.3"
-canonicaljson = ">=1.2.0"
+canonicaljson = ">=1.4.0"
 frozendict = ">=1"
 idna = ">=2.5"
 Jinja2 = ">=2.9"
@@ -889,7 +889,7 @@ msgpack = ">=0.5.2"
 netaddr = ">=0.7.18"
 phonenumbers = ">=8.2.0"
 pillow = ">=4.3.0"
-prometheus-client = ">=0.0.18,<0.9.0"
+prometheus-client = ">=0.4.0,<0.9.0"
 pyasn1 = ">=0.1.9"
 pyasn1-modules = ">=0.0.7"
 pymacaroons = ">=0.13.0"
@@ -906,14 +906,14 @@ unpaddedbase64 = ">=1.1.0"
 
 [package.extras]
 acme = ["txacme (>=0.9.2)", "eliot (<1.8.0)"]
-all = ["lxml (>=3.5.0)", "mock (>=2.0)", "pysaml2 (>=4.5.0)", "authlib (>=0.14.0)", "sentry-sdk (>=0.7.2)", "psycopg2 (>=2.7)", "matrix-synapse-ldap3 (>=0.1)", "txredisapi (>=1.4.7)", "parameterized (>=0.7.0)", "pyjwt (>=1.6.4)", "hiredis", "Jinja2 (>=2.9)", "opentracing (>=2.2.0)", "txacme (>=0.9.2)", "jaeger-client (>=4.0.0)", "eliot (<1.8.0)"]
+all = ["pyjwt (>=1.6.4)", "jaeger-client (>=4.0.0)", "txredisapi (>=1.4.7)", "pysaml2 (>=4.5.0)", "hiredis", "authlib (>=0.14.0)", "lxml (>=3.5.0)", "matrix-synapse-ldap3 (>=0.1)", "psycopg2 (>=2.7)", "opentracing (>=2.2.0)", "sentry-sdk (>=0.7.2)", "txacme (>=0.9.2)", "eliot (<1.8.0)"]
 jwt = ["pyjwt (>=1.6.4)"]
+lint = ["isort (==5.0.3)", "black (==19.10b0)", "flake8-comprehensions", "flake8"]
 matrix-synapse-ldap3 = ["matrix-synapse-ldap3 (>=0.1)"]
 oidc = ["authlib (>=0.14.0)"]
 opentracing = ["jaeger-client (>=4.0.0)", "opentracing (>=2.2.0)"]
 postgres = ["psycopg2 (>=2.7)"]
 redis = ["txredisapi (>=1.4.7)", "hiredis"]
-"resources.consent" = ["Jinja2 (>=2.9)"]
 saml2 = ["pysaml2 (>=4.5.0)"]
 sentry = ["sentry-sdk (>=0.7.2)"]
 systemd = ["systemd-python (>=231)"]
@@ -1896,7 +1896,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "b2d896af217a9b9d05c71203cb5d65916b282a29962b61909125b343de448cf6"
+content-hash = "b53d56a234c3ef63f3f716b230cfc6ab9b8f98d1f63a9d41b171fc50cbfa6e55"
 
 [metadata.files]
 aioice = [
@@ -2462,8 +2462,8 @@ matrix-client = [
     {file = "matrix_client-0.3.2.tar.gz", hash = "sha256:dce3ccb8665df0d519f08e07a16e6d3f9fab3a947df4b7a7c4bb26573d68f2d5"},
 ]
 matrix-synapse = [
-    {file = "matrix-synapse-1.19.1.tar.gz", hash = "sha256:9eba696042c69a99a85a78a9842ecd74bc5001b550de0e78bd7d5a80c71bb635"},
-    {file = "matrix_synapse-1.19.1-py3-none-any.whl", hash = "sha256:2ab27d340986ee779ee991de59f3ec66175e76d130f3ef25ad68caf36f357c11"},
+    {file = "matrix-synapse-1.21.0.tar.gz", hash = "sha256:25bee5bd0015a479d11965731f26136bacbb942b31d7fb1f4189fdd543183746"},
+    {file = "matrix_synapse-1.21.0-py3-none-any.whl", hash = "sha256:2a2121d91bbac8947b275672b5c6bb5c87be2b5efee38a5c3483746d291d3829"},
 ]
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},
