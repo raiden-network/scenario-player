@@ -19,7 +19,8 @@ from raiden_contracts.contract_manager import (
 from web3 import Web3
 
 from raiden.accounts import Account
-from raiden.blockchain.events import BlockchainEvents, token_network_events
+from raiden.blockchain.events import BlockchainEvents
+from raiden.blockchain.filters import RaidenContractFilter
 from raiden.constants import BLOCK_ID_LATEST
 from raiden.exceptions import InsufficientEth
 from raiden.messages.abstract import cached_property
@@ -303,14 +304,14 @@ def _get_all_token_network_events(
     """ Read all TokenNetwork events up to the current confirmed head. """
 
     chain_id = ChainID(web3.eth.chainId)
-    filters = [token_network_events(token_network_address, contract_manager)]
     blockchain_events = BlockchainEvents(
         web3=web3,
         chain_id=chain_id,
         contract_manager=contract_manager,
         last_fetched_block=start_block,
-        event_filters=filters,
+        event_filter=RaidenContractFilter(token_network_addresses={token_network_address}),
         block_batch_size_config=BlockBatchSizeConfig(),
+        node_address=Address(b"1" * 20),  # only relevant if filtering for channels
     )
 
     while target_block > blockchain_events.last_fetched_block:
