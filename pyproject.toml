@@ -24,7 +24,7 @@ classifiers = [
 keywords = ["raiden", "raiden-network"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.7.2"
 click = "^7"
 eth-utils = "^1.9.5"
 gevent = "^20"
