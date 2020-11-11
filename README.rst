@@ -39,21 +39,21 @@ For Users
 Using  ``git`` & ``poetry``::
 
     # Clone the scenario-player repository
-    ~/ $git clone http://github.com/raiden-network/scenario-player && cd scenario-player
+    ~/ $ git clone http://github.com/raiden-network/scenario-player && cd scenario-player
 
     # Install the scenario-player.
-    ~/ $poetry install
+    ~/ $ poetry install
 
     # Show available commands:
-    ~/ $scenario_player --help
+    ~/ $ poetry run scenario-player --help
 
     # Show help for subcommand, e.g.:
-    ~/ $scenario_player run --help
+    ~/ $ poetry run scenario-player run --help
 
 
 You can also use `make`::
 
-    make install
+    make install-dev
 
 
 For Developers
