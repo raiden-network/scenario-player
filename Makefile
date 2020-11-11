@@ -1,46 +1,42 @@
-.PHONY: lint style black black-check isort isort-check flake8
+.PHONY: black black-check flake8 format have-poetry install install-dev isort isort-check lint mypy pylint style tests
 
 black:
-	black scenario_player
-
-isort:
-	isort scenario_player
-
-isort-check:
-	isort --diff --check-only scenario_player
+	poetry run black scenario_player
 
 black-check:
-	black --check --diff scenario_player
+	poetry run black --check --diff scenario_player
 
 flake8:
-	flake8 scenario_player
+	poetry run flake8 scenario_player
+
+isort:
+	poetry run isort scenario_player
+
+isort-check:
+	poetry run isort --diff --check-only scenario_player
 
 pylint:
-	pylint scenario_player
+	poetry run pylint scenario_player
 
-style: isort black
+tests:
+	poetry run pytest --cov=scenario_player
+
+mypy:
+	poetry run mypy scenario_player tests
+
+have-poetry:
+	@command -v poetry > /dev/null 2>&1 || (echo "poetry is required. Installing." && python3 -m pip install --user poetry)
+
+install: have-poetry
+	poetry install --no-dev
+
+install-dev: have-poetry
+	poetry install
+
+format: style
 
 lint: mypy flake8 pylint black-check isort-check
 
-format: isort black
+style: isort black
 
-mypy:
-	mypy scenario_player tests
-
-have-poetry:
-	pip install poetry
-
-install: have-poetry
-	poetry install
-
-install-dev: install
-
-unit-tests:
-	pytest --cov=scenario_player
-
-test: unit-tests
-
-install-post-commit-hook:
-	cat .post-commit > .git/hooks/post-commit
-	chmod +x .git/hooks/post-commit
-	@echo "Isort and black are now automatically applied to commited .py files!"
+test: tests
