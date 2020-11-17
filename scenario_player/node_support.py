@@ -3,7 +3,6 @@ import json
 import os
 import shutil
 import signal
-import socket
 from pathlib import Path
 from subprocess import Popen
 from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
@@ -20,6 +19,7 @@ from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
 from raiden.utils.nursery import Nursery
 from scenario_player.exceptions import ScenarioError
 from scenario_player.utils.configuration.nodes import NodesConfig
+from scenario_player.utils.process import unused_port
 
 if TYPE_CHECKING:
     from scenario_player.runner import ScenarioRunner
@@ -237,11 +237,8 @@ class NodeRunner:
         if not self._api_address:
             self._api_address = self._options.get("api-address")
             if self._api_address is None:
-                # Find a random free port
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.bind(("127.0.0.1", 0))
-                self._api_address = f"127.0.0.1:{sock.getsockname()[1]}"
-                sock.close()
+                next_free_port = unused_port()
+                self._api_address = f"127.0.0.1:{next_free_port}"
         return self._api_address
 
     @property
