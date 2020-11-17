@@ -52,6 +52,7 @@ from scenario_player.definition import ScenarioDefinition
 from scenario_player.exceptions import ScenarioError, TokenNetworkDiscoveryTimeout
 from scenario_player.node_support import NodeController, NodeRunner
 from scenario_player.utils import TimeOutHTTPAdapter
+from scenario_player.utils.configuration.nodes import NodesConfig
 from scenario_player.utils.configuration.settings import (
     EnvironmentConfig,
     SettingsConfig,
@@ -152,12 +153,19 @@ def determine_run_number(scenario_dir: Path) -> int:
     return run_number
 
 
-def make_session(auth: str, settings: SettingsConfig) -> Session:
+def make_session(auth: str, settings: SettingsConfig, node_config: NodesConfig) -> Session:
+    num_connections = node_config.count * 10
+
     session = Session()
     if auth:
         session.auth = cast(Tuple[str, str], tuple(auth.split(":")))
-    session.mount("http", TimeOutHTTPAdapter(timeout=settings.timeout))
-    session.mount("https", TimeOutHTTPAdapter(timeout=settings.timeout))
+    session.mount(
+        "http", TimeOutHTTPAdapter(timeout=settings.timeout, pool_connections=num_connections)
+    )
+    session.mount(
+        "https",
+        TimeOutHTTPAdapter(timeout=settings.timeout, pool_connections=num_connections),
+    )
 
     return session
 
@@ -274,7 +282,9 @@ class ScenarioRunner:
         log.info("Run number", run_number=self.run_number)
 
         self.protocol = "http"
-        web3 = Web3(HTTPProvider(environment.eth_rpc_endpoints[0]))
+        self.session = make_session(auth, self.definition.settings, self.definition.nodes)
+
+        web3 = Web3(HTTPProvider(environment.eth_rpc_endpoints[0], session=self.session))
         self.chain_id = ChainID(web3.eth.chainId)
         self.definition.settings.eth_rpc_endpoint_iterator = environment.eth_rpc_endpoint_iterator
         self.definition.settings.chain_id = self.chain_id
@@ -297,8 +307,6 @@ class ScenarioRunner:
                 f" - it needs additional {(OWN_ACCOUNT_BALANCE_MIN - balance) / 10 ** 18} Eth ("
                 f"that is {OWN_ACCOUNT_BALANCE_MIN - balance} Wei)."
             )
-
-        self.session = make_session(auth, self.definition.settings)
 
         self.node_controller = NodeController(
             runner=self,
