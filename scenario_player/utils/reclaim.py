@@ -166,7 +166,7 @@ def withdraw_from_udc(
                 amount=drain_amount.__format__(",d"),
             )
             try:
-                ready_at_block = userdeposit_proxy.plan_withdraw(drain_amount, "latest")
+                _, ready_at_block = userdeposit_proxy.plan_withdraw(drain_amount, "latest")
             except InsufficientEth:
                 log.warning(
                     "Not sufficient eth in node wallet to withdraw",
