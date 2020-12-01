@@ -228,12 +228,13 @@ def maybe_create_token_network(
     )
 
     if token_network_address is None:
-        return token_network_proxy.add_token(
+        _, new_token_network_address = token_network_proxy.add_token(
             token_address=token_address,
             channel_participant_deposit_limit=TokenAmount(UINT256_MAX),
             token_network_deposit_limit=TokenAmount(UINT256_MAX),
             given_block_identifier=block_identifier,
         )
+        return new_token_network_address
     else:
         return token_network_address
 
