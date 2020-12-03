@@ -10,6 +10,7 @@ NODE_ACCOUNT_BALANCE_FUND = 3 * 10 ** 17  # := 0.3 Eth
 TIMEOUT = 200
 API_URL_TOKEN_NETWORK_ADDRESS = "{protocol}://{target_host}/api/v1/tokens/{token_address}"
 MAX_RAIDEN_STARTUP_TIME = 2000  # seconds
+MAX_API_TASK_TIMEOUT = 30 * 60  # seconds
 
 #: Available gas price strategies selectable by passing their key to the
 #: settings.gas_price config option in the scenario definition.

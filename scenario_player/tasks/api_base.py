@@ -5,6 +5,7 @@ import structlog
 from requests import ConnectTimeout, ReadTimeout, RequestException  # type: ignore
 
 from scenario_player import runner as scenario_runner
+from scenario_player.constants import MAX_API_TASK_TIMEOUT
 from scenario_player.exceptions import RESTAPIError, RESTAPIStatusMismatchError, RESTAPITimeout
 from scenario_player.tasks.base import Task
 
@@ -24,7 +25,7 @@ class RESTAPIActionTask(Task):
 
         self._expected_http_status = config.get("expected_http_status", self._expected_http_status)
         self._http_status_re = re.compile(f"^{self._expected_http_status}$")
-        self._timeout = config.get("timeout")
+        self._timeout = config.get("timeout", MAX_API_TASK_TIMEOUT)
 
     @property
     def _request_params(self):
