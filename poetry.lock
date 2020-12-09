@@ -1051,7 +1051,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "phonenumbers"
-version = "8.12.13"
+version = "8.12.14"
 description = "Python version of Google's common library for parsing, formatting, storing and validating international phone numbers."
 category = "dev"
 optional = false
@@ -1383,7 +1383,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "raiden"
-version = "1.1.1.dev345+g800dbb394"
+version = "1.1.1.dev367+g0e06b81a3"
 description = ""
 category = "main"
 optional = false
@@ -1457,7 +1457,7 @@ pyrsistent = "0.15.7"
 pysha3 = "1.0.2"
 pytz = "2019.1"
 raiden-contracts = "0.37.1"
-raiden-webui = "1.1.0"
+raiden-webui = "1.1.1"
 requests = "2.25.0"
 rlp = "1.1.0"
 semantic-version = "2.6.0"
@@ -1481,7 +1481,7 @@ werkzeug = "1.0.1"
 type = "git"
 url = "https://github.com/raiden-network/raiden.git"
 reference = "develop"
-resolved_reference = "800dbb3947f9979aaddce45b64aa83ab4be52a50"
+resolved_reference = "0e06b81a334bab5e147c8a67c7b5b8ba94ca482c"
 
 [[package]]
 name = "raiden-contracts"
@@ -1506,7 +1506,7 @@ web3 = ">=5.7.0,<6.0.0"
 
 [[package]]
 name = "raiden-webui"
-version = "1.1.0"
+version = "1.1.1"
 description = "Raiden webui"
 category = "main"
 optional = false
@@ -2585,8 +2585,8 @@ pathspec = [
     {file = "pathspec-0.8.1.tar.gz", hash = "sha256:86379d6b86d75816baba717e64b1a3a3469deb93bb76d613c9ce79edc5cb68fd"},
 ]
 phonenumbers = [
-    {file = "phonenumbers-8.12.13-py2.py3-none-any.whl", hash = "sha256:9de2937034deb040eb9ac56519b0887e0fe89811e57f6f5c88359e3be20ae3b5"},
-    {file = "phonenumbers-8.12.13.tar.gz", hash = "sha256:96d02120a3481e22d8a8eb5e4595ceec1930855749f6e4a06ef931881f59f562"},
+    {file = "phonenumbers-8.12.14-py2.py3-none-any.whl", hash = "sha256:d60a3902d7648288624ee9568b8bc7a53b31de07bd7cb80993a3704c674dce32"},
+    {file = "phonenumbers-8.12.14.tar.gz", hash = "sha256:58817072cf2b80fcc8710e7a2c395cd32fce2b70a259e36ff81916862f578d61"},
 ]
 pillow = [
     {file = "Pillow-8.0.1-cp36-cp36m-macosx_10_10_x86_64.whl", hash = "sha256:b63d4ff734263ae4ce6593798bcfee6dbfb00523c82753a3a03cbc05555a9cc3"},
@@ -2885,8 +2885,8 @@ raiden-contracts = [
     {file = "raiden_contracts-0.37.1-py3-none-any.whl", hash = "sha256:28e7dcb171dd773d70954436ef104b2caec2667352c623d421148d1cf68070f1"},
 ]
 raiden-webui = [
-    {file = "raiden-webui-1.1.0.tar.gz", hash = "sha256:5588a2488693e02666911fae23770131448b4d85261b5898d5f4d1e0164acf28"},
-    {file = "raiden_webui-1.1.0-py3-none-any.whl", hash = "sha256:ca126ee3cd151f0639348e0507da3509ea5f8a34bf2c98f7b993db9a834850b9"},
+    {file = "raiden-webui-1.1.1.tar.gz", hash = "sha256:508faaf6b14f8e8430484662d78c00f492ac5ce4decdd9e62524384e0b29886f"},
+    {file = "raiden_webui-1.1.1-py3-none-any.whl", hash = "sha256:25afb8df56cc65ff827236b949f6113cd6227147dbc4930ae6f8145d24455cee"},
 ]
 regex = [
     {file = "regex-2020.11.13-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:8b882a78c320478b12ff024e81dc7d43c1462aa4a3341c754ee65d857a521f85"},
