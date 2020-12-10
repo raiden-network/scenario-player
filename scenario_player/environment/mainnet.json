@@ -2,7 +2,6 @@
     "environment_type": "production",
     "pfs_with_fee": "https://pfs.raiden.overdoze.se",
     "eth_rpc_endpoints": [
-        "http://1.geth.mainnet.ethnodes.brainbot.com:8545",
         "http://2.geth.mainnet.ethnodes.brainbot.com:8545",
         "http://3.geth.mainnet.ethnodes.brainbot.com:8545"
     ],
