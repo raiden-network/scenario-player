@@ -67,7 +67,7 @@ from scenario_player.utils.token import (
     eth_maybe_transfer,
     load_token_configuration_from_file,
     save_token_configuration_to_file,
-    token_maybe_mint,
+    token_maybe_transfer,
     userdeposit_maybe_deposit,
     userdeposit_maybe_increase_allowance,
 )
@@ -429,6 +429,20 @@ class ScenarioRunner:
                 proxy_manager=proxy_manager,
             )
 
+            # Check if enough UDC tokens for all accounts are available
+            balance_per_node = settings.services.udc.token.balance_per_node
+            node_count = len(node_addresses)
+            required_udc_tokens = balance_per_node * node_count
+            udc_balance = user_token_proxy.balance_of(self.client.address, "latest")
+
+            msg = (
+                f"Not enough UDC tokens to fund all account. {node_count} nodes need "
+                f"{balance_per_node} tokens each, so {required_udc_tokens} in total. "
+                f"Current balance of {to_checksum_address(self.client.address)} is only "
+                f"{udc_balance}."
+            )
+            assert udc_balance >= required_udc_tokens, msg
+
             log.debug("Minting utility tokens and /scheduling/ transfers to the nodes")
             mint_greenlets = self.setup_mint_user_deposit_tokens_for_distribution(
                 pool, userdeposit_proxy, user_token_proxy, node_addresses
@@ -536,15 +550,15 @@ class ScenarioRunner:
             maximum_allowance=UINT256_MAX,
         )
 
-        mint_greenlet = pool.spawn(
-            token_maybe_mint,
-            token_proxy=token_proxy,
-            target_address=to_checksum_address(self.client.address),
-            minimum_balance=required_allowance,
-            maximum_balance=ORCHESTRATION_MAXIMUM_BALANCE,
-        )
+        # mint_greenlet = pool.spawn(
+        #     token_maybe_mint,
+        #     token_proxy=token_proxy,
+        #     target_address=to_checksum_address(self.client.address),
+        #     minimum_balance=required_allowance,
+        #     maximum_balance=ORCHESTRATION_MAXIMUM_BALANCE,
+        # )
 
-        return {allowance_greenlet, mint_greenlet}
+        return {allowance_greenlet}
 
     def setup_raiden_token_balances(
         self, pool: Pool, token_proxy: CustomToken, node_addresses: Set[ChecksumAddress]
@@ -560,7 +574,7 @@ class ScenarioRunner:
         greenlets: Set[Greenlet] = set()
         for address in node_addresses:
             g = pool.spawn(
-                token_maybe_mint,
+                token_maybe_transfer,
                 token_proxy=token_proxy,
                 target_address=address,
                 minimum_balance=token_min_amount,
