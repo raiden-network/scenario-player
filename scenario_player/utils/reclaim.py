@@ -168,19 +168,30 @@ def withdraw_from_udc(
         log.debug("UDC balance", balance=balance, address=node.address)
         if balance > 0:
             drain_amount = TokenAmount(balance)
-            log.info(
-                "Planning withdraw",
-                from_address=node.address,
-                amount=drain_amount.__format__(",d"),
+            existing_plan = userdeposit_proxy.get_withdraw_plan(
+                to_canonical_address(node.address), "latest"
             )
-            try:
-                _, ready_at_block = userdeposit_proxy.plan_withdraw(drain_amount, "latest")
-            except InsufficientEth:
-                log.warning(
-                    "Not sufficient eth in node wallet to withdraw",
-                    address=node.address,
+            if existing_plan.withdraw_amount == drain_amount:
+                log.info(
+                    "Withdraw already planned",
+                    from_address=node.address,
+                    amount=drain_amount.__format__(",d"),
                 )
-                continue
+                ready_at_block = existing_plan.withdraw_block
+            else:
+                log.info(
+                    "Planning withdraw",
+                    from_address=node.address,
+                    amount=drain_amount.__format__(",d"),
+                )
+                try:
+                    _, ready_at_block = userdeposit_proxy.plan_withdraw(drain_amount, "latest")
+                except InsufficientEth:
+                    log.warning(
+                        "Not sufficient eth in node wallet to withdraw",
+                        address=node.address,
+                    )
+                    continue
             planned_withdraws[node.address] = ready_at_block, drain_amount
 
     if not planned_withdraws:
