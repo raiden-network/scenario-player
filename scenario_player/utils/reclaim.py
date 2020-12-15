@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from itertools import chain as iter_chain
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import ClassVar, Dict, Iterable, List, Tuple
 
 import structlog
 from eth_keyfile import decode_keyfile_json
@@ -65,33 +65,41 @@ VALUE_TX_GAS_COST = 21_000
 
 @dataclass
 class ReclamationCandidate:
+    """One node_dir that will be checked for reclamation possibilities
+
+    The instance provides a JSONRPCClient and ProxyManager to interact with the
+    node's account on-chain. It is made sure that no more than a single client
+    is created for the same account this way. This avoids nonce errors in cases
+    where multiple node_dirs exist for the same account. That can happen due to
+    use of snapshots or when manually making copies of interesting node states
+    for later debugging.
+    """
+
     address: ChecksumAddress
     keyfile_content: dict
     node_dir: pathlib.Path
+    _client_cache: ClassVar[Dict[ChecksumAddress, JSONRPCClient]] = dict()
+    _proxy_manager_cache: ClassVar[Dict[ChecksumAddress, ProxyManager]] = dict()
 
     @cached_property
     def privkey(self):
         return decode_keyfile_json(self.keyfile_content, b"")
 
     def get_client(self, web3: Web3) -> JSONRPCClient:
-        if not hasattr(self, "_client"):
-            self._web3 = web3
-            self._client = JSONRPCClient(
+        if self.address not in self._client_cache:
+            self._client_cache[self.address] = JSONRPCClient(
                 web3=web3,
                 privkey=self.privkey,
                 gas_price_strategy=faster_gas_price_strategy,
             )
-        else:
-            assert web3 == self._web3
-        return self._client
+        return self._client_cache[self.address]
 
     def get_proxy_manager(self, web3: Web3, deploy: DeployedContracts) -> ProxyManager:
-        if not hasattr(self, "_proxy_manager"):
-            self._deploy = deploy
-            self._proxy_manager = get_proxy_manager(self.get_client(web3), deploy)
-        else:
-            assert deploy == self._deploy
-        return self._proxy_manager
+        if self.address not in self._proxy_manager_cache:
+            self._proxy_manager_cache[self.address] = get_proxy_manager(
+                self.get_client(web3), deploy
+            )
+        return self._proxy_manager_cache[self.address]
 
 
 def get_reclamation_candidates(
@@ -160,19 +168,30 @@ def withdraw_from_udc(
         log.debug("UDC balance", balance=balance, address=node.address)
         if balance > 0:
             drain_amount = TokenAmount(balance)
-            log.info(
-                "Planning withdraw",
-                from_address=node.address,
-                amount=drain_amount.__format__(",d"),
+            existing_plan = userdeposit_proxy.get_withdraw_plan(
+                to_canonical_address(node.address), "latest"
             )
-            try:
-                _, ready_at_block = userdeposit_proxy.plan_withdraw(drain_amount, "latest")
-            except InsufficientEth:
-                log.warning(
-                    "Not sufficient eth in node wallet to withdraw",
-                    address=node.address,
+            if existing_plan.withdraw_amount == drain_amount:
+                log.info(
+                    "Withdraw already planned",
+                    from_address=node.address,
+                    amount=drain_amount.__format__(",d"),
                 )
-                continue
+                ready_at_block = existing_plan.withdraw_block
+            else:
+                log.info(
+                    "Planning withdraw",
+                    from_address=node.address,
+                    amount=drain_amount.__format__(",d"),
+                )
+                try:
+                    _, ready_at_block = userdeposit_proxy.plan_withdraw(drain_amount, "latest")
+                except InsufficientEth:
+                    log.warning(
+                        "Not sufficient eth in node wallet to withdraw",
+                        address=node.address,
+                    )
+                    continue
             planned_withdraws[node.address] = ready_at_block, drain_amount
 
     if not planned_withdraws:
