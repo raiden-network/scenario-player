@@ -10,5 +10,7 @@
     "pfs_fee": 50000000000000000,
     "ms_reward_with_margin": 5500000000000000000,
     "settlement_timeout_min": 100,
-    "raiden_client": "raiden"
+    "raiden_client": "raiden",
+    "wait_short": 30,
+    "wait_long": 60
 }

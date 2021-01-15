@@ -573,6 +573,8 @@ def smoketest(eth_client: EthClient):
                     ms_reward_with_margin=TokenAmount(1),
                     settlement_timeout_min=BlockTimeout(100),
                     raiden_client="raiden",
+                    wait_short=5,
+                    wait_long=10,
                 )
                 try:
                     run_(
