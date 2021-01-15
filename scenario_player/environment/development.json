@@ -2,7 +2,8 @@
     "environment_type": "development",
     "pfs_with_fee": "https://pfs.transport01.raiden.network",
     "eth_rpc_endpoints": [
-        "http://geth.goerli.ethnodes.brainbot.com:8545"
+        "http://geth.goerli.ethnodes.brainbot.com:8545",
+        "http://parity.goerli.ethnodes.brainbot.com:8545"
     ],
     "transfer_token": "0x59105441977ecD9d805A4f5b060E34676F50F806",
     "pfs_fee": 50000000000000000,
