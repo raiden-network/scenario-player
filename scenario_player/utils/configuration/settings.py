@@ -38,6 +38,8 @@ class EnvironmentConfig:
     ms_reward_with_margin: TokenAmount
     settlement_timeout_min: BlockTimeout
     raiden_client: str
+    wait_short: int
+    wait_long: int
 
     def __post_init__(self):
         self.eth_rpc_endpoint_iterator = itertools.cycle(self.eth_rpc_endpoints)
