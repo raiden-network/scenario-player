@@ -129,7 +129,7 @@ class TestUDCSettingsConfig:
 class TestUDCTokenConfig:
     @pytest.mark.parametrize(
         "key, expected",
-        argvalues=[("deposit", False), ("balance_per_node", 1000), ("max_funding", 10_000)],
+        argvalues=[("deposit", False), ("balance_per_node", 1_000), ("max_funding", 20_000)],
     )
     def test_attributes_return_for_key_value_if_key_present(
         self, key, expected, minimal_definition_dict
@@ -141,7 +141,7 @@ class TestUDCTokenConfig:
 
     @pytest.mark.parametrize(
         "key, expected",
-        argvalues=[("deposit", True), ("balance_per_node", 5000), ("max_funding", 5000)],
+        argvalues=[("deposit", True), ("balance_per_node", 20_000), ("max_funding", 20_000)],
     )
     def test_attributes_whose_key_is_absent_return_expected_default(
         self, key, expected, minimal_definition_dict
@@ -152,7 +152,7 @@ class TestUDCTokenConfig:
 
     def test_balance_per_node_must_not_be_greater_than_max_funding(self, minimal_definition_dict):
         minimal_definition_dict["settings"] = {
-            "services": {"udc": {"token": {"max_funding": 6000, "balance_per_node": 6001}}}
+            "services": {"udc": {"token": {"max_funding": 6_000, "balance_per_node": 6_001}}}
         }
         with pytest.raises(Exception):
             UDCTokenSettings(minimal_definition_dict, dummy_env)
