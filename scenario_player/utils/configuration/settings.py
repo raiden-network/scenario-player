@@ -123,8 +123,13 @@ class UDCTokenSettings:
 
     @property
     def balance_per_node(self) -> int:
-        """The required amount of UDC/RDN tokens required by each node."""
-        return int(self.dict.get("balance_per_node", 50 * self.environment.pfs_fee))
+        """The required amount of UDC/RDN tokens required by each node.
+
+        This is set to a value high enough to pay for a monitoring request, because
+        the light client disables receiving of payments otherwise.
+        See https://github.com/raiden-network/light-client/issues/2524
+        """
+        return int(self.dict.get("balance_per_node", 200 * self.environment.pfs_fee))
 
     @property
     def max_funding(self) -> int:
