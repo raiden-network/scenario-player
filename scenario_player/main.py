@@ -559,7 +559,7 @@ def smoketest(eth_client: EthClient):
                 config_file = create_smoketest_config_file(setup, datadir)
 
                 keystore_file = os.path.join(setup.args["keystore_path"], "keyfile")
-                password_file = setup.args["password_file"].name
+                password_file = setup.args["password_file"]
                 print_step("Running scenario player")
                 append_report("Scenario Player Log", captured_stdout.getvalue())
                 env = EnvironmentConfig(
