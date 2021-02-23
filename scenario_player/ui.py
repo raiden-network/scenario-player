@@ -295,7 +295,7 @@ def attach_urwid_logbuffer():
     for handler in logging.getLogger("").handlers:
         if isinstance(handler, logging.StreamHandler):
             handler.terminator = ConcatenableNone()  # type: ignore
-            handler.formatter = NonStringifyingProcessorFormatter(  # type: ignore
+            handler.formatter = NonStringifyingProcessorFormatter(
                 UrwidLogRenderer(), foreign_pre_chain=LOGGING_PROCESSORS  # type: ignore
             )
             handler.stream = log_buffer

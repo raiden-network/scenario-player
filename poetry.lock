@@ -863,7 +863,7 @@ marshmallow = ">=2.0.0"
 
 [[package]]
 name = "marshmallow-polyfield"
-version = "5.9"
+version = "5.10"
 description = "An unofficial extension to Marshmallow to allow for polymorphic fields"
 category = "main"
 optional = false
@@ -1399,7 +1399,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 
 [[package]]
 name = "raiden"
-version = "1.1.1.dev477+g63136fe9d"
+version = "1.1.1.dev485+g123ce13b3"
 description = ""
 category = "main"
 optional = false
@@ -1444,7 +1444,6 @@ greenlet = "0.4.17"
 guppy3 = "3.1.0"
 hexbytes = "0.2.0"
 idna = "2.8"
-importlib-metadata = "3.4.0"
 ipfshttpclient = "0.7.0a1"
 itsdangerous = "1.1.0"
 jinja2 = "2.10.1"
@@ -1454,7 +1453,7 @@ markupsafe = "1.1.1"
 marshmallow = "3.10.0"
 marshmallow-dataclass = "8.0.0"
 marshmallow-enum = "1.5.1"
-marshmallow-polyfield = "5.9"
+marshmallow-polyfield = "5.10"
 matrix-client = "0.3.2"
 mirakuru = "2.1.2"
 multiaddr = "0.0.9"
@@ -1481,7 +1480,7 @@ rlp = "2.0.1"
 semantic-version = "2.6.0"
 semver = "2.8.1"
 six = "1.15.0"
-structlog = "20.1.0"
+structlog = "21.1.0"
 toml = "0.10.2"
 toolz = "0.9.0"
 typing-extensions = "3.7.4.3"
@@ -1492,7 +1491,6 @@ varint = "1.0.2"
 web3 = "5.16.0"
 websockets = "8.1"
 werkzeug = "1.0.1"
-zipp = "3.4.0"
 "zope.event" = "4.4"
 "zope.interface" = "5.1.0"
 
@@ -1500,7 +1498,7 @@ zipp = "3.4.0"
 type = "git"
 url = "https://github.com/raiden-network/raiden.git"
 reference = "develop"
-resolved_reference = "63136fe9d3e2faf7c466278be5b1179c3381871e"
+resolved_reference = "123ce13b3ba8f10dfcc1a89ebda9e147d25a6174"
 
 [[package]]
 name = "raiden-contracts"
@@ -1667,20 +1665,19 @@ python-versions = "*"
 
 [[package]]
 name = "structlog"
-version = "20.1.0"
+version = "21.1.0"
 description = "Structured Logging for Python"
 category = "main"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6"
 
 [package.dependencies]
-six = "*"
+typing-extensions = {version = "*", markers = "python_version < \"3.8\""}
 
 [package.extras]
-azure-pipelines = ["coverage", "freezegun (>=0.2.8)", "pretend", "pytest (>=3.3.0)", "simplejson", "pytest-azurepipelines", "python-rapidjson", "pytest-asyncio"]
-dev = ["coverage", "freezegun (>=0.2.8)", "pretend", "pytest (>=3.3.0)", "simplejson", "sphinx", "twisted", "pre-commit", "python-rapidjson", "pytest-asyncio"]
-docs = ["sphinx", "twisted"]
-tests = ["coverage", "freezegun (>=0.2.8)", "pretend", "pytest (>=3.3.0)", "simplejson", "python-rapidjson", "pytest-asyncio"]
+dev = ["coverage", "freezegun (>=0.2.8)", "pretend", "pytest-asyncio", "pytest-randomly", "pytest (>=6.0)", "simplejson", "furo", "sphinx", "sphinx-toolbox", "twisted", "pre-commit"]
+docs = ["furo", "sphinx", "sphinx-toolbox", "twisted"]
+tests = ["coverage", "freezegun (>=0.2.8)", "pretend", "pytest-asyncio", "pytest-randomly", "pytest (>=6.0)", "simplejson"]
 
 [[package]]
 name = "toml"
@@ -1927,7 +1924,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.2"
-content-hash = "d10b0bd3c733fe70ce2db8cb449fc253e8e9ed027af98c009b654c6c7d68be96"
+content-hash = "d1fdd2ffa248a282ded31dbc1f1f6ad22af5d72000555f0aada8515ea08d92ff"
 
 [metadata.files]
 aioice = [
@@ -2564,7 +2561,8 @@ marshmallow-enum = [
     {file = "marshmallow_enum-1.5.1-py2.py3-none-any.whl", hash = "sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072"},
 ]
 marshmallow-polyfield = [
-    {file = "marshmallow-polyfield-5.9.tar.gz", hash = "sha256:448f4b1ac5cbd671c0fb8a5452e99da7c0e8be924dd2cda2a21ee59457a4748f"},
+    {file = "marshmallow-polyfield-5.10.tar.gz", hash = "sha256:75d0e31b725650e91428f975a66ed30f703cc6f9fcfe45b8436ee6d676921691"},
+    {file = "marshmallow_polyfield-5.10-py3-none-any.whl", hash = "sha256:a0a91730c6d21bfac1563990c7ba1413928e7499af669619d4fb38d1fb25c4e9"},
 ]
 matrix-client = [
     {file = "matrix_client-0.3.2-py2.py3-none-any.whl", hash = "sha256:2855a2614a177db66f9bc3ba38cbd2876041456f663c334f72a160ab6bb11c49"},
@@ -3140,8 +3138,8 @@ sortedcontainers = [
     {file = "sortedcontainers-2.3.0.tar.gz", hash = "sha256:59cc937650cf60d677c16775597c89a960658a09cf7c1a668f86e1e4464b10a1"},
 ]
 structlog = [
-    {file = "structlog-20.1.0-py2.py3-none-any.whl", hash = "sha256:8a672be150547a93d90a7d74229a29e765be05bd156a35cdcc527ebf68e9af92"},
-    {file = "structlog-20.1.0.tar.gz", hash = "sha256:7a48375db6274ed1d0ae6123c486472aa1d0890b08d314d2b016f3aa7f35990b"},
+    {file = "structlog-21.1.0-py2.py3-none-any.whl", hash = "sha256:62f06fc0ee32fb8580f0715eea66cb87271eb7efb0eaf9af6b639cba8981de47"},
+    {file = "structlog-21.1.0.tar.gz", hash = "sha256:d9d2d890532e8db83c6977a2a676fb1889922ff0c26ad4dc0ecac26f9fafbc57"},
 ]
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
