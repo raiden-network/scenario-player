@@ -469,6 +469,7 @@ def reclaim_eth(
             contract_manager=contract_manager,
             web3=web3,
             account=account,
+            development_environment=environment.development_environment,
         )
 
     for token_address in reclaim_tokens:
@@ -479,6 +480,7 @@ def reclaim_eth(
             contract_manager=contract_manager,
             web3=web3,
             account=account,
+            development_environment=environment.development_environment,
         )
         scenario_player.utils.reclaim.reclaim_erc20(
             reclamation_candidates=reclamation_candidates,

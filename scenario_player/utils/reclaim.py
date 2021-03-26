@@ -12,6 +12,7 @@ from eth_utils import to_canonical_address, to_checksum_address
 from gevent.pool import Pool
 from raiden_contracts.constants import CONTRACT_TOKEN_NETWORK_REGISTRY, ChannelEvent
 from raiden_contracts.contract_manager import (
+    ContractDevEnvironment,
     ContractManager,
     DeployedContracts,
     get_contracts_deployment_info,
@@ -151,9 +152,12 @@ def withdraw_from_udc(
     contract_manager: ContractManager,
     account: Account,
     web3: Web3,
+    development_environment: ContractDevEnvironment,
 ):
     chain_id = ChainID(web3.eth.chainId)
-    deploy = get_contracts_deployment_info(chain_id, RAIDEN_CONTRACT_VERSION)
+    deploy = get_contracts_deployment_info(
+        chain_id, RAIDEN_CONTRACT_VERSION, development_environment=development_environment
+    )
     assert deploy
 
     planned_withdraws: Dict[ChecksumAddress, Tuple[BlockNumber, TokenAmount]] = {}
@@ -161,7 +165,9 @@ def withdraw_from_udc(
     log.info("Checking chain for deposits in UserDeposit contact")
     for node in reclamation_candidates:
         (userdeposit_proxy, _) = get_udc_and_corresponding_token_from_dependencies(
-            chain_id=chain_id, proxy_manager=node.get_proxy_manager(web3, deploy)
+            chain_id=chain_id,
+            proxy_manager=node.get_proxy_manager(web3, deploy),
+            development_environment=development_environment,
         )
 
         balance = userdeposit_proxy.get_total_deposit(to_canonical_address(node.address), "latest")
@@ -207,7 +213,9 @@ def withdraw_from_udc(
         candidate = [c for c in reclamation_candidates if c.address == address][0]
         proxy_manager = candidate.get_proxy_manager(web3, deploy)
         (userdeposit_proxy, _) = get_udc_and_corresponding_token_from_dependencies(
-            chain_id=chain_id, proxy_manager=proxy_manager
+            chain_id=chain_id,
+            proxy_manager=proxy_manager,
+            development_environment=development_environment,
         )
         # FIXME: Something is off with the block numbers, adding 20 to work around.
         #        See https://github.com/raiden-network/raiden/pull/6091/files#r412234516
@@ -442,6 +450,7 @@ def withdraw_all(
     web3: Web3,
     contract_manager: ContractManager,
     token_address: TokenAddress,
+    development_environment: ContractDevEnvironment,
 ) -> None:
     """Withdraws all tokens from all channels
 
@@ -452,7 +461,9 @@ def withdraw_all(
     wait times.
     """
     chain_id = ChainID(web3.eth.chainId)
-    deploy = get_contracts_deployment_info(chain_id, RAIDEN_CONTRACT_VERSION)
+    deploy = get_contracts_deployment_info(
+        chain_id, RAIDEN_CONTRACT_VERSION, development_environment=development_environment
+    )
     assert deploy
     assert account.privkey
     token_network_address = _get_token_network_address(

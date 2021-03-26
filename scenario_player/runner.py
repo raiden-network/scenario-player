@@ -17,7 +17,11 @@ from raiden_contracts.constants import (
     CONTRACT_CUSTOM_TOKEN,
     CONTRACT_TOKEN_NETWORK_REGISTRY,
 )
-from raiden_contracts.contract_manager import DeployedContracts, get_contracts_deployment_info
+from raiden_contracts.contract_manager import (
+    ContractDevEnvironment,
+    DeployedContracts,
+    get_contracts_deployment_info,
+)
 from raiden_contracts.utils.type_aliases import TokenAmount
 from requests import HTTPError, Session
 from web3 import HTTPProvider, Web3
@@ -106,6 +110,7 @@ def wait_for_nodes_to_be_ready(node_runners: List[NodeRunner], session: Session)
 def get_token_network_registry_from_dependencies(
     settings: SettingsConfig,
     proxy_manager: ProxyManager,
+    development_environment: ContractDevEnvironment,
     smoketest_deployment_data: DeployedContracts = None,
 ) -> TokenNetworkRegistry:
     """Return contract proxies for the UserDepositContract and associated token.
@@ -117,7 +122,11 @@ def get_token_network_registry_from_dependencies(
     assert chain_id, "Missing configuration, either set udc_address or the chain_id"
 
     if chain_id != CHAINNAME_TO_ID["smoketest"]:
-        contracts = get_contracts_deployment_info(chain_id, version=RAIDEN_CONTRACT_VERSION)
+        contracts = get_contracts_deployment_info(
+            chain_id,
+            version=RAIDEN_CONTRACT_VERSION,
+            development_environment=development_environment,
+        )
     else:
         contracts = smoketest_deployment_data
 
@@ -403,7 +412,11 @@ class ScenarioRunner:
 
         smoketesting = False
         if self.chain_id != CHAINNAME_TO_ID["smoketest"]:
-            deploy = get_contracts_deployment_info(self.chain_id, RAIDEN_CONTRACT_VERSION)
+            deploy = get_contracts_deployment_info(
+                self.chain_id,
+                RAIDEN_CONTRACT_VERSION,
+                development_environment=self.environment.development_environment,
+            )
         else:
             smoketesting = True
             deploy = self.smoketest_deployment_data
@@ -427,6 +440,7 @@ class ScenarioRunner:
                 udc_address=udc_settings.address,
                 chain_id=settings.chain_id,
                 proxy_manager=proxy_manager,
+                development_environment=self.environment.development_environment,
             )
 
             log.debug("Minting utility tokens and /scheduling/ transfers to the nodes")
@@ -446,10 +460,13 @@ class ScenarioRunner:
                 settings=settings,
                 proxy_manager=proxy_manager,
                 smoketest_deployment_data=deploy,
+                development_environment=self.environment.development_environment,
             )
         else:
             token_network_registry_proxy = get_token_network_registry_from_dependencies(
-                settings=settings, proxy_manager=proxy_manager
+                settings=settings,
+                proxy_manager=proxy_manager,
+                development_environment=self.environment.development_environment,
             )
 
         self.setup_raiden_token_balances(pool, token_proxy, node_addresses)
