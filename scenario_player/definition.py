@@ -39,6 +39,9 @@ class ScenarioDefinition:
         self.token = TokenConfig(self._loaded, self.scenario_dir.joinpath("token.info"))
         deploy_token = self.token.address is None
         self.nodes = NodesConfig(self._loaded, environment="development" if deploy_token else None)
+        self.nodes.dict["default_options"][
+            "development-environment"
+        ] = environment.development_environment.value
         self.scenario = ScenarioConfig(self._loaded)
 
         # If the environment sets a list of matrix servers, the nodes must not

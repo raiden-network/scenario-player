@@ -1,5 +1,6 @@
 {
     "environment_type": "development",
+    "development_environment": "unstable",
     "pfs_with_fee": "https://pfs.transport01.raiden.network",
     "eth_rpc_endpoints": [
         "http://parity.goerli.ethnodes.brainbot.com:8545"

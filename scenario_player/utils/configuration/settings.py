@@ -5,6 +5,7 @@ from typing import Callable, Iterator, List, Optional, Sequence, Union
 
 import structlog
 from eth_typing import URI
+from raiden_contracts.contract_manager import ContractDevEnvironment
 from typing_extensions import Literal
 
 from raiden.utils.typing import (
@@ -40,9 +41,11 @@ class EnvironmentConfig:
     raiden_client: str
     wait_short: int
     wait_long: int
+    development_environment: ContractDevEnvironment = ContractDevEnvironment.DEMO
 
     def __post_init__(self):
         self.eth_rpc_endpoint_iterator = itertools.cycle(self.eth_rpc_endpoints)
+        self.development_environment = ContractDevEnvironment(self.development_environment)
 
 
 class PFSSettingsConfig:

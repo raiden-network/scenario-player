@@ -4,6 +4,7 @@ from eth_typing import ChecksumAddress
 from eth_utils import to_canonical_address
 from raiden_contracts.constants import CONTRACT_TOKEN_NETWORK_REGISTRY, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import (
+    ContractDevEnvironment,
     ContractManager,
     DeployedContracts,
     contracts_precompiled_path,
@@ -37,7 +38,10 @@ def get_proxy_manager(client: JSONRPCClient, deploy: DeployedContracts) -> Proxy
 
 
 def get_udc_and_corresponding_token_from_dependencies(
-    chain_id: ChainID, proxy_manager: ProxyManager, udc_address: ChecksumAddress = None
+    chain_id: ChainID,
+    proxy_manager: ProxyManager,
+    development_environment: ContractDevEnvironment,
+    udc_address: ChecksumAddress = None,
 ) -> Tuple[UserDeposit, CustomToken]:
     """Return contract proxies for the UserDepositContract and associated token.
 
@@ -46,7 +50,11 @@ def get_udc_and_corresponding_token_from_dependencies(
     """
     if udc_address is None:
 
-        contracts = get_contracts_deployment_info(chain_id, version=RAIDEN_CONTRACT_VERSION)
+        contracts = get_contracts_deployment_info(
+            chain_id,
+            version=RAIDEN_CONTRACT_VERSION,
+            development_environment=development_environment,
+        )
 
         msg = (
             f"invalid chain_id, {chain_id} is not available "

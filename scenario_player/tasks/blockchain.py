@@ -142,6 +142,7 @@ class AssertBlockchainEventsTask(Task):
         contract_data = get_contracts_deployment_info(
             chain_id=self._runner.definition.settings.chain_id,
             version=RAIDEN_CONTRACT_VERSION,
+            development_environment=self._runner.environment.development_environment,
         )
         if self.contract_name == CONTRACT_TOKEN_NETWORK:
             self.contract_address = self._runner.token_network_address
@@ -212,6 +213,7 @@ class AssertMSClaimTask(Task):
         contract_data = get_contracts_deployment_info(
             chain_id=self._runner.definition.settings.chain_id,
             version=RAIDEN_CONTRACT_VERSION,
+            development_environment=self._runner.environment.development_environment,
         )
         assert contract_data
         try:
