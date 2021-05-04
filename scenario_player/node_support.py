@@ -10,9 +10,8 @@ from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 import gevent
 import structlog
 from eth_keyfile import create_keyfile_json
-from eth_typing import URI
+from eth_typing import URI, ChecksumAddress
 from eth_utils import to_checksum_address
-from eth_utils.typing import ChecksumAddress
 from gevent.pool import Group, Pool
 
 from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
