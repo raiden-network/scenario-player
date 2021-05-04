@@ -4,8 +4,8 @@ from typing import cast
 
 import gevent
 import structlog
+from eth_typing import ChecksumAddress
 from eth_utils import to_hex
-from eth_utils.typing import ChecksumAddress
 from gevent import Greenlet
 from typing_extensions import TypedDict
 
