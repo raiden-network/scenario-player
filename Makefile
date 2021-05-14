@@ -33,6 +33,14 @@ install: have-poetry
 install-dev: have-poetry
 	poetry install
 
+install-local-raiden:
+	echo "This only works when Raiden is installed in ../raiden"
+	echo "If pip install -e ."
+	sed -i 's/^raiden = {.*/raiden = { path = "..\/raiden"}/' pyproject.toml
+	poetry update raiden
+	poetry install
+	echo "If you get pkg_resources.ContextualVersionConflict, you need to update your egg-info by calling 'pip install -e ../raiden'."
+
 format: style
 
 lint: mypy flake8 pylint black-check isort-check
