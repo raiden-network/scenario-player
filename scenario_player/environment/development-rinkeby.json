@@ -1,0 +1,14 @@
+{
+    "environment_type": "development",
+    "pfs_with_fee": "https://pfs-rinkeby-with-fee.services-dev.raiden.network",
+    "eth_rpc_endpoints": [
+        "http://geth.rinkeby.ethnodes.brainbot.com:8545"
+    ],
+    "transfer_token": "0xD7bB0F9D05766c0149C1A3BE14c634310C4B7719",
+    "pfs_fee": 100,
+    "ms_reward_with_margin": 5500000000000000000,
+    "settlement_timeout_min": 40,
+    "raiden_client": "raiden",
+    "wait_short": 30,
+    "wait_long": 60
+}
