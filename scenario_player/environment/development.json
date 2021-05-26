@@ -11,5 +11,6 @@
     "settlement_timeout_min": 40,
     "raiden_client": "raiden",
     "wait_short": 30,
-    "wait_long": 60
+    "wait_long": 60,
+    "gas_price": 500000000000
 }
