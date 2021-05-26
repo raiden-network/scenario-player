@@ -38,6 +38,7 @@ class EnvironmentConfig:
     pfs_fee: FeeAmount
     ms_reward_with_margin: TokenAmount
     settlement_timeout_min: BlockTimeout
+    gas_price: Union[int, str]
     raiden_client: str
     wait_short: int
     wait_long: int
