@@ -38,11 +38,11 @@ class EnvironmentConfig:
     pfs_fee: FeeAmount
     ms_reward_with_margin: TokenAmount
     settlement_timeout_min: BlockTimeout
-    gas_price: Union[int, str]
     raiden_client: str
     wait_short: int
     wait_long: int
     development_environment: ContractDevEnvironment = ContractDevEnvironment.DEMO
+    gas_price: Union[int, str] = "fast"
 
     def __post_init__(self):
         self.eth_rpc_endpoint_iterator = itertools.cycle(self.eth_rpc_endpoints)
