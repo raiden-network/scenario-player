@@ -160,7 +160,7 @@ class Task:
 
     def __str__(self):
         color = TASK_STATE_COLOR[self.state]
-        reset = click.termui._ansi_reset_all  # type: ignore
+        reset = click.termui._ansi_reset_all
         return (
             f'{" " * self.level * 2}- [{color}{self.state.value}{reset}] '
             f'{color}{self.__class__.__name__.replace("Task", "")}{reset}'
