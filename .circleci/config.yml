@@ -90,7 +90,7 @@ jobs:
       - setup-job
       - lint
       - test
-      - smoketest
+#      - smoketest
       - store_env
       - persist_to_workspace:
           paths:
