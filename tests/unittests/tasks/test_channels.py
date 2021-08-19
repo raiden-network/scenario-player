@@ -1,8 +1,4 @@
 import pytest
-from tests.unittests.constants import NODE_ADDRESS_0, NODE_ADDRESS_1, TEST_TOKEN_ADDRESS
-
-# TODO: Add tests for request timeouts
-from tests.unittests.tasks.utils import assert_task_test, generic_task_test
 
 from scenario_player.exceptions import (
     RESTAPIStatusMismatchError,
@@ -10,6 +6,10 @@ from scenario_player.exceptions import (
     ScenarioError,
 )
 from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
+from tests.unittests.constants import NODE_ADDRESS_0, NODE_ADDRESS_1, TEST_TOKEN_ADDRESS
+
+# TODO: Add tests for request timeouts
+from tests.unittests.tasks.utils import assert_task_test, generic_task_test
 
 
 @pytest.mark.parametrize(
@@ -579,3 +579,66 @@ def test_store_channel_info_missing_key(api_task_by_name):
     with pytest.raises(ScenarioError) as ex:
         api_task_by_name("store_channel_info", {"from": 0, "to": 1})
     assert 'Required config "key" not found' in str(ex)
+
+
+@pytest.mark.parametrize(
+    (
+        "task_name",
+        "task_params",
+        "expected_exception",
+        "expected_exception_message",
+        "expected_req_method",
+        "expected_req_url",
+        "expected_req_body",
+        "resp_code",
+        "resp_json",
+    ),
+    argvalues=[
+        pytest.param(
+            "assert_sum",
+            {"from": 0, "balance_sum": 100},
+            ScenarioAssertionError,
+            'Expected sum value "100" for channel fields "balance". Actual value: "90".',
+            "GET",
+            f"http://0/api/v1/channels/{TEST_TOKEN_ADDRESS}",
+            {},
+            200,
+            [{"balance": "50"}, {"balance": "40"}],
+            id="timeout-trigger-send-debugging-signal",
+        )
+    ],
+)
+def test_timeout_sends_debugging_signal(
+    capsys,
+    mocked_responses,
+    api_task_by_name,
+    task_name,
+    task_params,
+    expected_exception,
+    expected_exception_message,
+    expected_req_method,
+    expected_req_url,
+    expected_req_body,
+    resp_code,
+    resp_json,
+):
+    """Test, that a timed out task triggers `send_debugging_signal()` on the NodeRunner.
+
+    For this test we just reuse some test data that leads to a `Timeout` and assert on `stderr`
+    being written to.
+    """
+    # See ``generic_task_test`` for an explanation of the parameters
+    generic_task_test(
+        mocked_responses=mocked_responses,
+        api_task_by_name=api_task_by_name,
+        task_name=task_name,
+        task_params=task_params,
+        expected_exception=expected_exception,
+        expected_exception_message=expected_exception_message,
+        expected_req_method=expected_req_method,
+        expected_req_url=expected_req_url,
+        expected_req_body=expected_req_body,
+        resp_code=resp_code,
+        resp_json=resp_json,
+    )
+    assert capsys.readouterr().err == "Debugging signal sent\n"
