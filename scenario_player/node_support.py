@@ -299,6 +299,14 @@ class NodeRunner:
     def nursery(self, value: Nursery):
         self._nursery = value
 
+    def send_debugging_signal(self):
+        """
+        This can be used to trigger the gevent debugging hook from raiden python client.
+        """
+        if self._process is not None:
+            if self._process.pid is not None:
+                os.kill(self._process.pid, signal.SIGUSR1)
+
 
 class SnapshotManager:
     def __init__(self, scenario_runner: "ScenarioRunner", node_runners: List[NodeRunner]) -> None:
@@ -469,3 +477,11 @@ class NodeController:
     def set_nursery(self, nursery: Nursery):
         for node_runner in self._node_runners:
             node_runner.nursery = nursery
+
+    def send_debugging_signal(self) -> None:
+        """
+        This triggers ``NodeRunner.send_debugging_signal`` on all ``_node_runners``,
+        for example when a task hits a ``Timeout``.
+        """
+        for runner in self._node_runners:
+            runner.send_debugging_signal()

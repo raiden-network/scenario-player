@@ -133,6 +133,7 @@ class Task:
 
                             sleep(1)
                 except Timeout:
+                    self._runner.node_controller.send_debugging_signal()
                     log.debug("Timeout reached", ex=str(exception))
                     if exception:
                         raise exception
