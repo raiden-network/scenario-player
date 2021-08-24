@@ -86,6 +86,14 @@ def query_blockchain_events(
     ]
 
 
+def verify_config(config, required_keys):
+    all_required_options_provided = all(key in config.keys() for key in required_keys)
+    if not all_required_options_provided:
+        raise ScenarioError(
+            "Not all required keys provided. Required: " + ", ".join(required_keys)
+        )
+
+
 class AssertBlockchainEventsTask(Task):
     """Assert on blockchain events.
 
@@ -122,16 +130,10 @@ class AssertBlockchainEventsTask(Task):
     ) -> None:
         super().__init__(runner, config, parent)
 
-        required_keys = ["contract_name", "event_name", "num_events"]
-        all_required_options_provided = all(key in config.keys() for key in required_keys)
-        if not all_required_options_provided:
-            raise ScenarioError(
-                "Not all required keys provided. Required: " + ", ".join(required_keys)
-            )
-
+        verify_config(config, required_keys=["contract_name", "event_name"])
         self.contract_name = config["contract_name"]
         self.event_name = config["event_name"]
-        self.num_events = config["num_events"]
+        self.num_events = config.get("num_events", None)
         self.event_args: Dict[str, Any] = config.get("event_args", {}).copy()
 
         self.web3 = self._runner.client.web3
@@ -171,23 +173,97 @@ class AssertBlockchainEventsTask(Task):
         if self.event_args:
             for key, value in self.event_args.items():
                 if "participant" in key:
-                    if isinstance(value, int) or (isinstance(value, str) and value.isnumeric()):
-                        # Replace node index with eth address
-                        self.event_args[key] = self._runner.get_node_address(int(value))
+                    self.event_args[key] = self._get_node_address(value)
 
             event_args_items = self.event_args.items()
             # Filter the events by the given event args.
             # `.items()` produces a set like object which supports intersection (`&`)
             events = [e for e in events if e["args"] and event_args_items & e["args"].items()]
 
-        # Raise exception when events do not match
-        if not self.num_events == len(events):
-            raise ScenarioAssertionError(
-                f"Expected number of events ({self.num_events}) did not match the number "
-                f"of events found ({len(events)})"
+        if self.num_events is not None:
+            # Raise exception when events do not match
+            if not self.num_events == len(events):
+                raise ScenarioAssertionError(
+                    f"Expected number of events ({self.num_events}) did not match the number "
+                    f"of events found ({len(events)})"
+                )
+        return {"events": events}
+
+    def _get_node_address(self, value):
+        if isinstance(value, int) or (isinstance(value, str) and value.isnumeric()):
+            # Replace node index with eth address
+            return self._runner.get_node_address(int(value))
+        return value
+
+
+class AssertChannelSettledEvent(AssertBlockchainEventsTask):
+    _name = "assert_channel_settled_event"
+    SYNCHRONIZATION_TIME_SECONDS = 0
+    DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
+
+    def __init__(
+        self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
+    ) -> None:
+        config.update({"contract_name": "TokenNetwork", "event_name": "ChannelSettled"})
+        super().__init__(runner, config, parent)
+
+        verify_config(config, required_keys=["initiator", "partner", "channel_info_key"])
+
+        self.initiator = self._get_node_address(config["initiator"])
+        self.initiator_amount = config.get("initiator_amount", None)
+        self.partner = self._get_node_address(config["partner"])
+        self.partner_amount = config.get("partner_amount", None)
+
+    def _run(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=unused-argument
+        channel_infos = self._runner.task_storage[STORAGE_KEY_CHANNEL_INFO].get(
+            self._config["channel_info_key"]
+        )
+        if channel_infos is None:
+            raise ScenarioError(
+                f"No stored channel info found for key '{self._config['channel_info_key']}'."
             )
 
-        return {"events": events}
+        channel_identifier = channel_infos["channel_identifier"]
+        self.event_args.update(
+            {
+                "channel_identifier": channel_identifier,
+            }
+        )
+        event_dict = super()._run(*args, **kwargs)
+        events = event_dict["events"]
+
+        # query in "both directions"
+        events = self._filter_for_channel_settled(
+            events, self.initiator, self.initiator_amount, self.partner, self.partner_amount
+        )
+        if not events:
+            events = self._filter_for_channel_settled(
+                events, self.partner, self.partner_amount, self.initiator, self.initiator_amount
+            )
+        if len(events) != 1:
+            raise ScenarioAssertionError("Did not find expected ChannelSettled event!")
+        coop_settle_event = events[0]
+        transaction_hash = coop_settle_event["transactionHash"]
+        transaction = self.web3.eth.get_transaction(transaction_hash)
+        transaction_sender = transaction["from"]
+        if not transaction_sender == self.initiator:
+            raise ScenarioAssertionError(
+                f"The ChannelSettled event was emitted from a tx by {transaction_sender}, but was "
+                f"expected to be emitted from a tx by {self.initiator}"
+            )
+        return event_dict
+
+    @staticmethod
+    def _filter_for_channel_settled(
+        events, participant1, participant1_amount, participant2, participant2_amount
+    ):
+        event_args = {"participant1": participant1, "participant2": participant2}
+        if participant1_amount is not None:
+            event_args["participant1_amount"] = participant1_amount
+        if participant2_amount is not None:
+            event_args["participant2_amount"] = participant2_amount
+        event_args_items = event_args.items()
+        return [e for e in events if e["args"] and event_args_items & e["args"].items()]
 
 
 class AssertMSClaimTask(Task):
