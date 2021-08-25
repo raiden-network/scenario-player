@@ -24,6 +24,9 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
 log = structlog.get_logger(__name__)
 
 
+CHANNEL_INFO_KEY = "channel_info_key"
+
+
 def decode_event(abi_codec: ABICodec, abi: ABI, log_: LogReceipt) -> Dict:
     """Helper function to unpack event data using a provided ABI
 
@@ -182,7 +185,7 @@ class AssertBlockchainEventsTask(Task):
 
         if self.num_events is not None:
             # Raise exception when events do not match
-            if not self.num_events == len(events):
+            if self.num_events != len(events):
                 raise ScenarioAssertionError(
                     f"Expected number of events ({self.num_events}) did not match the number "
                     f"of events found ({len(events)})"
@@ -207,28 +210,25 @@ class AssertChannelSettledEvent(AssertBlockchainEventsTask):
         config.update({"contract_name": "TokenNetwork", "event_name": "ChannelSettled"})
         super().__init__(runner, config, parent)
 
-        verify_config(config, required_keys=["initiator", "partner", "channel_info_key"])
+        verify_config(config, required_keys=["initiator", "partner", CHANNEL_INFO_KEY])
 
         self.initiator = self._get_node_address(config["initiator"])
-        self.initiator_amount = config.get("initiator_amount", None)
+        self.initiator_amount = config.get("initiator_amount")
         self.partner = self._get_node_address(config["partner"])
-        self.partner_amount = config.get("partner_amount", None)
+        self.partner_amount = config.get("partner_amount")
+        self.channel_close_expected = config.get("channel_close_expected", False)
 
     def _run(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=unused-argument
         channel_infos = self._runner.task_storage[STORAGE_KEY_CHANNEL_INFO].get(
-            self._config["channel_info_key"]
+            self._config[CHANNEL_INFO_KEY]
         )
         if channel_infos is None:
             raise ScenarioError(
-                f"No stored channel info found for key '{self._config['channel_info_key']}'."
+                f"No stored channel info found for key '{self._config[CHANNEL_INFO_KEY]}'."
             )
 
         channel_identifier = channel_infos["channel_identifier"]
-        self.event_args.update(
-            {
-                "channel_identifier": int(channel_identifier),
-            }
-        )
+        self.event_args["channel_identifier"] = int(channel_identifier)
         event_dict = super()._run(*args, **kwargs)
         events = event_dict["events"]
 
@@ -246,7 +246,7 @@ class AssertChannelSettledEvent(AssertBlockchainEventsTask):
         transaction_hash = coop_settle_event["transactionHash"]
         transaction = self.web3.eth.get_transaction(transaction_hash)
         transaction_sender = transaction["from"]
-        if not transaction_sender == self.initiator:
+        if transaction_sender != self.initiator:
             raise ScenarioAssertionError(
                 f"The ChannelSettled event was emitted from a tx by {transaction_sender}, but was "
                 f"expected to be emitted from a tx by {self.initiator}"
@@ -263,7 +263,7 @@ class AssertChannelSettledEvent(AssertBlockchainEventsTask):
         if participant2_amount is not None:
             event_args["participant2_amount"] = int(participant2_amount)
         event_args_items = event_args.items()
-        return [e for e in events if e["args"] and event_args_items & e["args"].items()]
+        return tuple(e for e in events if e["args"] and event_args_items & e["args"].items())
 
 
 class AssertMSClaimTask(Task):
@@ -276,7 +276,7 @@ class AssertMSClaimTask(Task):
     ) -> None:
         super().__init__(runner, config, parent)
 
-        required_keys = {"channel_info_key"}
+        required_keys = {CHANNEL_INFO_KEY}
         if not required_keys.issubset(config.keys()):
             raise ScenarioError(
                 f'Not all required keys provided. Required: {", ".join(required_keys)}'
@@ -300,12 +300,12 @@ class AssertMSClaimTask(Task):
 
     def _run(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=unused-argument
         channel_infos = self._runner.task_storage[STORAGE_KEY_CHANNEL_INFO].get(
-            self._config["channel_info_key"]
+            self._config[CHANNEL_INFO_KEY]
         )
 
         if channel_infos is None:
             raise ScenarioError(
-                f"No stored channel info found for key '{self._config['channel_info_key']}'."
+                f"No stored channel info found for key '{self._config[CHANNEL_INFO_KEY]}'."
             )
 
         # calculate reward_id
@@ -336,7 +336,7 @@ class AssertMSClaimTask(Task):
 
         # Filter matching events
         def match_event(event: Dict):
-            if not event["event"] == MonitoringServiceEvent.REWARD_CLAIMED:
+            if event["event"] != MonitoringServiceEvent.REWARD_CLAIMED:
                 return False
 
             event_reward_id = bytes(event["args"]["reward_identifier"])
