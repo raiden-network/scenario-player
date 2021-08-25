@@ -328,7 +328,7 @@ def _get_all_token_network_events(
     start_block: BlockNumber,
     target_block: BlockNumber,
 ) -> Iterable[Dict]:
-    """ Read all TokenNetwork events up to the current confirmed head. """
+    """Read all TokenNetwork events up to the current confirmed head."""
 
     chain_id = ChainID(web3.eth.chainId)
     blockchain_events = BlockchainEvents(
@@ -380,7 +380,7 @@ def _withdraw_participant_left_capacity_from_channel(
     token_network: TokenNetwork,
     current_confirmed_head: BlockIdentifier,
 ) -> None:
-    """ Withdraw all tokens in channel to channel["participant1"] """
+    """Withdraw all tokens in channel to channel["participant1"]"""
     assert token_network.client.address == channel["participant1"]
 
     # Check if channel still has deposits

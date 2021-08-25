@@ -136,7 +136,7 @@ class AssertBlockchainEventsTask(Task):
         verify_config(config, required_keys=["contract_name", "event_name"])
         self.contract_name = config["contract_name"]
         self.event_name = config["event_name"]
-        self.num_events = config.get("num_events", None)
+        self.num_events = config.get("num_events")
         self.event_args: Dict[str, Any] = config.get("event_args", {}).copy()
 
         self.web3 = self._runner.client.web3

@@ -47,7 +47,7 @@ class NodesConfig:
 
     @property
     def reuse_accounts(self) -> bool:
-        """ Should node accounts be re-used across scenario runs. """
+        """Should node accounts be re-used across scenario runs."""
         return self.dict.get("reuse_accounts", False)
 
     @property
