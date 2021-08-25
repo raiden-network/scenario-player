@@ -226,7 +226,7 @@ class AssertChannelSettledEvent(AssertBlockchainEventsTask):
         channel_identifier = channel_infos["channel_identifier"]
         self.event_args.update(
             {
-                "channel_identifier": channel_identifier,
+                "channel_identifier": int(channel_identifier),
             }
         )
         event_dict = super()._run(*args, **kwargs)
@@ -259,9 +259,9 @@ class AssertChannelSettledEvent(AssertBlockchainEventsTask):
     ):
         event_args = {"participant1": participant1, "participant2": participant2}
         if participant1_amount is not None:
-            event_args["participant1_amount"] = participant1_amount
+            event_args["participant1_amount"] = int(participant1_amount)
         if participant2_amount is not None:
-            event_args["participant2_amount"] = participant2_amount
+            event_args["participant2_amount"] = int(participant2_amount)
         event_args_items = event_args.items()
         return [e for e in events if e["args"] and event_args_items & e["args"].items()]
 
