@@ -94,12 +94,12 @@ class TokenConfig:
 
     @property
     def can_reuse_token(self):
-        """ Return a boolean indicating if previous token reuse is enabled and available. """
+        """Return a boolean indicating if previous token reuse is enabled and available."""
         return self._config.get("reuse", False) and self.token_file.exists()
 
     @property
     def should_reuse_token(self):
-        """ Return a boolean indicating if token reuse is enabled.  """
+        """Return a boolean indicating if token reuse is enabled."""
         return self._config.get("reuse", False)
 
     @property

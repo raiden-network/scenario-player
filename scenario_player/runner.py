@@ -228,7 +228,7 @@ def wait_for_token_network_discovery(
 def maybe_create_token_network(
     token_network_proxy: TokenNetworkRegistry, token_proxy: CustomToken
 ) -> TokenNetworkAddress:
-    """ Make sure the token is registered with the node's network registry. """
+    """Make sure the token is registered with the node's network registry."""
     block_identifier = token_network_proxy.rpc_client.get_confirmed_blockhash()
     token_address = token_proxy.address
 
@@ -509,7 +509,7 @@ class ScenarioRunner:
     def setup_raiden_nodes_ether_balances(
         self, pool: Pool, node_addresses: Set[ChecksumAddress]
     ) -> Set[Greenlet]:
-        """ Makes sure every Raiden node has at least `NODE_ACCOUNT_BALANCE_MIN`. """
+        """Makes sure every Raiden node has at least `NODE_ACCOUNT_BALANCE_MIN`."""
 
         greenlets: Set[Greenlet] = set()
         for address in node_addresses:
