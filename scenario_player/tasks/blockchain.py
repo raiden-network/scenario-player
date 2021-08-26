@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, cast, Protocol
 
 import structlog
 from eth_abi.codec import ABICodec
@@ -15,7 +15,7 @@ from web3._utils.events import get_event_data
 from web3.types import FilterParams, LogReceipt
 
 from raiden.settings import RAIDEN_CONTRACT_VERSION
-from raiden.utils.typing import ABI, Address, BlockNumber
+from raiden.utils.typing import ABI, Address, BlockNumber, ChecksumAddress
 from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.tasks.base import Task
@@ -24,7 +24,7 @@ from scenario_player.tasks.channels import STORAGE_KEY_CHANNEL_INFO
 log = structlog.get_logger(__name__)
 
 
-CHANNEL_INFO_KEY = "channel_info_key"
+_CHANNEL_INFO_KEY = "channel_info_key"
 
 
 def decode_event(abi_codec: ABICodec, abi: ABI, log_: LogReceipt) -> Dict:
@@ -89,15 +89,81 @@ def query_blockchain_events(
     ]
 
 
-def verify_config(config, required_keys):
-    all_required_options_provided = all(key in config.keys() for key in required_keys)
-    if not all_required_options_provided:
+def _verify_config(config, required_keys):
+    if any(key not in config for key in required_keys):
         raise ScenarioError(
-            "Not all required keys provided. Required: " + ", ".join(required_keys)
+                  "Not all required keys provided. Required: " + ", ".join(required_keys)
+              )
+
+
+class _QueryBlockchainFields(Protocol):
+    web3: Web3
+    _runner: Any
+    event_name: str
+    event_args: Any
+    contract_name: str
+    contract_address: ChecksumAddress
+
+    def _get_blockchain_events(self):
+        ...
+
+    def _filter_events(self, events):
+        ...
+
+    def _get_node_address(self, value):
+        ...
+
+class QueryBlockchainMixin:
+    def _get_blockchain_events(self: _QueryBlockchainFields):
+        # get the correct contract address
+        # this has to be done in `_run`, otherwise `_runner` is not initialized yet
+        contract_data = get_contracts_deployment_info(
+            chain_id=self._runner.definition.settings.chain_id,
+            version=RAIDEN_CONTRACT_VERSION,
+            development_environment=self._runner.environment.development_environment,
+        )
+        if self.contract_name == CONTRACT_TOKEN_NETWORK:
+            self.contract_address = self._runner.token_network_address
+        else:
+            try:
+                assert contract_data
+                contract_info = contract_data["contracts"][self.contract_name]
+                self.contract_address = to_checksum_address(contract_info["address"])
+            except KeyError:
+                raise ScenarioError(f"Unknown contract name: {self.contract_name}")
+
+        assert self.contract_address, "Contract address not set"
+        return query_blockchain_events(
+            web3=self.web3,
+            contract_manager=self._runner.contract_manager,
+            contract_address=to_canonical_address(self.contract_address),
+            contract_name=self.contract_name,
+            topics=[],
+            from_block=BlockNumber(self._runner.block_execution_started),
+            to_block=BlockNumber(self.web3.eth.blockNumber),
         )
 
+    def _filter_events(self: _QueryBlockchainFields, events):
+        # Filter matching events
+        events = [e for e in events if e["event"] == self.event_name]
+        if self.event_args:
+            for key, value in self.event_args.items():
+                if "participant" in key:
+                    self.event_args[key] = self._get_node_address(value)
+            event_args_items = self.event_args.items()
+            # Filter the events by the given event args.
+            # `.items()` produces a set like object which supports intersection (`&`)
+            events = [e for e in events if e["args"] and event_args_items & e["args"].items()]
+        return events
 
-class AssertBlockchainEventsTask(Task):
+    def _get_node_address(self: _QueryBlockchainFields, value):
+        if isinstance(value, int) or (isinstance(value, str) and value.isnumeric()):
+            # Replace node index with eth address
+            return self._runner.get_node_address(int(value))
+        return value
+
+
+class AssertBlockchainEventsTask(Task, QueryBlockchainMixin):
     """Assert on blockchain events.
 
     Required parameters:
@@ -133,73 +199,29 @@ class AssertBlockchainEventsTask(Task):
     ) -> None:
         super().__init__(runner, config, parent)
 
-        verify_config(config, required_keys=["contract_name", "event_name"])
+        _verify_config(config, required_keys=("contract_name", "event_name", "num_events"))
         self.contract_name = config["contract_name"]
         self.event_name = config["event_name"]
-        self.num_events = config.get("num_events")
+        self.num_events = config["num_events"]
         self.event_args: Dict[str, Any] = config.get("event_args", {}).copy()
 
         self.web3 = self._runner.client.web3
 
     def _run(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=unused-argument
-        # get the correct contract address
-        # this has to be done in `_run`, otherwise `_runner` is not initialized yet
-        contract_data = get_contracts_deployment_info(
-            chain_id=self._runner.definition.settings.chain_id,
-            version=RAIDEN_CONTRACT_VERSION,
-            development_environment=self._runner.environment.development_environment,
-        )
-        if self.contract_name == CONTRACT_TOKEN_NETWORK:
-            self.contract_address = self._runner.token_network_address
-        else:
-            try:
-                assert contract_data
-                contract_info = contract_data["contracts"][self.contract_name]
-                self.contract_address = to_checksum_address(contract_info["address"])
-            except KeyError:
-                raise ScenarioError(f"Unknown contract name: {self.contract_name}")
+        events = self._get_blockchain_events()
+        events = self._filter_events(events)
 
-        assert self.contract_address, "Contract address not set"
-        events = query_blockchain_events(
-            web3=self.web3,
-            contract_manager=self._runner.contract_manager,
-            contract_address=to_canonical_address(self.contract_address),
-            contract_name=self.contract_name,
-            topics=[],
-            from_block=BlockNumber(self._runner.block_execution_started),
-            to_block=BlockNumber(self.web3.eth.blockNumber),
-        )
-
-        # Filter matching events
-        events = [e for e in events if e["event"] == self.event_name]
-
-        if self.event_args:
-            for key, value in self.event_args.items():
-                if "participant" in key:
-                    self.event_args[key] = self._get_node_address(value)
-
-            event_args_items = self.event_args.items()
-            # Filter the events by the given event args.
-            # `.items()` produces a set like object which supports intersection (`&`)
-            events = [e for e in events if e["args"] and event_args_items & e["args"].items()]
-
-        if self.num_events is not None:
-            # Raise exception when events do not match
-            if self.num_events != len(events):
-                raise ScenarioAssertionError(
-                    f"Expected number of events ({self.num_events}) did not match the number "
-                    f"of events found ({len(events)})"
-                )
+        # Raise exception when events do not match
+        if self.num_events != len(events):
+            raise ScenarioAssertionError(
+                f"Expected number of events ({self.num_events}) did not match the number "
+                f"of events found ({len(events)})"
+            )
         return {"events": events}
 
-    def _get_node_address(self, value):
-        if isinstance(value, int) or (isinstance(value, str) and value.isnumeric()):
-            # Replace node index with eth address
-            return self._runner.get_node_address(int(value))
-        return value
 
 
-class AssertChannelSettledEvent(AssertBlockchainEventsTask):
+class AssertChannelSettledEventTask(Task, QueryBlockchainMixin):
     _name = "assert_channel_settled_event"
     SYNCHRONIZATION_TIME_SECONDS = 0
     DEFAULT_TIMEOUT = 5 * 60  # 5 minutes
@@ -207,36 +229,40 @@ class AssertChannelSettledEvent(AssertBlockchainEventsTask):
     def __init__(
         self, runner: scenario_runner.ScenarioRunner, config: Any, parent: "Task" = None
     ) -> None:
-        config.update({"contract_name": "TokenNetwork", "event_name": "ChannelSettled"})
         super().__init__(runner, config, parent)
 
-        verify_config(config, required_keys=["initiator", "partner", CHANNEL_INFO_KEY])
-
+        _verify_config(config, required_keys=("initiator", "partner", _CHANNEL_INFO_KEY))
         self.initiator = self._get_node_address(config["initiator"])
         self.initiator_amount = config.get("initiator_amount")
         self.partner = self._get_node_address(config["partner"])
         self.partner_amount = config.get("partner_amount")
-        self.channel_close_expected = config.get("channel_close_expected", False)
+
+        self.contract_name = "TokenNetwork"
+        self.event_name = "ChannelSettled"
+        self.event_args: Dict[str, Any] = dict() 
+
+        self.web3 = self._runner.client.web3
 
     def _run(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=unused-argument
         channel_infos = self._runner.task_storage[STORAGE_KEY_CHANNEL_INFO].get(
-            self._config[CHANNEL_INFO_KEY]
+            self._config[_CHANNEL_INFO_KEY]
         )
         if channel_infos is None:
             raise ScenarioError(
-                f"No stored channel info found for key '{self._config[CHANNEL_INFO_KEY]}'."
+                f"No stored channel info found for key '{self._config[_CHANNEL_INFO_KEY]}'."
             )
 
         channel_identifier = channel_infos["channel_identifier"]
         self.event_args["channel_identifier"] = int(channel_identifier)
-        event_dict = super()._run(*args, **kwargs)
-        events = event_dict["events"]
+
+        events = self._get_blockchain_events()
+        events = self._filter_events(events)
 
         # query in "both directions"
         events = self._filter_for_channel_settled(
             events, self.initiator, self.initiator_amount, self.partner, self.partner_amount
         )
-        if not events:
+        if len(events) == 0:
             events = self._filter_for_channel_settled(
                 events, self.partner, self.partner_amount, self.initiator, self.initiator_amount
             )
@@ -251,7 +277,7 @@ class AssertChannelSettledEvent(AssertBlockchainEventsTask):
                 f"The ChannelSettled event was emitted from a tx by {transaction_sender}, but was "
                 f"expected to be emitted from a tx by {self.initiator}"
             )
-        return event_dict
+        return {"events": events}
 
     @staticmethod
     def _filter_for_channel_settled(
@@ -276,7 +302,7 @@ class AssertMSClaimTask(Task):
     ) -> None:
         super().__init__(runner, config, parent)
 
-        required_keys = {CHANNEL_INFO_KEY}
+        required_keys = {_CHANNEL_INFO_KEY}
         if not required_keys.issubset(config.keys()):
             raise ScenarioError(
                 f'Not all required keys provided. Required: {", ".join(required_keys)}'
@@ -300,12 +326,12 @@ class AssertMSClaimTask(Task):
 
     def _run(self, *args, **kwargs) -> Dict[str, Any]:  # pylint: disable=unused-argument
         channel_infos = self._runner.task_storage[STORAGE_KEY_CHANNEL_INFO].get(
-            self._config[CHANNEL_INFO_KEY]
+            self._config[_CHANNEL_INFO_KEY]
         )
 
         if channel_infos is None:
             raise ScenarioError(
-                f"No stored channel info found for key '{self._config[CHANNEL_INFO_KEY]}'."
+                f"No stored channel info found for key '{self._config[_CHANNEL_INFO_KEY]}'."
             )
 
         # calculate reward_id
