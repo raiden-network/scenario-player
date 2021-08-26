@@ -27,7 +27,7 @@ from raiden.exceptions import InsufficientEth
 from raiden.messages.abstract import cached_property
 from raiden.network.proxies.custom_token import CustomToken
 from raiden.network.proxies.proxy_manager import ProxyManager
-from raiden.network.proxies.token_network import TokenNetwork
+from raiden.network.proxies.token_network import TokenNetwork, WithdrawInput
 from raiden.network.rpc.client import EthTransfer, JSONRPCClient
 from raiden.network.rpc.middleware import faster_gas_price_strategy
 from raiden.settings import (
@@ -428,15 +428,18 @@ def _withdraw_participant_left_capacity_from_channel(
 
     privkey = token_network.client.privkey
     try:
+        withdraw = WithdrawInput(
+            initiator=to_canonical_address(channel["participant1"]),
+            total_withdraw=total_withdraw,
+            expiration_block=expiration_block,
+            initiator_signature=LocalSigner(privkey).sign(packed_withdraw),
+            partner_signature=LocalSigner(partner_candidate.privkey).sign(packed_withdraw),
+        )
         token_network.set_total_withdraw(
             given_block_identifier=current_confirmed_head,
             channel_identifier=channel["channel_identifier"],
-            total_withdraw=total_withdraw,
-            expiration_block=expiration_block,
-            participant=to_canonical_address(channel["participant1"]),
             partner=to_canonical_address(channel["participant2"]),
-            participant_signature=LocalSigner(privkey).sign(packed_withdraw),
-            partner_signature=LocalSigner(partner_candidate.privkey).sign(packed_withdraw),
+            withdraw_input=withdraw,
         )
     except InsufficientEth:
         log.warning("Not enough ETH to withdraw", channel=channel)

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, cast, Protocol
+from typing import Any, Dict, List, Protocol, cast
 
 import structlog
 from eth_abi.codec import ABICodec
@@ -91,9 +91,8 @@ def query_blockchain_events(
 
 def _verify_config(config, required_keys):
     if any(key not in config for key in required_keys):
-        raise ScenarioError(
-                  "Not all required keys provided. Required: " + ", ".join(required_keys)
-              )
+        msg = "Not all required keys provided. Required: " + ", ".join(required_keys)
+        raise ScenarioError(msg)
 
 
 class _QueryBlockchainFields(Protocol):
@@ -104,14 +103,15 @@ class _QueryBlockchainFields(Protocol):
     contract_name: str
     contract_address: ChecksumAddress
 
-    def _get_blockchain_events(self):
+    def _get_blockchain_events(self):  # pylint: disable=no-self-use
         ...
 
-    def _filter_events(self, events):
+    def _filter_events(self, events):  # pylint: disable=unused-argument, no-self-use
         ...
 
-    def _get_node_address(self, value):
+    def _get_node_address(self, value):  # pylint: disable=unused-argument, no-self-use
         ...
+
 
 class QueryBlockchainMixin:
     def _get_blockchain_events(self: _QueryBlockchainFields):
@@ -220,7 +220,6 @@ class AssertBlockchainEventsTask(Task, QueryBlockchainMixin):
         return {"events": events}
 
 
-
 class AssertChannelSettledEventTask(Task, QueryBlockchainMixin):
     _name = "assert_channel_settled_event"
     SYNCHRONIZATION_TIME_SECONDS = 0
@@ -239,7 +238,7 @@ class AssertChannelSettledEventTask(Task, QueryBlockchainMixin):
 
         self.contract_name = "TokenNetwork"
         self.event_name = "ChannelSettled"
-        self.event_args: Dict[str, Any] = dict() 
+        self.event_args: Dict[str, Any] = dict()
 
         self.web3 = self._runner.client.web3
 
