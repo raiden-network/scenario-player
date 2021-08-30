@@ -1,4 +1,10 @@
-from typing import Any, Dict, List, Protocol, cast
+import sys
+from typing import Any, Dict, List, cast
+
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 import structlog
 from eth_abi.codec import ABICodec
