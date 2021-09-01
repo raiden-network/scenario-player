@@ -78,15 +78,12 @@ def query_blockchain_events(
         All matching events
     """
     filter_params = FilterParams(
-        {
-            "fromBlock": from_block,
-            "toBlock": to_block,
-            "address": to_checksum_address(contract_address),
-            "topics": topics,
-        }
+        fromBlock=from_block,
+        toBlock=to_block,
+        address=to_checksum_address(contract_address),
+        topics=topics,
     )
-
-    events = web3.eth.getLogs(filter_params)
+    events = web3.eth.get_logs(filter_params)
 
     contract_abi = contract_manager.get_contract_abi(contract_name)
     return [
