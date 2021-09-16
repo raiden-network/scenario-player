@@ -118,3 +118,19 @@ class WaitBlocksTask(Task):
 
         while web3.eth.blockNumber < end_block:
             gevent.sleep(10)
+
+
+class WaitForInputTask(Task):
+    """
+    WARNING: This is a debugging feature. Things can break if
+      - there are parallel tasks
+      - you are using the UI
+    """
+
+    _name = "wait_input"
+    SYNCHRONIZATION_TIME_SECONDS = 0
+
+    def _run(self, *args, **kwargs):  # pylint: disable=unused-argument
+        typed = ""
+        while typed != "continue":
+            typed = input("Waiting: Please type 'continue' to proceed!\n").strip()
