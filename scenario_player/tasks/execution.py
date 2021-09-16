@@ -121,6 +121,12 @@ class WaitBlocksTask(Task):
 
 
 class WaitForInputTask(Task):
+    """
+    WARNING: This is a debugging feature. Things can break if
+      - there are parallel tasks
+      - you are using the UI
+    """
+
     _name = "wait_input"
     SYNCHRONIZATION_TIME_SECONDS = 0
 
