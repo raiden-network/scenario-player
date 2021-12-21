@@ -5,11 +5,11 @@
     "eth_rpc_endpoints": [
         "http://geth.goerli.ethnodes.brainbot.com:8545"
     ],
-    "transfer_token": "0x59105441977ecD9d805A4f5b060E34676F50F806",
+    "transfer_token": "0x783d1cc8Bf2bc39c79C530c744E8D84089222175",
     "pfs_fee": 50000000000000000,
     "ms_reward_with_margin": 88000000000000000000,
-    "settlement_timeout_min": 40,
+    "settlement_timeout_min": 50,
     "raiden_client": "raiden",
-    "wait_short": 30,
-    "wait_long": 60
+    "wait_short": 20,
+    "wait_long": 40
 }

@@ -445,13 +445,13 @@ class ScenarioRunner:
             required_udc_tokens = balance_per_node * node_count
             udc_balance = user_token_proxy.balance_of(self.client.address, "latest")
 
-            msg = (
-                f"Not enough UDC tokens to fund all account. {node_count} nodes need "
-                f"{balance_per_node} tokens each, so {required_udc_tokens} in total. "
-                f"Current balance of {to_checksum_address(self.client.address)} is only "
-                f"{udc_balance}."
-            )
-            assert udc_balance >= required_udc_tokens, msg
+            # msg = (
+            #     f"Not enough UDC tokens to fund all account. {node_count} nodes need "
+            #     f"{balance_per_node} tokens each, so {required_udc_tokens} in total. "
+            #     f"Current balance of {to_checksum_address(self.client.address)} is only "
+            #     f"{udc_balance}."
+            # )
+            # assert udc_balance >= required_udc_tokens, msg
 
             log.debug("Minting utility tokens and /scheduling/ transfers to the nodes")
             mint_greenlets = self.setup_mint_user_deposit_tokens_for_distribution(
