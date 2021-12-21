@@ -14,8 +14,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Software Development :: Testing",
@@ -24,7 +24,7 @@ classifiers = [
 keywords = ["raiden", "raiden-network"]
 
 [tool.poetry.dependencies]
-python = "^3.7.2"
+python = ">=3.8, <3.10"
 click = ">=8.0.0a1"
 eth-utils = "^1.9.5"
 gevent = ""
@@ -94,4 +94,3 @@ build-backend = "poetry.core.masonry.api"
 #######################
 # ISORT CONFIGURATION #
 #######################
-
