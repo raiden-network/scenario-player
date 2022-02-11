@@ -299,11 +299,14 @@ class ScenarioRunner:
         self.definition.settings.eth_rpc_endpoint_iterator = environment.eth_rpc_endpoint_iterator
         self.definition.settings.chain_id = self.chain_id
 
+        def _fixed_gas(web3, transaction_params):
+            return 500000000000
+
         assert account.privkey, "Account not unlockable"
         self.client = JSONRPCClient(
             web3=web3,
             privkey=account.privkey,
-            gas_price_strategy=faster_gas_price_strategy,
+            gas_price_strategy=_fixed_gas,
             block_num_confirmations=DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS,
         )
 

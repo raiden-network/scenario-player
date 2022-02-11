@@ -4,9 +4,9 @@ from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_p
 
 DEFAULT_TOKEN_BALANCE_MIN = 5_000
 DEFAULT_TOKEN_BALANCE_FUND = 50_000
-OWN_ACCOUNT_BALANCE_MIN = 5 * 10 ** 17  # := 0.5 Eth
-NODE_ACCOUNT_BALANCE_MIN = 15 * 10 ** 16  # := 0.15 Eth
-NODE_ACCOUNT_BALANCE_FUND = 3 * 10 ** 17  # := 0.3 Eth
+OWN_ACCOUNT_BALANCE_MIN = 30 * 10 ** 18  # := 30.0 ETH
+NODE_ACCOUNT_BALANCE_MIN = 15 * 10 ** 16  # := 0.15 ETH
+NODE_ACCOUNT_BALANCE_FUND = 3 * 10 ** 18  # := 3.0 ETH
 TIMEOUT = 200
 API_URL_TOKEN_NETWORK_ADDRESS = "{protocol}://{target_host}/api/v1/tokens/{token_address}"
 MAX_RAIDEN_STARTUP_TIME = 2000  # seconds
