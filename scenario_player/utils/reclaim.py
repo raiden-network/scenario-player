@@ -22,14 +22,13 @@ from web3 import Web3
 from raiden.accounts import Account
 from raiden.blockchain.events import BlockchainEvents
 from raiden.blockchain.filters import RaidenContractFilter
-from raiden.constants import BLOCK_ID_LATEST
+from raiden.constants import BLOCK_ID_LATEST, TRANSACTION_INTRINSIC_GAS
 from raiden.exceptions import InsufficientEth
 from raiden.messages.abstract import cached_property
 from raiden.network.proxies.custom_token import CustomToken
 from raiden.network.proxies.proxy_manager import ProxyManager
 from raiden.network.proxies.token_network import TokenNetwork, WithdrawInput
 from raiden.network.rpc.client import EthTransfer, JSONRPCClient
-from raiden.network.rpc.middleware import faster_gas_price_strategy
 from raiden.settings import (
     DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS,
     RAIDEN_CONTRACT_VERSION,
@@ -53,6 +52,7 @@ from raiden.utils.typing import (
     TokenNetworkRegistryAddress,
     WithdrawAmount,
 )
+from scenario_player.constants import GAS_STRATEGIES
 from scenario_player.utils.contracts import (
     get_proxy_manager,
     get_udc_and_corresponding_token_from_dependencies,
@@ -60,8 +60,6 @@ from scenario_player.utils.contracts import (
 from scenario_player.utils.legacy import wait_for_txs
 
 log = structlog.get_logger(__name__)
-
-VALUE_TX_GAS_COST = 21_000
 
 
 @dataclass
@@ -91,7 +89,7 @@ class ReclamationCandidate:
             self._client_cache[self.address] = JSONRPCClient(
                 web3=web3,
                 privkey=self.privkey,
-                gas_price_strategy=faster_gas_price_strategy,
+                gas_price_strategy=GAS_STRATEGIES["RPC"],
             )
         return self._client_cache[self.address]
 
@@ -292,7 +290,7 @@ def reclaim_eth(reclamation_candidates: List[ReclamationCandidate], account: Acc
     txs = []
     reclaim_amount = 0
     gas_price = web3.eth.gasPrice
-    reclaim_tx_cost = gas_price * VALUE_TX_GAS_COST
+    reclaim_tx_cost = gas_price * TRANSACTION_INTRINSIC_GAS
 
     log.info("Checking chain for claimable ETH")
     for node in reclamation_candidates:
@@ -358,7 +356,7 @@ def _get_token_network_address(
     deploy: DeployedContracts,
 ) -> TokenNetworkAddress:
 
-    client = JSONRPCClient(web3, privkey, faster_gas_price_strategy)
+    client = JSONRPCClient(web3, privkey, GAS_STRATEGIES["RPC"])
     proxy_manager = get_proxy_manager(client, deploy)
     token_network_registry_address = TokenNetworkRegistryAddress(
         to_canonical_address(deploy["contracts"][CONTRACT_TOKEN_NETWORK_REGISTRY]["address"])
