@@ -256,16 +256,18 @@ def _load_environment(environment_file: IO) -> EnvironmentConfig:
     environment = json.load(environment_file)
     assert isinstance(environment, dict)
 
-    matrix_server_list = environment.pop(
-        "matrix_server_list",
-        DEFAULT_MATRIX_KNOWN_SERVERS[Environment(environment["environment_type"])],
-    )
-    matrix_servers: Sequence[URI] = get_matrix_servers(matrix_server_list)  # type: ignore
-    if len(matrix_servers) < 4:
-        matrix_servers = list(islice(cycle(matrix_servers), 4))
+    if "matrix_servers" not in environment:
+        matrix_server_list = environment.pop(
+            "matrix_server_list",
+            DEFAULT_MATRIX_KNOWN_SERVERS[Environment(environment["environment_type"])],
+        )
+        matrix_servers: Sequence[URI] = get_matrix_servers(matrix_server_list)  # type: ignore
+        if len(matrix_servers) < 4:
+            matrix_servers = list(islice(cycle(matrix_servers), 4))
+
+        environment["matrix_servers"] = matrix_servers
 
     return EnvironmentConfig(
-        matrix_servers=matrix_servers,
         environment_file_name=environment_file.name,
         **environment,
     )
