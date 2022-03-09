@@ -1,5 +1,6 @@
 from typing import Callable, Dict
 
+from web3.gas_strategies.rpc import rpc_gas_price_strategy
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
 DEFAULT_TOKEN_BALANCE_MIN = 5_000
@@ -17,6 +18,7 @@ MAX_API_TASK_TIMEOUT = 30 * 60  # seconds
 GAS_STRATEGIES: Dict[str, Callable] = {
     "FAST": fast_gas_price_strategy,
     "MEDIUM": medium_gas_price_strategy,
+    "RPC": rpc_gas_price_strategy,
 }
 
 # DO NOT CHANGE THIS! It would break backwards compatibility, since i.e. wallet generation
