@@ -7,7 +7,7 @@
     "transfer_token": "0x99C1aE38292791a52E26eE6AFdAeC69563F9b5C3",
     "pfs_fee": 100,
     "ms_reward_with_margin": 88000000000000000000,
-    "settlement_timeout_min": 40,
+    "settlement_timeout_min": 180,
     "raiden_client": "/Users/fernando/projects/light-client/raiden-cli/raiden",
     "wait_short": 30,
     "wait_long": 60,
