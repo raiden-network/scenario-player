@@ -85,7 +85,7 @@ log = structlog.get_logger(__name__)
 # The `mint` function checks for overflow of the total supply. Here we
 # have a large enough number for both scenario runs and the scenario
 # orchestration account capacity.
-NUMBER_OF_RUNS_BEFORE_OVERFLOW = 2 ** 64
+NUMBER_OF_RUNS_BEFORE_OVERFLOW = 2**64
 ORCHESTRATION_MAXIMUM_BALANCE = UINT256_MAX // NUMBER_OF_RUNS_BEFORE_OVERFLOW
 
 
