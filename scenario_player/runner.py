@@ -33,7 +33,6 @@ from raiden.network.proxies.proxy_manager import ProxyManager
 from raiden.network.proxies.token_network_registry import TokenNetworkRegistry
 from raiden.network.proxies.user_deposit import UserDeposit
 from raiden.network.rpc.client import JSONRPCClient
-from raiden.network.rpc.middleware import faster_gas_price_strategy
 from raiden.settings import DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS, RAIDEN_CONTRACT_VERSION
 from raiden.utils.formatting import to_canonical_address
 from raiden.utils.nursery import Janitor
@@ -46,6 +45,7 @@ from raiden.utils.typing import (
 )
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
+    GAS_STRATEGIES,
     MAX_RAIDEN_STARTUP_TIME,
     NODE_ACCOUNT_BALANCE_FUND,
     NODE_ACCOUNT_BALANCE_MIN,
@@ -303,7 +303,7 @@ class ScenarioRunner:
         self.client = JSONRPCClient(
             web3=web3,
             privkey=account.privkey,
-            gas_price_strategy=faster_gas_price_strategy,
+            gas_price_strategy=GAS_STRATEGIES["RPC"],
             block_num_confirmations=DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS,
         )
 
