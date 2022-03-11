@@ -8,7 +8,7 @@
     "pfs_fee": 100,
     "ms_reward_with_margin": 88000000000000000000,
     "settlement_timeout_min": 180,
-    "raiden_client": "/Users/fernando/projects/light-client/raiden-cli/raiden",
+    "raiden_client": "raiden",
     "wait_short": 30,
     "wait_long": 60,
     "gas_price": "rpc",
