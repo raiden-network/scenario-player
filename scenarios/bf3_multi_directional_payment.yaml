@@ -1,0 +1,99 @@
+version: 2
+
+settings:
+  gas_price: {{ gas_price }}
+  services:
+    pfs:
+      url: {{ pfs_with_fee }}
+    udc:
+      enable: true
+      token:
+        deposit: true
+        balance_per_node: {{ ms_reward_with_margin + 200 * 2 * pfs_fee }}
+
+token:
+  address: "{{ transfer_token }}"
+  balance_fund: 10_000_000_000_000_000_000
+
+nodes:
+  count: 5
+  raiden_version: local
+
+  default_options:
+    gas-price: fast
+    routing-mode: pfs
+    pathfinding-max-paths: 5
+    pathfinding-max-fee: {{ pfs_fee }}
+    enable-monitoring: true
+    proportional-fee:
+      - "{{ transfer_token }}"
+      - 0
+    proportional-imbalance-fee:
+      - "{{ transfer_token }}"
+      - 0
+    default-reveal-timeout: 60
+
+# This is the bf3 scenario. It sets up a topology of [0, 1, 2, 3, 4] and deposits in both directions between all nodes.
+# When all channels are opened and deposits have taken place, 100 payments are started from node0 to node4
+# At the same time 100 payments are done in parallel from node4 to node0.
+# After all payments have finished it is asserted that all nodes received the correct amounts.
+
+scenario:
+  serial:
+    tasks:
+      - parallel:
+          name: "Open channels"
+          tasks:
+            - open_channel: {from: 0, to: 1, total_deposit: 1_000_000_000_000_000_000, expected_http_status: 201}
+            - open_channel: {from: 1, to: 2, total_deposit: 1_000_000_000_000_000_000, expected_http_status: 201}
+            - open_channel: {from: 2, to: 3, total_deposit: 1_000_000_000_000_000_000, expected_http_status: 201}
+            - open_channel: {from: 3, to: 4, total_deposit: 1_000_000_000_000_000_000, expected_http_status: 201}
+      - parallel:
+          name: "Assert after channel openings"
+          tasks:
+            - assert: {from: 0, to: 1, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 1, to: 2, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 2, to: 3, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 3, to: 4, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+      - wait: {{ wait_short }}  # Wait for the other nodes to detect channel before attempting counter-deposit
+      - parallel:
+          name: "Deposit in the other directions"
+          tasks:
+            - deposit: {from: 1, to: 0, total_deposit: 1_000_000_000_000_000_000, expected_http_status: 200}
+            - deposit: {from: 2, to: 1, total_deposit: 1_000_000_000_000_000_000, expected_http_status: 200}
+            - deposit: {from: 3, to: 2, total_deposit: 1_000_000_000_000_000_000, expected_http_status: 200}
+            - deposit: {from: 4, to: 3, total_deposit: 1_000_000_000_000_000_000, expected_http_status: 200}
+      - parallel:
+          name: "Assert after deposits"
+          tasks:
+            - assert: {from: 1, to: 0, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 2, to: 1, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 3, to: 2, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 4, to: 3, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+      - wait: {{ wait_short }}  # Wait for the PFS to receive and process the capacity updates
+      - parallel:
+          name: "Make 100 transfers from 0 to 4, and 100 transfers from 4 to 0 in parallel"
+          tasks:
+            - serial:
+                name: "Make 100 transfers from 0 to 4"
+                repeat: 100
+                tasks:
+                  - transfer: {from: 0, to: 4, amount: 1_000_000_000_000_000}
+            - serial:
+                name: "Make 100 transfers from 4 to 0"
+                repeat: 100
+                tasks:
+                  - transfer: {from: 4, to: 0, amount: 1_000_000_000_000_000}
+      - wait: {{ wait_short }}
+      - parallel:
+          name: "Assert that all balances are the same as before the payments, since same amounts are sent in both directions"
+          tasks:
+            # Make sure that all transfers finish
+            - assert: {from: 0, to: 1, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 1, to: 2, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 2, to: 3, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 3, to: 4, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 1, to: 0, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 2, to: 1, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 3, to: 2, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
+            - assert: {from: 4, to: 3, total_deposit: 1_000_000_000_000_000_000, balance: 1_000_000_000_000_000_000, state: "opened"}
