@@ -1516,7 +1516,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 
 [[package]]
 name = "raiden"
-version = "0.7.0"
+version = "0.8.0"
 description = ""
 category = "main"
 optional = false
@@ -1634,8 +1634,8 @@ yarl = "1.6.3"
 [package.source]
 type = "git"
 url = "https://github.com/raiden-network/raiden"
-reference = "arbitrum-v0.7.0"
-resolved_reference = "8fb6e160faa7817428201664adf13b210b166088"
+reference = "arbitrum-v0.8.0"
+resolved_reference = "441cd9dcd7b416a15e9ff2cda3e65dd60a96e277"
 
 [[package]]
 name = "raiden-contracts"
@@ -2144,7 +2144,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8, <3.10"
-content-hash = "1ec868c7500f50c6370a133b0ff1243400e80f1d10648eadf2314c98818cfab3"
+content-hash = "c062f3fc8b98f9564e71e9bab570d29360755ba0dd5d713662559122c5ae3419"
 
 [metadata.files]
 aiohttp = [
