@@ -1,0 +1,16 @@
+{
+    "environment_type": "development",
+    "pfs_with_fee": "https://pfs.arbitrum.env.raiden.network",
+    "eth_rpc_endpoints": [
+        "https://arb1.arbitrum.io/rpc"
+    ],
+    "transfer_token": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+    "pfs_fee": 100,
+    "ms_reward_with_margin": 88000000000000000000,
+    "settlement_timeout_min": 300,
+    "raiden_client": "raiden",
+    "wait_short": 30,
+    "wait_long": 60,
+    "gas_price": "rpc",
+    "matrix_servers": [ "auto" ]
+}
