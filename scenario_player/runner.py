@@ -257,12 +257,12 @@ class ScenarioRunner:
         scenario_file: Path,
         environment: EnvironmentConfig,
         success: Event,
-        raiden_client: Optional[str],
         task_state_callback: Optional[
             Callable[["ScenarioRunner", "Task", "TaskState"], None]
         ] = None,
         smoketest_deployment_data: DeployedContracts = None,
         delete_snapshots: bool = False,
+        **_kwargs,
     ) -> None:
         self.success = success
 
@@ -271,10 +271,6 @@ class ScenarioRunner:
 
         self.data_path = data_path
         self.environment = environment
-
-        # Set the client executable to use
-        if raiden_client is not None:
-            self.environment.raiden_client = raiden_client
 
         self.task_count = 0
         self.running_task_count = 0

@@ -12,5 +12,5 @@
     "wait_short": 30,
     "wait_long": 60,
     "gas_price": "rpc",
-    "matrix_servers": [ "auto", "auto", "auto", "auto" ]
+    "matrix_servers": [ "auto" ]
 }

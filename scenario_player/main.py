@@ -5,6 +5,7 @@ import sys
 import tempfile
 import traceback
 from contextlib import AbstractContextManager, contextmanager, nullcontext
+from dataclasses import fields
 from datetime import datetime
 from io import StringIO
 from itertools import cycle, islice
@@ -172,12 +173,32 @@ def environment_option(func):
     )
     @functools.wraps(func)
     def wrapper(*args, environment: IO, **kwargs):
-        return func(*args, environment=_load_environment(environment), **kwargs)
+        return func(*args, environment=_load_environment(environment, **kwargs), **kwargs)
 
     return wrapper
 
 
-@click.group(invoke_without_command=True, context_settings={"max_content_width": 120})
+def eth_rpc_option(func):
+    """Decorator for adding '--eth-rpc-endpoint' to subcommands."""
+
+    @click.option(
+        "--eth-rpc-endpoint",
+        "eth_rpc_endpoints",
+        default=None,
+        multiple=True,
+        help="Eth-RPC endpoint URI [overrides `env` eth_rpc_endpoints]",
+    )
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@click.group(
+    invoke_without_command=True,
+    context_settings={"max_content_width": 120, "auto_envvar_prefix": "SP"},
+)
 def main():
     # Disable printing stack traces by the hub, which breaks the TUI and
     # duplicates the traces.
@@ -210,6 +231,7 @@ def main():
     default=None,
     help="The client executable to use [default set by `env` file]",
 )
+@eth_rpc_option
 @environment_option
 @key_password_options
 @data_path_option
@@ -223,7 +245,7 @@ def run(
     password_file: str,
     environment: EnvironmentConfig,
     delete_snapshots: bool,
-    raiden_client: Optional[str],
+    **kwargs,
 ):
     """Execute a scenario as defined in scenario definition file.
     click entrypoint, this dispatches to `run_`.
@@ -243,11 +265,11 @@ def run(
         log_file_name=log_file_name,
         environment=environment,
         delete_snapshots=delete_snapshots,
-        raiden_client=raiden_client,
+        **kwargs,
     )
 
 
-def _load_environment(environment_file: IO) -> EnvironmentConfig:
+def _load_environment(environment_file: IO, **kwargs) -> EnvironmentConfig:
     """Load the environment JSON file and process matrix server list
 
     Nodes can be assigned to fixed matrix servers. To allow this, we must
@@ -262,10 +284,19 @@ def _load_environment(environment_file: IO) -> EnvironmentConfig:
             DEFAULT_MATRIX_KNOWN_SERVERS[Environment(environment["environment_type"])],
         )
         matrix_servers: Sequence[URI] = get_matrix_servers(matrix_server_list)  # type: ignore
-        if len(matrix_servers) < 4:
-            matrix_servers = list(islice(cycle(matrix_servers), 4))
-
         environment["matrix_servers"] = matrix_servers
+
+    if len(environment["matrix_servers"]) < 4:
+        environment["matrix_servers"] = list(islice(cycle(environment["matrix_servers"]), 4))
+
+    environment.update(
+        {
+            k: v
+            for k, v in kwargs.items()
+            if k in {field.name for field in fields(EnvironmentConfig)}
+            and (v or isinstance(v, (int, float, bool)))
+        }
+    )
 
     return EnvironmentConfig(
         environment_file_name=environment_file.name,
@@ -284,8 +315,8 @@ def run_(
     log_file_name: str,
     environment: EnvironmentConfig,
     delete_snapshots: bool,
-    raiden_client: Optional[str],
     smoketest_deployment_data=None,
+    **kwargs,
 ) -> None:
     """Execute a scenario as defined in scenario definition file.
     (Shared code for `run` and `smoketest` command).
@@ -332,7 +363,7 @@ def run_(
             success=success,
             smoketest_deployment_data=smoketest_deployment_data,
             delete_snapshots=delete_snapshots,
-            raiden_client=raiden_client,
+            **kwargs,
         )
         if enable_ui:
             ui: AbstractContextManager = ScenarioUIManager(
@@ -431,6 +462,7 @@ class ScenarioUIManager(AbstractContextManager):
     help="Withdraw and reclaim tokens deposited in the UserDeposit contract",
 )
 @key_password_options
+@eth_rpc_option
 @environment_option
 @data_path_option
 def reclaim_eth(
@@ -442,6 +474,7 @@ def reclaim_eth(
     keystore_file,
     environment: EnvironmentConfig,
     data_path,
+    **_kwargs,
 ):
     eth_rpc_endpoint = environment.eth_rpc_endpoints[0]
     log.info("start cmd", eth_rpc_endpoint=eth_rpc_endpoint)
@@ -644,4 +677,4 @@ def create_smoketest_config_file(setup: "RaidenTestSetup", datadir: str) -> Path
 
 
 if __name__ == "__main__":
-    main()  # pylint: disable=no-value-for-parameter
+    main()
