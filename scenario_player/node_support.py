@@ -14,7 +14,6 @@ from eth_typing import URI, ChecksumAddress
 from eth_utils import to_checksum_address
 from gevent.pool import Group, Pool
 
-from raiden.ui.cli import FLAG_OPTIONS, KNOWN_OPTIONS
 from raiden.utils.nursery import Nursery
 from scenario_player.exceptions import ScenarioError
 from scenario_player.utils.configuration.nodes import NodesConfig
@@ -22,6 +21,95 @@ from scenario_player.utils.process import unused_port
 
 if TYPE_CHECKING:
     from scenario_player.runner import ScenarioRunner
+
+FLAG_OPTIONS = {
+    "no-accept-disclaimer",
+    "no-switch-tracing",
+    "no-debug-logfile",
+    "enable-monitoring",
+    "enable-tracing",
+    "switch-tracing",
+    "console",
+    "no-cap-mediation-fees",
+    "log-json",
+    "web-ui",
+    "no-sync-check",
+    "no-enable-tracing",
+    "no-enable-monitoring",
+    "accept-disclaimer",
+    "version",
+    "sync-check",
+    "no-log-json",
+    "unrecoverable-error-should-crash",
+    "cap-mediation-fees",
+    "debug-logfile",
+    "rpc",
+    "no-web-ui",
+    "no-version",
+    "no-unrecoverable-error-should-crash",
+    "no-console",
+    "no-rpc",
+}
+KNOWN_OPTIONS = {
+    "resolver-endpoint",
+    "pathfinding-max-paths",
+    "no-accept-disclaimer",
+    "blockchain-query-interval",
+    "no-switch-tracing",
+    "enable-monitoring",
+    "enable-tracing",
+    "switch-tracing",
+    "console",
+    "no-sync-check",
+    "web-ui",
+    "routing-mode",
+    "no-enable-monitoring",
+    "accept-disclaimer",
+    "version",
+    "unrecoverable-error-should-crash",
+    "log-memory-usage-interval",
+    "matrix-server",
+    "debug-logfile",
+    "rpc",
+    "development-environment",
+    "flat-fee",
+    "no-web-ui",
+    "no-unrecoverable-error-should-crash",
+    "pathfinding-max-fee",
+    "rpccorsdomain",
+    "config-file",
+    "proportional-imbalance-fee",
+    "api-address",
+    "user-deposit-contract-address",
+    "debug-logfile-path",
+    "address",
+    "pathfinding-iou-timeout",
+    "no-debug-logfile",
+    "no-cap-mediation-fees",
+    "environment-type",
+    "pathfinding-service-address",
+    "log-json",
+    "no-enable-tracing",
+    "default-reveal-timeout",
+    "gas-price",
+    "log-config",
+    "log-file",
+    "sync-check",
+    "no-log-json",
+    "default-settle-timeout",
+    "cap-mediation-fees",
+    "keystore-path",
+    "datadir",
+    "password-file",
+    "proportional-fee",
+    "no-version",
+    "chain-id",
+    "no-console",
+    "no-rpc",
+    "flamegraph",
+    "eth-rpc-endpoint",
+}
+
 
 log = structlog.get_logger(__name__)
 
