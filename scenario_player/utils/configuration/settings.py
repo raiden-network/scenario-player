@@ -5,10 +5,7 @@ from typing import Callable, Iterator, List, Optional, Sequence, Union
 
 import structlog
 from eth_typing import URI
-from raiden_contracts.contract_manager import ContractDevEnvironment
-from typing_extensions import Literal
-
-from raiden.utils.typing import (
+from raiden_common.utils.typing import (
     BlockTimeout,
     ChainID,
     ChecksumAddress,
@@ -16,6 +13,9 @@ from raiden.utils.typing import (
     TokenAddress,
     TokenAmount,
 )
+from raiden_contracts.contract_manager import ContractDevEnvironment
+from typing_extensions import Literal
+
 from scenario_player.constants import GAS_STRATEGIES, TIMEOUT
 from scenario_player.exceptions.config import (
     ScenarioConfigurationError,

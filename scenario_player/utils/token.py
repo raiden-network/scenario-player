@@ -7,12 +7,12 @@ import structlog
 from eth_typing import ChecksumAddress
 from eth_utils import to_hex
 from gevent import Greenlet
+from raiden_common.network.proxies.custom_token import CustomToken
+from raiden_common.network.proxies.user_deposit import UserDeposit
+from raiden_common.network.rpc.client import EthTransfer, JSONRPCClient
+from raiden_common.utils.typing import Address, Set, TokenAmount
 from typing_extensions import TypedDict
 
-from raiden.network.proxies.custom_token import CustomToken
-from raiden.network.proxies.user_deposit import UserDeposit
-from raiden.network.rpc.client import EthTransfer, JSONRPCClient
-from raiden.utils.typing import Address, Set, TokenAmount
 from scenario_player.exceptions.config import TokenFileError, TokenFileMissing
 
 CUSTOM_TOKEN_NAME = "CustomToken"

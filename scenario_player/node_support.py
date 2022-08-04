@@ -13,8 +13,8 @@ from eth_keyfile import create_keyfile_json
 from eth_typing import URI, ChecksumAddress
 from eth_utils import to_checksum_address
 from gevent.pool import Group, Pool
+from raiden_common.utils.nursery import Nursery
 
-from raiden.utils.nursery import Nursery
 from scenario_player.exceptions import ScenarioError
 from scenario_player.utils.configuration.nodes import NodesConfig
 from scenario_player.utils.process import unused_port

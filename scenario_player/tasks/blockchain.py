@@ -9,6 +9,8 @@ else:
 import structlog
 from eth_abi.codec import ABICodec
 from eth_utils import encode_hex, event_abi_to_log_topic, to_canonical_address, to_checksum_address
+from raiden_common.settings import RAIDEN_CONTRACT_VERSION
+from raiden_common.utils.typing import ABI, Address, BlockNumber, ChecksumAddress
 from raiden_contracts.constants import (
     CONTRACT_MONITORING_SERVICE,
     CONTRACT_TOKEN_NETWORK,
@@ -20,8 +22,6 @@ from web3._utils.abi import filter_by_type
 from web3._utils.events import get_event_data
 from web3.types import FilterParams, LogReceipt
 
-from raiden.settings import RAIDEN_CONTRACT_VERSION
-from raiden.utils.typing import ABI, Address, BlockNumber, ChecksumAddress
 from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.tasks.base import Task

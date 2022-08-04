@@ -20,6 +20,25 @@ from click.utils import LazyFile
 from eth_typing import URI, HexStr
 from eth_utils import to_canonical_address, to_checksum_address
 from gevent.event import Event
+from raiden_common.accounts import Account
+from raiden_common.constants import Environment, EthClient
+from raiden_common.log_config import _FIRST_PARTY_PACKAGES, configure_logging
+from raiden_common.network.rpc.client import make_sane_poa_middleware
+from raiden_common.network.rpc.middleware import faster_gas_price_strategy
+from raiden_common.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
+from raiden_common.utils.cli import AddressType, EnumChoiceType, get_matrix_servers, option
+from raiden_common.utils.typing import (
+    TYPE_CHECKING,
+    Address,
+    Any,
+    AnyStr,
+    BlockTimeout,
+    Dict,
+    FeeAmount,
+    Optional,
+    TokenAddress,
+    TokenAmount,
+)
 from raiden_contracts.constants import CHAINNAME_TO_ID
 from raiden_contracts.contract_manager import (
     ContractManager,
@@ -32,25 +51,6 @@ from web3 import HTTPProvider, Web3
 from web3.middleware import simple_cache_middleware
 
 import scenario_player.utils
-from raiden.accounts import Account
-from raiden.constants import Environment, EthClient
-from raiden.log_config import _FIRST_PARTY_PACKAGES, configure_logging
-from raiden.network.rpc.client import make_sane_poa_middleware
-from raiden.network.rpc.middleware import faster_gas_price_strategy
-from raiden.settings import DEFAULT_MATRIX_KNOWN_SERVERS, RAIDEN_CONTRACT_VERSION
-from raiden.utils.cli import AddressType, EnumChoiceType, get_matrix_servers, option
-from raiden.utils.typing import (
-    TYPE_CHECKING,
-    Address,
-    Any,
-    AnyStr,
-    BlockTimeout,
-    Dict,
-    FeeAmount,
-    Optional,
-    TokenAddress,
-    TokenAmount,
-)
 from scenario_player import __version__, tasks
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.exceptions.cli import WrongPassword
@@ -64,7 +64,7 @@ from scenario_player.utils.reclaim import ReclamationCandidate, get_reclamation_
 from scenario_player.utils.version import get_complete_spec
 
 if TYPE_CHECKING:
-    from raiden.tests.utils.smoketest import RaidenTestSetup
+    from raiden_common.tests.utils.smoketest import RaidenTestSetup
 
 log = structlog.get_logger(__name__)
 DEFAULT_ENV_FILE = Path(__file__).parent / "environment" / "development.json"
@@ -537,8 +537,8 @@ def smoketest_deployed_contracts(contracts: Dict[str, Any]) -> DeployedContracts
     help="Which Ethereum client to run for the smoketests",
 )
 def smoketest(eth_client: EthClient):
-    from raiden.network.utils import get_free_port
-    from raiden.tests.utils.smoketest import setup_smoketest, step_printer
+    from raiden_common.network.utils import get_free_port
+    from raiden_common.tests.utils.smoketest import setup_smoketest, step_printer
 
     free_port_generator = get_free_port()
     datadir = mkdtemp()

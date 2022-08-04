@@ -3,7 +3,7 @@ import socket
 from contextlib import closing
 from socket import SocketKind
 
-from raiden.network.utils import LOOPBACK
+from raiden_common.network.utils import LOOPBACK
 
 
 def unused_port() -> int:

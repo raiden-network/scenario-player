@@ -4,12 +4,12 @@ from typing import Iterable, Optional
 import click
 import structlog
 from eth_utils import encode_hex
+from raiden_common.network.rpc.client import TransactionSent
 from requests.adapters import HTTPAdapter  # ugly import, it'll be in py3.8
 from web3 import Web3
 from web3.exceptions import TransactionNotFound
 from web3.types import TxReceipt
 
-from raiden.network.rpc.client import TransactionSent
 from scenario_player.exceptions import ScenarioTxError
 
 log = structlog.get_logger(__name__)
