@@ -1,0 +1,15 @@
+{
+    "environment_type": "development",
+    "matrix_server_list": "https://raw.githubusercontent.com/raiden-network/raiden-service-bundle/goerli-latest-servers/known_servers/known_servers-goerli-latest.json",
+    "pfs_with_fee": "https://pfs.goerli-latest1.env.raiden.network",
+    "eth_rpc_endpoints": [
+        "http://geth.goerli.ethnodes.brainbot.com:8545"
+    ],
+    "transfer_token": "0xC563388e2e2fdD422166eD5E76971D11eD37A466",
+    "pfs_fee": 100,
+    "ms_reward_with_margin": 5500000000000000000,
+    "settlement_timeout_min": 40,
+    "raiden_client": "raiden",
+    "wait_short": 30,
+    "wait_long": 60
+}
