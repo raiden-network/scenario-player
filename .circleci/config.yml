@@ -35,6 +35,7 @@ commands:
             cd geth*/
             install -m 755 geth ~/.local/bin/geth
             pip install -U poetry
+            curl -sSL https://install.python-poetry.org | python3 - --preview
             echo 'export PATH=~/.local/bin:$PATH' >> ${BASH_ENV}
             echo 'export LANG=C.UTF-8' >> ${BASH_ENV}
             echo 'export LC_ALL=C.UTF-8' >> ${BASH_ENV}
