@@ -12,6 +12,24 @@ from eth_utils import encode_hex, is_checksum_address, to_checksum_address, to_h
 from gevent import Greenlet
 from gevent.event import Event
 from gevent.pool import Pool
+from raiden_common.accounts import Account
+from raiden_common.constants import UINT256_MAX
+from raiden_common.network.proxies.custom_token import CustomToken
+from raiden_common.network.proxies.proxy_manager import ProxyManager
+from raiden_common.network.proxies.token_network_registry import TokenNetworkRegistry
+from raiden_common.network.proxies.user_deposit import UserDeposit
+from raiden_common.network.rpc.client import JSONRPCClient
+from raiden_common.network.rpc.middleware import faster_gas_price_strategy
+from raiden_common.settings import DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS, RAIDEN_CONTRACT_VERSION
+from raiden_common.utils.formatting import to_canonical_address
+from raiden_common.utils.nursery import Janitor
+from raiden_common.utils.typing import (
+    Address,
+    ChainID,
+    TokenAddress,
+    TokenNetworkAddress,
+    TokenNetworkRegistryAddress,
+)
 from raiden_contracts.constants import (
     CHAINNAME_TO_ID,
     CONTRACT_CUSTOM_TOKEN,
@@ -26,24 +44,6 @@ from raiden_contracts.utils.type_aliases import TokenAmount
 from requests import HTTPError, Session
 from web3 import HTTPProvider, Web3
 
-from raiden.accounts import Account
-from raiden.constants import UINT256_MAX
-from raiden.network.proxies.custom_token import CustomToken
-from raiden.network.proxies.proxy_manager import ProxyManager
-from raiden.network.proxies.token_network_registry import TokenNetworkRegistry
-from raiden.network.proxies.user_deposit import UserDeposit
-from raiden.network.rpc.client import JSONRPCClient
-from raiden.network.rpc.middleware import faster_gas_price_strategy
-from raiden.settings import DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS, RAIDEN_CONTRACT_VERSION
-from raiden.utils.formatting import to_canonical_address
-from raiden.utils.nursery import Janitor
-from raiden.utils.typing import (
-    Address,
-    ChainID,
-    TokenAddress,
-    TokenNetworkAddress,
-    TokenNetworkRegistryAddress,
-)
 from scenario_player.constants import (
     API_URL_TOKEN_NETWORK_ADDRESS,
     MAX_RAIDEN_STARTUP_TIME,
@@ -85,7 +85,7 @@ log = structlog.get_logger(__name__)
 # The `mint` function checks for overflow of the total supply. Here we
 # have a large enough number for both scenario runs and the scenario
 # orchestration account capacity.
-NUMBER_OF_RUNS_BEFORE_OVERFLOW = 2 ** 64
+NUMBER_OF_RUNS_BEFORE_OVERFLOW = 2**64
 ORCHESTRATION_MAXIMUM_BALANCE = UINT256_MAX // NUMBER_OF_RUNS_BEFORE_OVERFLOW
 
 

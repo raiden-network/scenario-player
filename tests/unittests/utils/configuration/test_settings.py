@@ -2,7 +2,7 @@ import pytest
 from eth_typing import URI
 from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
 
-from raiden.utils.typing import BlockTimeout, FeeAmount, TokenAddress, TokenAmount
+from raiden_common.utils.typing import BlockTimeout, FeeAmount, TokenAddress, TokenAmount
 from scenario_player.utils.configuration.settings import (
     EnvironmentConfig,
     PFSSettingsConfig,

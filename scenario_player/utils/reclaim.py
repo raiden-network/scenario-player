@@ -10,35 +10,26 @@ import structlog
 from eth_keyfile import decode_keyfile_json
 from eth_utils import to_canonical_address, to_checksum_address
 from gevent.pool import Pool
-from raiden_contracts.constants import CONTRACT_TOKEN_NETWORK_REGISTRY, ChannelEvent
-from raiden_contracts.contract_manager import (
-    ContractDevEnvironment,
-    ContractManager,
-    DeployedContracts,
-    get_contracts_deployment_info,
-)
-from web3 import Web3
-
-from raiden.accounts import Account
-from raiden.blockchain.events import BlockchainEvents
-from raiden.blockchain.filters import RaidenContractFilter
-from raiden.constants import BLOCK_ID_LATEST
-from raiden.exceptions import InsufficientEth
-from raiden.messages.abstract import cached_property
-from raiden.network.proxies.custom_token import CustomToken
-from raiden.network.proxies.proxy_manager import ProxyManager
-from raiden.network.proxies.token_network import TokenNetwork, WithdrawInput
-from raiden.network.rpc.client import EthTransfer, JSONRPCClient
-from raiden.network.rpc.middleware import faster_gas_price_strategy
-from raiden.settings import (
+from raiden_common.accounts import Account
+from raiden_common.blockchain.events import BlockchainEvents
+from raiden_common.blockchain.filters import RaidenContractFilter
+from raiden_common.constants import BLOCK_ID_LATEST
+from raiden_common.exceptions import InsufficientEth
+from raiden_common.messages.abstract import cached_property
+from raiden_common.network.proxies.custom_token import CustomToken
+from raiden_common.network.proxies.proxy_manager import ProxyManager
+from raiden_common.network.proxies.token_network import TokenNetwork, WithdrawInput
+from raiden_common.network.rpc.client import EthTransfer, JSONRPCClient
+from raiden_common.network.rpc.middleware import faster_gas_price_strategy
+from raiden_common.settings import (
     DEFAULT_NUMBER_OF_BLOCK_CONFIRMATIONS,
     RAIDEN_CONTRACT_VERSION,
     BlockBatchSizeConfig,
 )
-from raiden.transfer.identifiers import CanonicalIdentifier
-from raiden.utils.packing import pack_withdraw
-from raiden.utils.signer import LocalSigner
-from raiden.utils.typing import (
+from raiden_common.transfer.identifiers import CanonicalIdentifier
+from raiden_common.utils.packing import pack_withdraw
+from raiden_common.utils.signer import LocalSigner
+from raiden_common.utils.typing import (
     Address,
     BlockExpiration,
     BlockIdentifier,
@@ -53,6 +44,15 @@ from raiden.utils.typing import (
     TokenNetworkRegistryAddress,
     WithdrawAmount,
 )
+from raiden_contracts.constants import CONTRACT_TOKEN_NETWORK_REGISTRY, ChannelEvent
+from raiden_contracts.contract_manager import (
+    ContractDevEnvironment,
+    ContractManager,
+    DeployedContracts,
+    get_contracts_deployment_info,
+)
+from web3 import Web3
+
 from scenario_player.utils.contracts import (
     get_proxy_manager,
     get_udc_and_corresponding_token_from_dependencies,

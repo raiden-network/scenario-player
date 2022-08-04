@@ -2,6 +2,12 @@ from typing import Tuple
 
 from eth_typing import ChecksumAddress
 from eth_utils import to_canonical_address
+from raiden_common.network.proxies.custom_token import CustomToken
+from raiden_common.network.proxies.proxy_manager import ProxyManager, ProxyManagerMetadata
+from raiden_common.network.proxies.user_deposit import UserDeposit
+from raiden_common.network.rpc.client import JSONRPCClient
+from raiden_common.settings import RAIDEN_CONTRACT_VERSION
+from raiden_common.utils.typing import BlockNumber, ChainID, UserDepositAddress
 from raiden_contracts.constants import CONTRACT_TOKEN_NETWORK_REGISTRY, CONTRACT_USER_DEPOSIT
 from raiden_contracts.contract_manager import (
     ContractDevEnvironment,
@@ -10,13 +16,6 @@ from raiden_contracts.contract_manager import (
     contracts_precompiled_path,
     get_contracts_deployment_info,
 )
-
-from raiden.network.proxies.custom_token import CustomToken
-from raiden.network.proxies.proxy_manager import ProxyManager, ProxyManagerMetadata
-from raiden.network.proxies.user_deposit import UserDeposit
-from raiden.network.rpc.client import JSONRPCClient
-from raiden.settings import RAIDEN_CONTRACT_VERSION
-from raiden.utils.typing import BlockNumber, ChainID, UserDepositAddress
 
 
 def get_proxy_manager(client: JSONRPCClient, deploy: DeployedContracts) -> ProxyManager:

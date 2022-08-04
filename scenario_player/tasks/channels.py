@@ -2,9 +2,9 @@ import hashlib
 from typing import Any
 
 import structlog
+from raiden_common.utils.formatting import to_checksum_address
 from toolz import first
 
-from raiden.utils.formatting import to_checksum_address
 from scenario_player import runner as scenario_runner
 from scenario_player.exceptions import ScenarioAssertionError, ScenarioError
 from scenario_player.tasks.base import Task

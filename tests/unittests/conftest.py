@@ -10,9 +10,9 @@ from eth_typing import ChecksumAddress
 from eth_utils.address import to_checksum_address
 from raiden_contracts.contract_manager import ContractManager
 
-from raiden.network.rpc.client import JSONRPCClient
-from raiden.utils.formatting import to_canonical_address
-from raiden.utils.typing import Address
+from raiden_common.network.rpc.client import JSONRPCClient
+from raiden_common.utils.formatting import to_canonical_address
+from raiden_common.utils.typing import Address
 from scenario_player.tasks.base import Task
 from tests.unittests.constants import TEST_TOKEN_ADDRESS, TEST_TOKEN_NETWORK_ADDRESS
 
